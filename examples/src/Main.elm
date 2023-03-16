@@ -34,13 +34,17 @@ main =
 
 
 type alias Model =
-    { pageFormState : Pages.FormState.PageFormState
+    { pageFormState :
+        -- TODO move `Pages.FormState.PageFormState` type into a nicer module name (and one that is exposed)
+        Pages.FormState.PageFormState
     }
 
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { pageFormState = Form.Msg.init
+    ( { pageFormState =
+            -- TODO move `Form.Msg.init` into a different module... `Form.State`?
+            Form.Msg.init
       }
     , Cmd.none
     )
@@ -59,6 +63,7 @@ update msg model =
         FormMsg formMsg ->
             let
                 ( updatedFormModel, cmd ) =
+                    -- TODO move `Form.Msg.update` into a different module... `Form.State`?
                     Form.Msg.update formMsg model.pageFormState
             in
             ( { model | pageFormState = updatedFormModel }, cmd )
@@ -73,13 +78,11 @@ view model =
                 |> Form.withOnSubmit OnSubmit
                 |> Form.renderHtml "form"
                     []
+                    -- TODO get rid of errorData argument (completely, or just for vanilla apps)
                     (\_ -> Nothing)
+                    -- TODO for vanilla apps, ideally user passes in `model.pageFormState` instead of this record
                     { path = []
                     , action = Nothing -- Maybe actionData
-
-                    --, submit :
-                    --    { fields : List ( String, String ), headers : List ( String, String ) }
-                    --    -> Pages.Fetcher.Fetcher (Result Http.Error action)
                     , transition = Nothing --Maybe Transition
                     , fetchers = Dict.empty --Dict String (Pages.Transition.FetcherState (Maybe actionData))
                     , pageFormState = model.pageFormState
