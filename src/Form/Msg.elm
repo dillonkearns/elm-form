@@ -3,6 +3,7 @@ module Form.Msg exposing (FormData, Method(..), Msg(..), onSubmitDecoder)
 {-| -}
 
 import Json.Decode as Decode exposing (Decoder)
+import Pages.FormState exposing (FieldEvent)
 
 
 onSubmitDecoder : Decoder Msg
@@ -38,7 +39,7 @@ methodDecoder =
 
 type Msg
     = Submit FormData
-    | FormFieldEvent Decode.Value
+    | FormFieldEvent FieldEvent
 
 
 type alias FormData =

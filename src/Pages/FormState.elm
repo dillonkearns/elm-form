@@ -8,7 +8,6 @@ module Pages.FormState exposing (Event(..), FieldEvent, FieldState, FormState, P
 
 import Dict exposing (Dict)
 import Form.FieldStatus as FieldStatus exposing (FieldStatus)
-import Form.Msg as Msg exposing (Msg)
 import Html exposing (Attribute)
 import Html.Attributes as Attr
 import Html.Events
@@ -16,11 +15,11 @@ import Json.Decode as Decode exposing (Decoder)
 
 
 {-| -}
-listeners : String -> List (Attribute Msg)
+listeners : String -> List (Attribute FieldEvent)
 listeners formId =
-    [ Html.Events.on "focusin" (Decode.value |> Decode.map Msg.FormFieldEvent)
-    , Html.Events.on "focusout" (Decode.value |> Decode.map Msg.FormFieldEvent)
-    , Html.Events.on "input" (Decode.value |> Decode.map Msg.FormFieldEvent)
+    [ Html.Events.on "focusin" fieldEventDecoder
+    , Html.Events.on "focusout" fieldEventDecoder
+    , Html.Events.on "input" fieldEventDecoder
     , Attr.id formId
     ]
 
@@ -100,31 +99,26 @@ fieldDecoder =
 
 
 {-| -}
-update : Decode.Value -> PageFormState -> PageFormState
-update eventObject pageFormState =
+update : FieldEvent -> PageFormState -> PageFormState
+update fieldEvent pageFormState =
     --if Dict.isEmpty pageFormState then
     --    -- TODO get all initial field values
     --    pageFormState
     --
     --else
-    case eventObject |> Decode.decodeValue fieldEventDecoder of
-        Ok fieldEvent ->
-            pageFormState
-                |> Dict.update fieldEvent.formId
-                    (\previousValue_ ->
-                        let
-                            previousValue : FormState
-                            previousValue =
-                                previousValue_
-                                    |> Maybe.withDefault init
-                        in
-                        previousValue
-                            |> updateForm fieldEvent
-                            |> Just
-                    )
-
-        Err _ ->
-            pageFormState
+    pageFormState
+        |> Dict.update fieldEvent.formId
+            (\previousValue_ ->
+                let
+                    previousValue : FormState
+                    previousValue =
+                        previousValue_
+                            |> Maybe.withDefault init
+                in
+                previousValue
+                    |> updateForm fieldEvent
+                    |> Just
+            )
 
 
 {-| -}

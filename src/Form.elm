@@ -1100,7 +1100,9 @@ renderHelper formId attrs accessResponse formState data ((Form options _ _ _) as
             Html.input hiddenAttrs []
     in
     Html.form
-        (Form.listeners formId
+        ((Form.listeners formId
+            |> List.map (Attr.map Form.Msg.FormFieldEvent)
+         )
             ++ [ Attr.method (methodToString options.method)
                , Attr.novalidate True
 
@@ -1146,7 +1148,10 @@ renderStyledHelper formId attrs accessResponse formState data ((Form options _ _
             Html.Styled.input (hiddenAttrs |> List.map StyledAttr.fromUnstyled) []
     in
     Html.Styled.form
-        ((Form.listeners formId |> List.map StyledAttr.fromUnstyled)
+        ((Form.listeners formId
+            |> List.map (Attr.map Form.Msg.FormFieldEvent)
+            |> List.map StyledAttr.fromUnstyled
+         )
             ++ [ StyledAttr.method (methodToString options.method)
                , StyledAttr.novalidate True
                , StyledAttr.action ("/" ++ String.join "/" formState.path)
