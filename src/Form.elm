@@ -7,14 +7,10 @@ module Form exposing
     , renderHtml, renderStyledHtml
     , withGetMethod, toDynamicFetcher
     , Errors, errorsForField
-    , parse, runServerSide, runOneOfServerSide
-    , ServerForms(..)
-    , initCombined, combine
+    , parse, runServerSide
     , dynamic
     , AppContext
     , withOnSubmit
-    --, toServerForm
-    --, initCombinedServer, combineServer
     -- subGroup
     )
 
@@ -245,16 +241,7 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
 
 ## Running Parsers
 
-@docs parse, runServerSide, runOneOfServerSide
-
-
-## Combining Forms to Run on Server
-
-@docs ServerForms
-
-@docs initCombined, combine
-
--- TODO @docs initCombinedServer, combineServer, toServerForm
+@docs parse, runServerSide
 
 
 ## Dynamic Fields
@@ -269,10 +256,6 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
 @docs withOnSubmit
 
 -}
-
---import BackendTask exposing (BackendTask)
---import FatalError exposing (FatalError)
---import Pages.Internal.Msg
 
 import Dict exposing (Dict)
 import Form.Field as Field exposing (Field(..))
@@ -683,55 +666,6 @@ hiddenField name (Field fieldParser _) (Internal.Form.Form options definitions p
         )
 
 
-
---{-| -}
---toServerForm :
---    Form
---        error
---        { combine : Form.Validation.Validation error combined kind constraints
---        , view : viewFn
---        }
---        data
---        msg
---    ->
---        Form
---            error
---            { combine : Form.Validation.Validation error (BackendTask FatalError (Form.Validation.Validation error combined kind constraints)) kind constraints
---            , view : viewFn
---            }
---            data
---            msg
---toServerForm (Form options a b c) =
---    let
---        mappedB :
---            Maybe data
---            -> FormState
---            ->
---                { result : Dict String (List error)
---                , isMatchCandidate : Bool
---                , combineAndView :
---                    { combine : Form.Validation.Validation error (BackendTask FatalError (Form.Validation.Validation error combined kind constraints)) kind constraints
---                    , view : viewFn
---                    }
---                }
---        mappedB maybeData formState =
---            b maybeData formState
---                |> (\thing ->
---                        { result = thing.result
---                        , combineAndView =
---                            { combine =
---                                thing.combineAndView.combine
---                                    |> BackendTask.succeed
---                                    |> Form.Validation.succeed2
---                            , view = thing.combineAndView.view
---                            }
---                        , isMatchCandidate = thing.isMatchCandidate
---                        }
---                   )
---    in
---    Form options a mappedB c
-
-
 {-| -}
 hiddenKind :
     ( String, String )
@@ -939,58 +873,6 @@ runServerSide rawFormData (Internal.Form.Form _ _ parser _) =
 unwrapValidation : Validation error parsed named constraints -> ( Maybe parsed, Dict String (List error) )
 unwrapValidation (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors )) =
     ( maybeParsed, errors )
-
-
-{-| -}
-runOneOfServerSide :
-    List ( String, String )
-    -> ServerForms error parsed
-    -> ( Maybe parsed, Dict String (List error) )
-runOneOfServerSide rawFormData forms =
-    runOneOfServerSideHelp rawFormData Nothing forms
-
-
-{-| -}
-runOneOfServerSideHelp :
-    List ( String, String )
-    -> Maybe (List ( String, List error ))
-    -> ServerForms error parsed
-    -> ( Maybe parsed, Dict String (List error) )
-runOneOfServerSideHelp rawFormData firstFoundErrors (ServerForms parsers) =
-    case parsers of
-        firstParser :: remainingParsers ->
-            let
-                ( isMatchCandidate, thing1 ) =
-                    runServerSide rawFormData firstParser
-
-                thing : ( Maybe parsed, List ( String, List error ) )
-                thing =
-                    thing1
-                        |> Tuple.mapSecond
-                            (\errors ->
-                                errors
-                                    |> Dict.toList
-                                    |> List.filter (Tuple.second >> List.isEmpty >> not)
-                            )
-            in
-            case ( isMatchCandidate, thing ) of
-                ( True, ( Just parsed, errors ) ) ->
-                    ( Just parsed, errors |> Dict.fromList )
-
-                ( _, ( _, errors ) ) ->
-                    runOneOfServerSideHelp rawFormData
-                        (firstFoundErrors
-                            -- TODO is this logic what we want here? Might need to think through the semantics a bit more
-                            -- of which errors to parse into - could be the first errors, the last, or some other way of
-                            -- having higher precedence for deciding which form should be used
-                            |> Maybe.withDefault errors
-                            |> Just
-                        )
-                        (ServerForms remainingParsers)
-
-        [] ->
-            -- TODO need to pass errors
-            ( Nothing, firstFoundErrors |> Maybe.withDefault [] |> Dict.fromList )
 
 
 {-| -}
@@ -1439,119 +1321,6 @@ type alias HtmlForm error parsed input msg =
         parsed
         input
         msg
-
-
-{-| -}
-type ServerForms error parsed
-    = ServerForms
-        (List
-            (Form
-                error
-                (Combined error parsed)
-                Never
-                Never
-                Never
-            )
-        )
-
-
-{-| -}
-initCombined :
-    (parsed -> combined)
-    ->
-        Form
-            error
-            { combineAndView
-                | combine : Form.Validation.Validation error parsed kind constraints
-            }
-            parsed
-            input
-            msg
-    -> ServerForms error combined
-initCombined mapFn form =
-    ServerForms [ normalizeServerForm mapFn form ]
-
-
-normalizeServerForm :
-    (parsed -> combined)
-    -> Form error { combineAndView | combine : Form.Validation.Validation error parsed kind constraints } parsed input msg
-    -> Form error (Combined error combined) Never Never Never
-normalizeServerForm mapFn (Internal.Form.Form options _ parseFn _) =
-    Internal.Form.Form
-        { onSubmit = Nothing
-        , submitStrategy = options.submitStrategy
-        , method = options.method
-        }
-        []
-        (\_ formState ->
-            let
-                parsed :
-                    { result : Dict String (List error)
-                    , isMatchCandidate : Bool
-                    , combineAndView : { combineAndView | combine : Form.Validation.Validation error parsed kind constraints }
-                    }
-                parsed =
-                    parseFn Nothing formState
-            in
-            { result = parsed.result
-            , combineAndView = parsed.combineAndView.combine |> Form.Validation.mapWithNever mapFn
-            , isMatchCandidate = parsed.isMatchCandidate
-            }
-        )
-        (\_ -> [])
-
-
-{-| -}
-combine :
-    (parsed -> combined)
-    ->
-        Form
-            error
-            { combineAndView
-                | combine : Form.Validation.Validation error parsed kind constraints
-            }
-            parsed
-            input
-            msg
-    -> ServerForms error combined
-    -> ServerForms error combined
-combine mapFn form (ServerForms serverForms) =
-    ServerForms (serverForms ++ [ normalizeServerForm mapFn form ])
-
-
-
---{-| -}
---initCombinedServer :
---    (parsed -> combined)
---    ->
---        Form
---            error
---            { combineAndView
---                | combine : Combined error (BackendTask backendTaskError (Form.Validation.Validation error parsed kind constraints))
---            }
---            input
---            msg
---    -> ServerForms error (BackendTask backendTaskError (Form.Validation.Validation error combined kind constraints))
---initCombinedServer mapFn serverForms =
---    initCombined (BackendTask.map (Form.Validation.map mapFn)) serverForms
---
---
---{-| -}
---combineServer :
---    (parsed -> combined)
---    ->
---        Form
---            error
---            { combineAndView
---                | combine :
---                    Combined error (BackendTask backendTaskError (Form.Validation.Validation error parsed kind constraints))
---            }
---            input
---            msg
---    -> ServerForms error (BackendTask backendTaskError (Form.Validation.Validation error combined kind constraints))
---    -> ServerForms error (BackendTask backendTaskError (Form.Validation.Validation error combined kind constraints))
---combineServer mapFn a b =
---    combine (BackendTask.map (Form.Validation.map mapFn)) a b
 
 
 {-| -}
