@@ -153,7 +153,6 @@ signUpForm =
         }
     )
         |> Form.init
-        |> Form.hiddenKind ( "kind", "regular" ) "Expected kind."
         |> Form.field "username" (Field.text |> Field.required "Required")
         |> Form.field "password" (Field.text |> Field.password |> Field.required "Required")
         |> Form.field "password-confirmation" (Field.text |> Field.password |> Field.required "Required")
