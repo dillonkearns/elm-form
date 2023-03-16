@@ -79,7 +79,7 @@ fieldStatus (Pages.Internal.Form.Validation viewField _ _) =
 {-| -}
 statusAtLeast : FieldStatus -> Field error parsed kind -> Bool
 statusAtLeast status field =
-    statusRank (field |> fieldStatus) >= statusRank status
+    (field |> fieldStatus |> statusRank) >= statusRank status
 
 
 {-| -}
