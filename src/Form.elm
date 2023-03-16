@@ -1008,18 +1008,29 @@ renderHelper formId attrs accessResponse formState input ((Internal.Form.Form op
                --     TransitionStrategy ->
                --         Pages.Internal.Msg.submitIfValid options.onSubmit formId (\_ -> isValid)
                ]
-            ++ (case options.onSubmit of
-                    Just justOnSubmit ->
-                        [ justOnSubmit
-                            { fields = []
-                            , parsed = parsed |> Result.fromMaybe ()
-                            }
-                            |> Form.Msg.UserMsg
-                            |> Html.Events.onSubmit
-                        ]
+            ++ (let
+                    formDataThing : Form.Msg.FormData
+                    formDataThing =
+                        { fields = [] -- TODO
+                        , method = Form.Msg.Post
+                        , action = formState.path |> String.join "/"
+                        , id = Just formId
+                        }
 
-                    Nothing ->
-                        []
+                    msgThing : Maybe msg
+                    msgThing =
+                        options.onSubmit
+                            |> Maybe.map
+                                (\onSubmit ->
+                                    onSubmit
+                                        { fields = []
+                                        , parsed = parsed |> Result.fromMaybe ()
+                                        }
+                                )
+                in
+                [ Form.Msg.Submit formDataThing msgThing
+                    |> Html.Events.onSubmit
+                ]
                )
             ++ attrs
         )
@@ -1072,19 +1083,26 @@ renderStyledHelper formId attrs accessResponse formState input ((Internal.Form.F
                --         StyledAttr.fromUnstyled <|
                --             Pages.Internal.Msg.submitIfValid options.onSubmit formId (\_ -> isValid)
                ]
-            ++ (case options.onSubmit of
-                    Just justOnSubmit ->
-                        [ justOnSubmit
-                            { fields = []
-                            , parsed = parsed |> Result.fromMaybe ()
-                            }
-                            |> Form.Msg.UserMsg
-                            |> Html.Events.onSubmit
-                            |> StyledAttr.fromUnstyled
-                        ]
+            ++ (let
+                    formDataThing : Form.Msg.FormData
+                    formDataThing =
+                        Debug.todo ""
 
-                    Nothing ->
-                        []
+                    msgThing : Maybe msg
+                    msgThing =
+                        options.onSubmit
+                            |> Maybe.map
+                                (\onSubmit ->
+                                    onSubmit
+                                        { fields = []
+                                        , parsed = parsed |> Result.fromMaybe ()
+                                        }
+                                )
+                in
+                [ Form.Msg.Submit formDataThing msgThing
+                    |> Html.Events.onSubmit
+                    |> StyledAttr.fromUnstyled
+                ]
                )
             ++ attrs
         )
@@ -1202,7 +1220,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
                                 , submitAttempted = True
                                 }
                             )
-                        |> Maybe.withDefault Form.init
+                        |> Maybe.withDefault initSingle
                     )
                 |> (\state -> { state | fields = fullFormState })
 
@@ -1296,6 +1314,13 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
     , children = children
     , isValid = isValid
     , parsed = maybeParsed
+    }
+
+
+initSingle : FormState
+initSingle =
+    { fields = Dict.empty
+    , submitAttempted = False
     }
 
 

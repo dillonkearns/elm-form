@@ -1,13 +1,20 @@
-module Form.Msg exposing (Msg(..), FormData, Method(..), onSubmitDecoder)
+module Form.Msg exposing
+    ( Msg(..), FormData, Method(..), onSubmitDecoder
+    , init, update
+    )
 
 {-|
 
 @docs Msg, FormData, Method, onSubmitDecoder
 
+@docs init, update
+
 -}
 
+import Dict
 import Json.Decode as Decode exposing (Decoder)
 import Pages.FormState exposing (FieldEvent)
+import Task
 
 
 {-| -}
@@ -25,7 +32,7 @@ onSubmitDecoder =
         (Decode.field "method" methodDecoder)
         (Decode.field "action" Decode.string)
         (Decode.field "id" (Decode.nullable Decode.string))
-        |> Decode.map Submit
+        |> Decode.map (\thing -> Submit thing Nothing)
 
 
 methodDecoder : Decoder Method
@@ -44,7 +51,7 @@ methodDecoder =
 
 {-| -}
 type Msg msg
-    = Submit FormData
+    = Submit FormData (Maybe msg)
     | FormFieldEvent FieldEvent
     | UserMsg msg
 
@@ -62,3 +69,33 @@ type alias FormData =
 type Method
     = Get
     | Post
+
+
+{-| -}
+update : Msg msg -> Pages.FormState.PageFormState -> ( Pages.FormState.PageFormState, Cmd msg )
+update formMsg formModel =
+    case formMsg of
+        UserMsg myMsg ->
+            ( formModel
+            , Task.succeed myMsg |> Task.perform identity
+            )
+
+        FormFieldEvent value ->
+            ( Pages.FormState.update value formModel
+            , Cmd.none
+            )
+
+        Submit formData maybeMsg ->
+            ( Pages.FormState.setSubmitAttempted
+                (formData.id |> Maybe.withDefault "form")
+                formModel
+            , maybeMsg
+                |> Maybe.map (\userMsg -> Task.succeed userMsg |> Task.perform identity)
+                |> Maybe.withDefault Cmd.none
+            )
+
+
+{-| -}
+init : Pages.FormState.PageFormState
+init =
+    Dict.empty

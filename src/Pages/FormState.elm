@@ -113,7 +113,7 @@ update fieldEvent pageFormState =
                     previousValue : FormState
                     previousValue =
                         previousValue_
-                            |> Maybe.withDefault init
+                            |> Maybe.withDefault initSingle
                 in
                 previousValue
                     |> updateForm fieldEvent
@@ -131,7 +131,7 @@ setField info pageFormState =
                     previousValue : FormState
                     previousValue =
                         previousValue_
-                            |> Maybe.withDefault init
+                            |> Maybe.withDefault initSingle
                 in
                 { previousValue
                     | fields =
@@ -192,16 +192,21 @@ setSubmitAttempted fieldId pageFormState =
                         Just { formState | submitAttempted = True }
 
                     Nothing ->
-                        Just { init | submitAttempted = True }
+                        Just { initSingle | submitAttempted = True }
             )
 
 
 {-| -}
-init : FormState
-init =
+initSingle : FormState
+initSingle =
     { fields = Dict.empty
     , submitAttempted = False
     }
+
+
+init : PageFormState
+init =
+    Dict.empty
 
 
 {-| -}

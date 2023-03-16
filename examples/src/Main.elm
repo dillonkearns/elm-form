@@ -4,7 +4,7 @@ import Browser
 import Dict exposing (Dict)
 import Form
 import Form.Field as Field
-import Form.FieldStatus exposing (FieldStatus(..))
+import Form.FieldStatus exposing (FieldStatus)
 import Form.FieldView as FieldView
 import Form.Msg
 import Form.Validation as Validation
@@ -40,7 +40,7 @@ type alias Model =
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { pageFormState = Dict.empty
+    ( { pageFormState = Form.Msg.init
       }
     , Cmd.none
     )
@@ -57,24 +57,11 @@ update msg model =
             ( model, Cmd.none )
 
         FormMsg formMsg ->
-            case formMsg of
-                Form.Msg.UserMsg myMsg ->
-                    update myMsg model
-
-                Form.Msg.FormFieldEvent value ->
-                    ( { model
-                        | pageFormState = Pages.FormState.update value model.pageFormState
-                      }
-                    , Cmd.none
-                    )
-
-                Form.Msg.Submit formData ->
-                    ( --{ model
-                      --    | pageFormState = Pages.FormState.update value model.pageFormState
-                      --  }
-                      model
-                    , Cmd.none
-                    )
+            let
+                ( updatedFormModel, cmd ) =
+                    Form.Msg.update formMsg model.pageFormState
+            in
+            ( { model | pageFormState = updatedFormModel }, cmd )
 
 
 view : Model -> Browser.Document Msg
@@ -136,7 +123,7 @@ signUpForm =
                                 []
                                 [ Html.text (label ++ " ")
                                 , FieldView.input [] field
-                                , errorsView formState.errors field
+                                , errorsView formState.submitAttempted formState.errors field
                                 ]
                             ]
                 in
@@ -164,11 +151,12 @@ type alias SignUpForm =
 
 
 errorsView :
-    Form.Errors String
+    Bool
+    -> Form.Errors String
     -> Validation.Field String parsed kind
     -> Html msg
-errorsView errors field =
-    if field |> Validation.statusAtLeast Form.FieldStatus.Blurred then
+errorsView submitAttempted errors field =
+    if submitAttempted || Validation.statusAtLeast Form.FieldStatus.Blurred field then
         -- only show validations when a field has been blurred
         -- (it can be annoying to see errors while you type the initial entry for a field, but we want to see the current
         -- errors once we've left the field, even if we are changing it so we know once it's been fixed or whether a new
