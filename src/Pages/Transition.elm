@@ -15,15 +15,14 @@ module Pages.Transition exposing
 -}
 
 import Form.FormData exposing (FormData)
-import Path exposing (Path)
 import Time
 
 
 {-| -}
 type Transition
     = Submitting FormData
-    | LoadAfterSubmit FormData Path LoadingState
-    | Loading Path LoadingState
+    | LoadAfterSubmit FormData (List String) LoadingState
+    | Loading (List String) LoadingState
 
 
 {-| -}

@@ -8,20 +8,19 @@ module Pages.FormState exposing (Event(..), FieldEvent, FieldState, FormState, P
 
 import Dict exposing (Dict)
 import Form.FieldStatus as FieldStatus exposing (FieldStatus)
+import Form.Msg as Msg exposing (Msg)
 import Html exposing (Attribute)
 import Html.Attributes as Attr
 import Html.Events
 import Json.Decode as Decode exposing (Decoder)
-import Pages.Internal.Msg
-import PagesMsg exposing (PagesMsg)
 
 
 {-| -}
-listeners : String -> List (Attribute (PagesMsg userMsg))
+listeners : String -> List (Attribute Msg)
 listeners formId =
-    [ Html.Events.on "focusin" (Decode.value |> Decode.map Pages.Internal.Msg.FormFieldEvent)
-    , Html.Events.on "focusout" (Decode.value |> Decode.map Pages.Internal.Msg.FormFieldEvent)
-    , Html.Events.on "input" (Decode.value |> Decode.map Pages.Internal.Msg.FormFieldEvent)
+    [ Html.Events.on "focusin" (Decode.value |> Decode.map Msg.FormFieldEvent)
+    , Html.Events.on "focusout" (Decode.value |> Decode.map Msg.FormFieldEvent)
+    , Html.Events.on "input" (Decode.value |> Decode.map Msg.FormFieldEvent)
     , Attr.id formId
     ]
 

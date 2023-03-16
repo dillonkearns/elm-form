@@ -1,0 +1,25 @@
+{
+  "name": "vite-elm-template",
+  "author": "Lindsay Wardell",
+  "description": "A default template for building Elm applications using Vite.",
+  "version": "1.7.0",
+  "license": "MIT",
+  "scripts": {
+    "postinstall": "elm-tooling install",
+    "dev": "vite",
+    "prebuild": "elm-tooling install",
+    "build": "vite build",
+    "serve": "vite preview",
+    "lint": "elm-review",
+    "test": "elm-test-rs"
+  },
+  "devDependencies": {
+    "elm-review": "^2.9.1",
+    "elm-tooling": "^1.12.0",
+    "vite": "^4.1.4",
+    "vite-plugin-elm": "^2.8.0-beta.3"
+  },
+  "dependencies": {
+    "elm-debug-transformer": "^1.1.2"
+  }
+}

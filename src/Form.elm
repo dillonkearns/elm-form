@@ -252,7 +252,9 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
 
 @docs ServerForms
 
-@docs initCombined, combine, initCombinedServer, combineServer
+@docs initCombined, combine
+
+-- TODO @docs initCombinedServer, combineServer, toServerForm
 
 
 ## Dynamic Fields
@@ -264,7 +266,7 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
 
 ## Submission
 
-@docs toServerForm, withOnSubmit
+@docs withOnSubmit
 
 -}
 
@@ -1104,12 +1106,13 @@ renderHelper formId attrs accessResponse formState data ((Form options _ _ _) as
 
                -- TODO provide a way to override the action so users can submit to other Routes
                , Attr.action ("/" ++ String.join "/" formState.path)
-               , case options.submitStrategy of
-                    FetcherStrategy ->
-                        Pages.Internal.Msg.fetcherOnSubmit options.onSubmit formId (\_ -> isValid)
 
-                    TransitionStrategy ->
-                        Pages.Internal.Msg.submitIfValid options.onSubmit formId (\_ -> isValid)
+               --, case options.submitStrategy of
+               --     FetcherStrategy ->
+               --         Pages.Internal.Msg.fetcherOnSubmit options.onSubmit formId (\_ -> isValid)
+               --
+               --     TransitionStrategy ->
+               --         Pages.Internal.Msg.submitIfValid options.onSubmit formId (\_ -> isValid)
                ]
             ++ attrs
         )
@@ -1147,14 +1150,15 @@ renderStyledHelper formId attrs accessResponse formState data ((Form options _ _
             ++ [ StyledAttr.method (methodToString options.method)
                , StyledAttr.novalidate True
                , StyledAttr.action ("/" ++ String.join "/" formState.path)
-               , case options.submitStrategy of
-                    FetcherStrategy ->
-                        StyledAttr.fromUnstyled <|
-                            Pages.Internal.Msg.fetcherOnSubmit options.onSubmit formId (\_ -> isValid)
 
-                    TransitionStrategy ->
-                        StyledAttr.fromUnstyled <|
-                            Pages.Internal.Msg.submitIfValid options.onSubmit formId (\_ -> isValid)
+               --, case options.submitStrategy of
+               --     FetcherStrategy ->
+               --         StyledAttr.fromUnstyled <|
+               --             Pages.Internal.Msg.fetcherOnSubmit options.onSubmit formId (\_ -> isValid)
+               --
+               --     TransitionStrategy ->
+               --         StyledAttr.fromUnstyled <|
+               --             Pages.Internal.Msg.submitIfValid options.onSubmit formId (\_ -> isValid)
                ]
             ++ attrs
         )
