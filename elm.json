@@ -1,7 +1,7 @@
 {
     "type": "package",
     "name": "dillonkearns/elm-form",
-    "summary": "REPLACEME",
+    "summary": "Standalone version of the elm-pages Form API.",
     "license": "BSD-3-Clause",
     "version": "1.0.0",
     "exposed-modules": [
