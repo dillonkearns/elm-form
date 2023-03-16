@@ -143,7 +143,7 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
                 )
 
     fieldView :
-        Form.Context String data
+        Form.Context String input
         -> String
         -> Validation.Field String parsed FieldView.Input
         -> Html msg
@@ -285,11 +285,11 @@ initFormState =
 
 
 {-| -}
-type alias Context error data =
+type alias Context error input =
     { errors : Errors error
     , isTransitioning : Bool
     , submitAttempted : Bool
-    , data : data
+    , input : input
     }
 
 
@@ -321,7 +321,7 @@ dynamic :
             , view : subView
             }
             parsed
-            data
+            input
             msg
     )
     ->
@@ -334,14 +334,14 @@ dynamic :
              -> combineAndView
             )
             parsed
-            data
+            input
             msg
     ->
         Form
             error
             combineAndView
             parsed
-            data
+            input
             msg
 dynamic forms formBuilder =
     Internal.Form.Form
@@ -411,19 +411,19 @@ dynamic forms formBuilder =
 
 --{-| -}
 --subGroup :
---    Form error ( Maybe parsed, Dict String (List error) ) data (Context error data -> subView)
+--    Form error ( Maybe parsed, Dict String (List error) ) input (Context error input -> subView)
 --    ->
 --        Form
 --            error
 --            ({ value : parsed } -> combined)
---            data
---            (Context error data -> (subView -> combinedView))
---    -> Form error combined data (Context error data -> combinedView)
+--            input
+--            (Context error input -> (subView -> combinedView))
+--    -> Form error combined input (Context error input -> combinedView)
 --subGroup forms formBuilder =
 --    Form []
 --        (\maybeData formState ->
 --            let
---                toParser : { result : ( Maybe ( Maybe parsed, Dict String (List error) ), Dict String (List error) ), view : Context error data -> subView }
+--                toParser : { result : ( Maybe ( Maybe parsed, Dict String (List error) ), Dict String (List error) ), view : Context error input -> subView }
 --                toParser =
 --                    case forms of
 --                        Form definitions parseFn toInitialValues ->
@@ -432,7 +432,7 @@ dynamic forms formBuilder =
 --
 --                myFn :
 --                    { result : ( Maybe combined, Dict String (List error) )
---                    , view : Context error data -> combinedView
+--                    , view : Context error input -> combinedView
 --                    }
 --                myFn =
 --                    let
@@ -440,7 +440,7 @@ dynamic forms formBuilder =
 --                        deciderToParsed =
 --                            toParser |> mergeResults
 --
---                        newThing : { result : ( Maybe ({ value : parsed } -> combined), Dict String (List error) ), view : Context error data -> subView -> combinedView }
+--                        newThing : { result : ( Maybe ({ value : parsed } -> combined), Dict String (List error) ), view : Context error input -> subView -> combinedView }
 --                        newThing =
 --                            case formBuilder of
 --                                Form definitions parseFn toInitialValues ->
@@ -497,9 +497,9 @@ Use [`Form.Field`](Form-Field) to define the field and its validations.
 -}
 field :
     String
-    -> Field error parsed data kind constraints
-    -> Form error (Form.Validation.Field error parsed kind -> combineAndView) parsedCombined data msg
-    -> Form error combineAndView parsedCombined data msg
+    -> Field error parsed input kind constraints
+    -> Form error (Form.Validation.Field error parsed kind -> combineAndView) parsedCombined input msg
+    -> Form error combineAndView parsedCombined input msg
 field name (Field fieldParser kind) (Internal.Form.Form renderOptions definitions parseFn toInitialValues) =
     Internal.Form.Form renderOptions
         (( name, Internal.Form.RegularField )
@@ -558,14 +558,14 @@ field name (Field fieldParser kind) (Internal.Form.Form renderOptions definition
                 |> parseFn maybeData
                 |> myFn
         )
-        (\data ->
+        (\input ->
             case fieldParser.initialValue of
                 Just toInitialValue ->
-                    ( name, toInitialValue data )
-                        :: toInitialValues data
+                    ( name, toInitialValue input )
+                        :: toInitialValues input
 
                 Nothing ->
-                    toInitialValues data
+                    toInitialValues input
         )
 
 
@@ -595,9 +595,9 @@ You define the field's validations the same way as for `field`, with the
 -}
 hiddenField :
     String
-    -> Field error parsed data kind constraints
-    -> Form error (Form.Validation.Field error parsed Form.FieldView.Hidden -> combineAndView) parsed data msg
-    -> Form error combineAndView parsed data msg
+    -> Field error parsed input kind constraints
+    -> Form error (Form.Validation.Field error parsed Form.FieldView.Hidden -> combineAndView) parsed input msg
+    -> Form error combineAndView parsed input msg
 hiddenField name (Field fieldParser _) (Internal.Form.Form options definitions parseFn toInitialValues) =
     Internal.Form.Form options
         (( name, Internal.Form.HiddenField )
@@ -655,14 +655,14 @@ hiddenField name (Field fieldParser _) (Internal.Form.Form options definitions p
                 |> parseFn maybeData
                 |> myFn
         )
-        (\data ->
+        (\input ->
             case fieldParser.initialValue of
                 Just toInitialValue ->
-                    ( name, toInitialValue data )
-                        :: toInitialValues data
+                    ( name, toInitialValue input )
+                        :: toInitialValues input
 
                 Nothing ->
-                    toInitialValues data
+                    toInitialValues input
         )
 
 
@@ -670,8 +670,8 @@ hiddenField name (Field fieldParser _) (Internal.Form.Form options definitions p
 hiddenKind :
     ( String, String )
     -> error
-    -> Form error combineAndView parsed data msg
-    -> Form error combineAndView parsed data msg
+    -> Form error combineAndView parsed input msg
+    -> Form error combineAndView parsed input msg
 hiddenKind ( name, value ) error_ (Internal.Form.Form options definitions parseFn toInitialValues) =
     let
         (Field fieldParser _) =
@@ -718,14 +718,14 @@ hiddenKind ( name, value ) error_ (Internal.Form.Form options definitions parseF
                 |> parseFn maybeData
                 |> myFn
         )
-        (\data ->
+        (\input ->
             case fieldParser.initialValue of
                 Just toInitialValue ->
-                    ( name, toInitialValue data )
-                        :: toInitialValues data
+                    ( name, toInitialValue input )
+                        :: toInitialValues input
 
                 Nothing ->
-                    toInitialValues data
+                    toInitialValues input
         )
 
 
@@ -794,10 +794,10 @@ mergeErrors errors1 errors2 =
 parse :
     String
     -> AppContext app actionData
-    -> data
-    -> Form error { info | combine : Form.Validation.Validation error parsed named constraints } parsed data msg
+    -> input
+    -> Form error { info | combine : Form.Validation.Validation error parsed named constraints } parsed input msg
     -> ( Maybe parsed, Dict String (List error) )
-parse formId app data (Internal.Form.Form _ _ parser _) =
+parse formId app input (Internal.Form.Form _ _ parser _) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
@@ -807,7 +807,7 @@ parse formId app data (Internal.Form.Form _ _ parser _) =
             , combineAndView : { info | combine : Validation error parsed named constraints }
             }
         parsed =
-            parser (Just data) thisFormState
+            parser (Just input) thisFormState
 
         thisFormState : FormState
         thisFormState =
@@ -834,7 +834,7 @@ insertIfNonempty key values dict =
 {-| -}
 runServerSide :
     List ( String, String )
-    -> Form error (Form.Validation.Validation error parsed kind constraints) Never data msg
+    -> Form error (Form.Validation.Validation error parsed kind constraints) Never input msg
     -> ( Bool, ( Maybe parsed, Dict String (List error) ) )
 runServerSide rawFormData (Internal.Form.Form _ _ parser _) =
     let
@@ -892,8 +892,8 @@ renderHtml :
             input
             msg
     -> Html (Msg msg)
-renderHtml formId attrs accessResponse app data form =
-    Html.Lazy.lazy6 renderHelper formId attrs accessResponse app data form
+renderHtml formId attrs accessResponse app input form =
+    Html.Lazy.lazy6 renderHelper formId attrs accessResponse app input form
 
 
 {-| -}
@@ -901,19 +901,19 @@ toDynamicFetcher :
     Form
         error
         { combine : Form.Validation.Validation error parsed field constraints
-        , view : Context error data -> view
+        , view : Context error input -> view
         }
         parsed
-        data
+        input
         userMsg
     ->
         Form
             error
             { combine : Form.Validation.Validation error parsed field constraints
-            , view : Context error data -> view
+            , view : Context error input -> view
             }
             parsed
-            data
+            input
             userMsg
 toDynamicFetcher (Internal.Form.Form renderOptions a b c) =
     Internal.Form.Form { renderOptions | submitStrategy = Internal.Form.FetcherStrategy } a b c
@@ -955,8 +955,8 @@ renderStyledHtml :
             input
             msg
     -> Html.Styled.Html (Msg msg)
-renderStyledHtml formId attrs accessResponse app data form =
-    Html.Styled.Lazy.lazy6 renderStyledHelper formId attrs accessResponse app data form
+renderStyledHtml formId attrs accessResponse app input form =
+    Html.Styled.Lazy.lazy6 renderStyledHelper formId attrs accessResponse app input form
 
 
 {-| -}
@@ -969,23 +969,23 @@ renderHelper :
     -> List (Html.Attribute (Msg msg))
     -> (actionData -> Maybe (Response error))
     -> AppContext app actionData
-    -> data
+    -> input
     ->
         Form
             error
             { combine : Form.Validation.Validation error parsed named constraints
-            , view : Context error data -> List (Html (Msg msg))
+            , view : Context error input -> List (Html (Msg msg))
             }
             parsed
-            data
+            input
             msg
     -> Html (Msg msg)
-renderHelper formId attrs accessResponse formState data ((Internal.Form.Form options _ _ _) as form) =
+renderHelper formId attrs accessResponse formState input ((Internal.Form.Form options _ _ _) as form) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
         { hiddenInputs, children, isValid, parsed } =
-            helperValues formId toHiddenInput accessResponse formState data form
+            helperValues formId toHiddenInput accessResponse formState input form
 
         toHiddenInput : List (Html.Attribute (Msg msg)) -> Html (Msg msg)
         toHiddenInput hiddenAttrs =
@@ -1031,23 +1031,23 @@ renderStyledHelper :
     -> List (Html.Styled.Attribute (Msg msg))
     -> (actionData -> Maybe (Response error))
     -> AppContext app actionData
-    -> data
+    -> input
     ->
         Form
             error
             { combine : Form.Validation.Validation error parsed field constraints
-            , view : Context error data -> List (Html.Styled.Html (Msg msg))
+            , view : Context error input -> List (Html.Styled.Html (Msg msg))
             }
             parsed
-            data
+            input
             msg
     -> Html.Styled.Html (Msg msg)
-renderStyledHelper formId attrs accessResponse formState data ((Internal.Form.Form options _ _ _) as form) =
+renderStyledHelper formId attrs accessResponse formState input ((Internal.Form.Form options _ _ _) as form) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
         { hiddenInputs, children, isValid, parsed } =
-            helperValues formId toHiddenInput accessResponse formState data form
+            helperValues formId toHiddenInput accessResponse formState input form
 
         toHiddenInput : List (Html.Attribute (Msg msg)) -> Html.Styled.Html (Msg msg)
         toHiddenInput hiddenAttrs =
@@ -1096,22 +1096,22 @@ helperValues :
     -> (List (Html.Attribute (Msg msg)) -> view)
     -> (actionData -> Maybe (Response error))
     -> AppContext app actionData
-    -> data
+    -> input
     ->
         Form
             error
             { combine : Form.Validation.Validation error parsed field constraints
-            , view : Context error data -> List view
+            , view : Context error input -> List view
             }
             parsed
-            data
+            input
             msg
     -> { hiddenInputs : List view, children : List view, isValid : Bool, parsed : Maybe parsed }
-helperValues formId toHiddenInput accessResponse formState data (Internal.Form.Form _ fieldDefinitions parser toInitialValues) =
+helperValues formId toHiddenInput accessResponse formState input (Internal.Form.Form _ fieldDefinitions parser toInitialValues) =
     let
         initialValues : Dict String Form.FieldState
         initialValues =
-            toInitialValues data
+            toInitialValues input
                 |> List.filterMap
                     (\( key, maybeValue ) ->
                         maybeValue
@@ -1150,7 +1150,7 @@ helperValues formId toHiddenInput accessResponse formState data (Internal.Form.F
         parsed :
             { result : ( Form.Validation.Validation error parsed field constraints, Dict String (List error) )
             , isMatchCandidate : Bool
-            , view : Context error data -> List view
+            , view : Context error input -> List view
             }
         parsed =
             { isMatchCandidate = parsed1.isMatchCandidate
@@ -1161,10 +1161,10 @@ helperValues formId toHiddenInput accessResponse formState data (Internal.Form.F
         parsed1 :
             { result : Dict String (List error)
             , isMatchCandidate : Bool
-            , combineAndView : { combine : Form.Validation.Validation error parsed field constraints, view : Context error data -> List view }
+            , combineAndView : { combine : Form.Validation.Validation error parsed field constraints, view : Context error input -> List view }
             }
         parsed1 =
-            parser (Just data) thisFormState
+            parser (Just input) thisFormState
 
         withoutServerErrors : Form.Validation.Validation error parsed named constraints
         withoutServerErrors =
@@ -1206,7 +1206,7 @@ helperValues formId toHiddenInput accessResponse formState data (Internal.Form.F
                     )
                 |> (\state -> { state | fields = fullFormState })
 
-        context : Context error data
+        context : Context error input
         context =
             { errors =
                 withServerErrors
@@ -1244,7 +1244,7 @@ helperValues formId toHiddenInput accessResponse formState data (Internal.Form.F
                                 False
                        )
             , submitAttempted = thisFormState.submitAttempted
-            , data = data
+            , input = input
             }
 
         children : List view
@@ -1300,14 +1300,14 @@ helperValues formId toHiddenInput accessResponse formState data (Internal.Form.F
 
 
 {-| -}
-type alias DoneForm error parsed data view msg =
+type alias DoneForm error parsed input view msg =
     Form
         error
         { combine : Combined error parsed
-        , view : Context error data -> view
+        , view : Context error input -> view
         }
         parsed
-        data
+        input
         msg
 
 
@@ -1324,14 +1324,14 @@ type alias HtmlForm error parsed input msg =
 
 
 {-| -}
-type alias StyledHtmlForm error parsed data msg =
+type alias StyledHtmlForm error parsed input msg =
     Form
         error
         { combine : Combined error parsed
-        , view : Context error data -> List (Html.Styled.Html (Msg msg))
+        , view : Context error input -> List (Html.Styled.Html (Msg msg))
         }
         parsed
-        data
+        input
         msg
 
 
