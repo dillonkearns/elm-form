@@ -12,7 +12,8 @@
         "Form",
         "Form.FieldView",
         "Form.Msg",
-        "Form.Handler"
+        "Form.Handler",
+        "Form.Value"
     ],
     "elm-version": "0.19.0 <= v < 0.20.0",
     "dependencies": {
