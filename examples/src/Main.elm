@@ -10,6 +10,7 @@ import Form.Validation as Validation
 import Html exposing (Html, div)
 import Html.Attributes
 import Pages.FormState
+import Username exposing (Username)
 
 
 type Msg
@@ -107,7 +108,11 @@ signUpForm =
     (\username password passwordConfirmation ->
         { combine =
             Validation.succeed SignUpForm
-                |> Validation.andMap username
+                |> Validation.andMap
+                    (username
+                        |> Validation.map Username.fromString
+                        |> Validation.fromResult
+                    )
                 |> Validation.andMap
                     (Validation.map2
                         (\passwordValue passwordConfirmationValue ->
@@ -155,7 +160,7 @@ signUpForm =
 
 
 type alias SignUpForm =
-    { username : String, password : String }
+    { username : Username, password : String }
 
 
 errorsView :
