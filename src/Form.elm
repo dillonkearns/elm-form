@@ -282,6 +282,7 @@ import Form.Msg exposing (Msg)
 import Form.Validation exposing (Combined)
 import Html exposing (Html)
 import Html.Attributes as Attr
+import Html.Events
 import Html.Lazy
 import Html.Styled
 import Html.Styled.Attributes as StyledAttr
@@ -309,7 +310,7 @@ type alias Context error data =
 
 
 {-| -}
-init : combineAndView -> Form String combineAndView data msg
+init : combineAndView -> Form String combineAndView parsed input msg
 init combineAndView =
     Form
         { submitStrategy = TransitionStrategy
@@ -335,6 +336,7 @@ dynamic :
             { combine : Form.Validation.Validation error parsed named constraints1
             , view : subView
             }
+            parsed
             data
             msg
     )
@@ -347,12 +349,14 @@ dynamic :
              }
              -> combineAndView
             )
+            parsed
             data
             msg
     ->
         Form
             error
             combineAndView
+            parsed
             data
             msg
 dynamic forms formBuilder =
@@ -510,8 +514,8 @@ Use [`Form.Field`](Form-Field) to define the field and its validations.
 field :
     String
     -> Field error parsed data kind constraints
-    -> Form error (Form.Validation.Field error parsed kind -> combineAndView) data msg
-    -> Form error combineAndView data msg
+    -> Form error (Form.Validation.Field error parsed kind -> combineAndView) parsedCombined data msg
+    -> Form error combineAndView parsedCombined data msg
 field name (Field fieldParser kind) (Form renderOptions definitions parseFn toInitialValues) =
     Form renderOptions
         (( name, RegularField )
@@ -608,8 +612,8 @@ You define the field's validations the same way as for `field`, with the
 hiddenField :
     String
     -> Field error parsed data kind constraints
-    -> Form error (Form.Validation.Field error parsed Form.FieldView.Hidden -> combineAndView) data msg
-    -> Form error combineAndView data msg
+    -> Form error (Form.Validation.Field error parsed Form.FieldView.Hidden -> combineAndView) parsed data msg
+    -> Form error combineAndView parsed data msg
 hiddenField name (Field fieldParser _) (Form options definitions parseFn toInitialValues) =
     Form options
         (( name, HiddenField )
@@ -731,8 +735,8 @@ hiddenField name (Field fieldParser _) (Form options definitions parseFn toIniti
 hiddenKind :
     ( String, String )
     -> error
-    -> Form error combineAndView data msg
-    -> Form error combineAndView data msg
+    -> Form error combineAndView parsed data msg
+    -> Form error combineAndView parsed data msg
 hiddenKind ( name, value ) error_ (Form options definitions parseFn toInitialValues) =
     let
         (Field fieldParser _) =
@@ -856,7 +860,7 @@ parse :
     String
     -> AppContext app actionData
     -> data
-    -> Form error { info | combine : Form.Validation.Validation error parsed named constraints } data msg
+    -> Form error { info | combine : Form.Validation.Validation error parsed named constraints } parsed data msg
     -> ( Maybe parsed, Dict String (List error) )
 parse formId app data (Form _ _ parser _) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
@@ -895,7 +899,7 @@ insertIfNonempty key values dict =
 {-| -}
 runServerSide :
     List ( String, String )
-    -> Form error (Form.Validation.Validation error parsed kind constraints) data msg
+    -> Form error (Form.Validation.Validation error parsed kind constraints) Never data msg
     -> ( Bool, ( Maybe parsed, Dict String (List error) ) )
 runServerSide rawFormData (Form _ _ parser _) =
     let
@@ -991,7 +995,7 @@ runOneOfServerSideHelp rawFormData firstFoundErrors (ServerForms parsers) =
 {-| -}
 renderHtml :
     String
-    -> List (Html.Attribute Msg)
+    -> List (Html.Attribute (Msg msg))
     -> (actionData -> Maybe (Response error))
     -> AppContext app actionData
     -> input
@@ -999,11 +1003,12 @@ renderHtml :
         Form
             error
             { combine : Form.Validation.Validation error parsed named constraints
-            , view : Context error input -> List (Html Msg)
+            , view : Context error input -> List (Html (Msg msg))
             }
+            parsed
             input
             msg
-    -> Html Msg
+    -> Html (Msg msg)
 renderHtml formId attrs accessResponse app data form =
     Html.Lazy.lazy6 renderHelper formId attrs accessResponse app data form
 
@@ -1015,6 +1020,7 @@ toDynamicFetcher :
         { combine : Form.Validation.Validation error parsed field constraints
         , view : Context error data -> view
         }
+        parsed
         data
         userMsg
     ->
@@ -1023,6 +1029,7 @@ toDynamicFetcher :
             { combine : Form.Validation.Validation error parsed field constraints
             , view : Context error data -> view
             }
+            parsed
             data
             userMsg
 toDynamicFetcher (Form renderOptions a b c) =
@@ -1030,13 +1037,13 @@ toDynamicFetcher (Form renderOptions a b c) =
 
 
 {-| -}
-withGetMethod : Form error combineAndView input userMsg -> Form error combineAndView input userMsg
+withGetMethod : Form error combineAndView parsed input userMsg -> Form error combineAndView parsed input userMsg
 withGetMethod (Form options a b c) =
     Form { options | method = Get } a b c
 
 
 {-| -}
-withOnSubmit : ({ fields : List ( String, String ) } -> userMsg) -> Form error combineAndView input oldMsg -> Form error combineAndView input userMsg
+withOnSubmit : ({ fields : List ( String, String ), parsed : Result () parsed } -> userMsg) -> Form error combineAndView parsed input oldMsg -> Form error combineAndView parsed input userMsg
 withOnSubmit onSubmit (Form options a b c) =
     Form
         { onSubmit = Just onSubmit
@@ -1051,7 +1058,7 @@ withOnSubmit onSubmit (Form options a b c) =
 {-| -}
 renderStyledHtml :
     String
-    -> List (Html.Styled.Attribute Msg)
+    -> List (Html.Styled.Attribute (Msg msg))
     -> (actionData -> Maybe (Response error))
     -> AppContext app actionData
     -> input
@@ -1059,11 +1066,12 @@ renderStyledHtml :
         Form
             error
             { combine : Form.Validation.Validation error parsed field constraints
-            , view : Context error input -> List (Html.Styled.Html Msg)
+            , view : Context error input -> List (Html.Styled.Html (Msg msg))
             }
+            parsed
             input
             msg
-    -> Html.Styled.Html Msg
+    -> Html.Styled.Html (Msg msg)
 renderStyledHtml formId attrs accessResponse app data form =
     Html.Styled.Lazy.lazy6 renderStyledHelper formId attrs accessResponse app data form
 
@@ -1075,7 +1083,7 @@ type alias Response error =
 
 renderHelper :
     String
-    -> List (Html.Attribute Msg)
+    -> List (Html.Attribute (Msg msg))
     -> (actionData -> Maybe (Response error))
     -> AppContext app actionData
     -> data
@@ -1083,19 +1091,20 @@ renderHelper :
         Form
             error
             { combine : Form.Validation.Validation error parsed named constraints
-            , view : Context error data -> List (Html Msg)
+            , view : Context error data -> List (Html (Msg msg))
             }
+            parsed
             data
             msg
-    -> Html Msg
+    -> Html (Msg msg)
 renderHelper formId attrs accessResponse formState data ((Form options _ _ _) as form) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
-        { hiddenInputs, children, isValid } =
+        { hiddenInputs, children, isValid, parsed } =
             helperValues formId toHiddenInput accessResponse formState data form
 
-        toHiddenInput : List (Html.Attribute Msg) -> Html Msg
+        toHiddenInput : List (Html.Attribute (Msg msg)) -> Html (Msg msg)
         toHiddenInput hiddenAttrs =
             Html.input hiddenAttrs []
     in
@@ -1116,6 +1125,19 @@ renderHelper formId attrs accessResponse formState data ((Form options _ _ _) as
                --     TransitionStrategy ->
                --         Pages.Internal.Msg.submitIfValid options.onSubmit formId (\_ -> isValid)
                ]
+            ++ (case options.onSubmit of
+                    Just justOnSubmit ->
+                        [ justOnSubmit
+                            { fields = []
+                            , parsed = parsed |> Result.fromMaybe ()
+                            }
+                            |> Form.Msg.UserMsg
+                            |> Html.Events.onSubmit
+                        ]
+
+                    Nothing ->
+                        []
+               )
             ++ attrs
         )
         (hiddenInputs ++ children)
@@ -1123,7 +1145,7 @@ renderHelper formId attrs accessResponse formState data ((Form options _ _ _) as
 
 renderStyledHelper :
     String
-    -> List (Html.Styled.Attribute Msg)
+    -> List (Html.Styled.Attribute (Msg msg))
     -> (actionData -> Maybe (Response error))
     -> AppContext app actionData
     -> data
@@ -1131,19 +1153,20 @@ renderStyledHelper :
         Form
             error
             { combine : Form.Validation.Validation error parsed field constraints
-            , view : Context error data -> List (Html.Styled.Html Msg)
+            , view : Context error data -> List (Html.Styled.Html (Msg msg))
             }
+            parsed
             data
             msg
-    -> Html.Styled.Html Msg
+    -> Html.Styled.Html (Msg msg)
 renderStyledHelper formId attrs accessResponse formState data ((Form options _ _ _) as form) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
-        { hiddenInputs, children, isValid } =
+        { hiddenInputs, children, isValid, parsed } =
             helperValues formId toHiddenInput accessResponse formState data form
 
-        toHiddenInput : List (Html.Attribute Msg) -> Html.Styled.Html Msg
+        toHiddenInput : List (Html.Attribute (Msg msg)) -> Html.Styled.Html (Msg msg)
         toHiddenInput hiddenAttrs =
             Html.Styled.input (hiddenAttrs |> List.map StyledAttr.fromUnstyled) []
     in
@@ -1156,6 +1179,7 @@ renderStyledHelper formId attrs accessResponse formState data ((Form options _ _
                , StyledAttr.novalidate True
                , StyledAttr.action ("/" ++ String.join "/" formState.path)
 
+               --, Html.Events.onSubmit (options.onSubmit parsed)
                --, case options.submitStrategy of
                --     FetcherStrategy ->
                --         StyledAttr.fromUnstyled <|
@@ -1165,6 +1189,20 @@ renderStyledHelper formId attrs accessResponse formState data ((Form options _ _
                --         StyledAttr.fromUnstyled <|
                --             Pages.Internal.Msg.submitIfValid options.onSubmit formId (\_ -> isValid)
                ]
+            ++ (case options.onSubmit of
+                    Just justOnSubmit ->
+                        [ justOnSubmit
+                            { fields = []
+                            , parsed = parsed |> Result.fromMaybe ()
+                            }
+                            |> Form.Msg.UserMsg
+                            |> Html.Events.onSubmit
+                            |> StyledAttr.fromUnstyled
+                        ]
+
+                    Nothing ->
+                        []
+               )
             ++ attrs
         )
         (hiddenInputs ++ children)
@@ -1172,7 +1210,7 @@ renderStyledHelper formId attrs accessResponse formState data ((Form options _ _
 
 helperValues :
     String
-    -> (List (Html.Attribute Msg) -> view)
+    -> (List (Html.Attribute (Msg msg)) -> view)
     -> (actionData -> Maybe (Response error))
     -> AppContext app actionData
     -> data
@@ -1182,9 +1220,10 @@ helperValues :
             { combine : Form.Validation.Validation error parsed field constraints
             , view : Context error data -> List view
             }
+            parsed
             data
             msg
-    -> { hiddenInputs : List view, children : List view, isValid : Bool }
+    -> { hiddenInputs : List view, children : List view, isValid : Bool, parsed : Maybe parsed }
 helperValues formId toHiddenInput accessResponse formState data (Form _ fieldDefinitions parser toInitialValues) =
     let
         initialValues : Dict String Form.FieldState
@@ -1355,15 +1394,25 @@ helperValues formId toHiddenInput accessResponse formState data (Form _ fieldDef
         isValid : Bool
         isValid =
             case withoutServerErrors of
-                Validation _ _ ( Just _, errors ) ->
+                Validation _ _ ( Just parsedValue, errors ) ->
                     Dict.isEmpty errors
 
                 _ ->
                     False
+
+        maybeParsed : Maybe parsed
+        maybeParsed =
+            case withoutServerErrors of
+                Validation _ _ ( Just parsedValue, errors ) ->
+                    Just parsedValue
+
+                _ ->
+                    Nothing
     in
     { hiddenInputs = hiddenInputs
     , children = children
     , isValid = isValid
+    , parsed = maybeParsed
     }
 
 
@@ -1374,6 +1423,7 @@ type alias DoneForm error parsed data view msg =
         { combine : Combined error parsed
         , view : Context error data -> view
         }
+        parsed
         data
         msg
 
@@ -1383,8 +1433,9 @@ type alias HtmlForm error parsed input msg =
     Form
         error
         { combine : Combined error parsed
-        , view : Context error input -> List (Html Msg)
+        , view : Context error input -> List (Html (Msg msg))
         }
+        parsed
         input
         msg
 
@@ -1396,6 +1447,7 @@ type ServerForms error parsed
             (Form
                 error
                 (Combined error parsed)
+                Never
                 Never
                 Never
             )
@@ -1411,6 +1463,7 @@ initCombined :
             { combineAndView
                 | combine : Form.Validation.Validation error parsed kind constraints
             }
+            parsed
             input
             msg
     -> ServerForms error combined
@@ -1420,8 +1473,8 @@ initCombined mapFn form =
 
 normalizeServerForm :
     (parsed -> combined)
-    -> Form error { combineAndView | combine : Form.Validation.Validation error parsed kind constraints } input msg
-    -> Form error (Combined error combined) Never Never
+    -> Form error { combineAndView | combine : Form.Validation.Validation error parsed kind constraints } parsed input msg
+    -> Form error (Combined error combined) Never Never Never
 normalizeServerForm mapFn (Form options _ parseFn _) =
     Form
         { onSubmit = Nothing
@@ -1456,6 +1509,7 @@ combine :
             { combineAndView
                 | combine : Form.Validation.Validation error parsed kind constraints
             }
+            parsed
             input
             msg
     -> ServerForms error combined
@@ -1504,16 +1558,17 @@ type alias StyledHtmlForm error parsed data msg =
     Form
         error
         { combine : Combined error parsed
-        , view : Context error data -> List (Html.Styled.Html Msg)
+        , view : Context error data -> List (Html.Styled.Html (Msg msg))
         }
+        parsed
         data
         msg
 
 
 {-| -}
-type Form error combineAndView input userMsg
+type Form error combineAndView parsed input userMsg
     = Form
-        (RenderOptions userMsg)
+        (RenderOptions parsed userMsg)
         (List ( String, FieldDefinition ))
         (Maybe input
          -> FormState
@@ -1526,10 +1581,10 @@ type Form error combineAndView input userMsg
         (input -> List ( String, Maybe String ))
 
 
-type alias RenderOptions userMsg =
+type alias RenderOptions parsed userMsg =
     { submitStrategy : SubmitStrategy
     , method : Method
-    , onSubmit : Maybe ({ fields : List ( String, String ) } -> userMsg)
+    , onSubmit : Maybe ({ fields : List ( String, String ), parsed : Result () parsed } -> userMsg)
     }
 
 

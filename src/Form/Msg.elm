@@ -1,12 +1,17 @@
-module Form.Msg exposing (FormData, Method(..), Msg(..), onSubmitDecoder)
+module Form.Msg exposing (Msg(..), FormData, Method(..), onSubmitDecoder)
 
-{-| -}
+{-|
+
+@docs Msg, FormData, Method, onSubmitDecoder
+
+-}
 
 import Json.Decode as Decode exposing (Decoder)
 import Pages.FormState exposing (FieldEvent)
 
 
-onSubmitDecoder : Decoder Msg
+{-| -}
+onSubmitDecoder : Decoder (Msg msg)
 onSubmitDecoder =
     Decode.map4 FormData
         (Decode.field "fields"
@@ -37,11 +42,14 @@ methodDecoder =
             )
 
 
-type Msg
+{-| -}
+type Msg msg
     = Submit FormData
     | FormFieldEvent FieldEvent
+    | UserMsg msg
 
 
+{-| -}
 type alias FormData =
     { fields : List ( String, String )
     , method : Method

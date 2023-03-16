@@ -1,4 +1,4 @@
-port module Main exposing (main)
+module Main exposing (main)
 
 import Browser
 import Dict exposing (Dict)
@@ -9,13 +9,12 @@ import Form.Msg
 import Form.Validation as Validation
 import Html exposing (Html, div)
 import Html.Attributes
-import Json.Decode as Decode
 import Pages.FormState
 
 
 type Msg
-    = FormMsg Form.Msg.Msg
-    | NoOp
+    = FormMsg (Form.Msg.Msg Msg)
+    | OnSubmit { fields : List ( String, String ), parsed : Result () SignUpForm }
 
 
 type alias Flags =
@@ -28,13 +27,7 @@ main =
         { init = init
         , update = update
         , view = view
-        , subscriptions =
-            \_ ->
-                onSubmit
-                    (Decode.decodeValue Form.Msg.onSubmitDecoder
-                        >> Result.map FormMsg
-                        >> Result.withDefault NoOp
-                    )
+        , subscriptions = \_ -> Sub.none
         }
 
 
@@ -54,11 +47,18 @@ init flags =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        NoOp ->
+        OnSubmit parsed ->
+            let
+                _ =
+                    Debug.log "OnSubmit!" parsed
+            in
             ( model, Cmd.none )
 
         FormMsg formMsg ->
             case formMsg of
+                Form.Msg.UserMsg myMsg ->
+                    update myMsg model
+
                 Form.Msg.FormFieldEvent value ->
                     ( { model
                         | pageFormState = Pages.FormState.update value model.pageFormState
@@ -77,26 +77,25 @@ update msg model =
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = ""
+    { title = "elm-form demo"
     , body =
         [ div []
-            [ Form.renderHtml "form"
-                []
-                (\_ -> Nothing)
-                { path = []
-                , action = Nothing -- Maybe actionData
+            [ signUpForm
+                |> Form.withOnSubmit OnSubmit
+                |> Form.renderHtml "form"
+                    []
+                    (\_ -> Nothing)
+                    { path = []
+                    , action = Nothing -- Maybe actionData
 
-                --, submit :
-                --    { fields : List ( String, String ), headers : List ( String, String ) }
-                --    -> Pages.Fetcher.Fetcher (Result Http.Error action)
-                , transition = Nothing --Maybe Transition
-                , fetchers = Dict.empty --Dict String (Pages.Transition.FetcherState (Maybe actionData))
-                , pageFormState =
-                    --Dict String { fields = Dict String { value = String, status = FieldStatus }, submitAttempted = Bool }
-                    model.pageFormState
-                }
-                ()
-                signUpForm
+                    --, submit :
+                    --    { fields : List ( String, String ), headers : List ( String, String ) }
+                    --    -> Pages.Fetcher.Fetcher (Result Http.Error action)
+                    , transition = Nothing --Maybe Transition
+                    , fetchers = Dict.empty --Dict String (Pages.Transition.FetcherState (Maybe actionData))
+                    , pageFormState = model.pageFormState
+                    }
+                    ()
                 |> Html.map FormMsg
             ]
         ]
@@ -168,6 +167,3 @@ errorsView errors field =
         |> Form.errorsForField field
         |> List.map (\error -> Html.li [ Html.Attributes.style "color" "red" ] [ Html.text error ])
         |> Html.ul []
-
-
-port onSubmit : (Decode.Value -> msg) -> Sub msg
