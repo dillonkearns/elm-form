@@ -5,7 +5,7 @@ import Form
 import Form.Field as Field
 import Form.FieldStatus exposing (FieldStatus)
 import Form.FieldView as FieldView
-import Form.Msg
+import Form.State
 import Form.Validation as Validation
 import Html exposing (Html, div)
 import Html.Attributes
@@ -14,7 +14,7 @@ import Username exposing (Username)
 
 
 type Msg
-    = FormMsg (Form.Msg.Msg Msg)
+    = FormMsg (Form.State.Msg Msg)
     | OnSubmit { fields : List ( String, String ), parsed : Result () SignUpForm }
 
 
@@ -44,7 +44,7 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { pageFormState =
             -- TODO move `Form.Msg.init` into a different module... `Form.State`?
-            Form.Msg.init
+            Form.State.init
       , isTransitioning = False
       }
     , Cmd.none
@@ -65,7 +65,7 @@ update msg model =
             let
                 ( updatedFormModel, cmd ) =
                     -- TODO move `Form.Msg.update` into a different module... `Form.State`?
-                    Form.Msg.update formMsg model.pageFormState
+                    Form.State.update formMsg model.pageFormState
             in
             ( { model | pageFormState = updatedFormModel }, cmd )
 

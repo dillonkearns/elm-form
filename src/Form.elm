@@ -261,7 +261,7 @@ import Dict exposing (Dict)
 import Form.Field as Field exposing (Field(..))
 import Form.FieldStatus as FieldStatus exposing (FieldStatus)
 import Form.FieldView
-import Form.Msg exposing (Msg)
+import Form.State exposing (Msg)
 import Form.Validation exposing (Combined)
 import Html exposing (Html)
 import Html.Attributes as Attr
@@ -966,7 +966,7 @@ renderHelper formId attrs accessResponse formState input ((Internal.Form.Form op
     in
     Html.form
         ((Form.listeners formId
-            |> List.map (Attr.map Form.Msg.FormFieldEvent)
+            |> List.map (Attr.map Form.State.FormFieldEvent)
          )
             ++ [ Attr.method (Internal.Form.methodToString options.method)
                , Attr.novalidate True
@@ -982,10 +982,10 @@ renderHelper formId attrs accessResponse formState input ((Internal.Form.Form op
                --         Pages.Internal.Msg.submitIfValid options.onSubmit formId (\_ -> isValid)
                ]
             ++ (let
-                    formDataThing : Form.Msg.FormData
+                    formDataThing : Form.State.FormData
                     formDataThing =
                         { fields = [] -- TODO
-                        , method = Form.Msg.Post
+                        , method = Form.State.Post
                         , action = formState.path |> String.join "/"
                         , id = Just formId
                         }
@@ -1001,7 +1001,7 @@ renderHelper formId attrs accessResponse formState input ((Internal.Form.Form op
                                         }
                                 )
                 in
-                [ Form.Msg.Submit formDataThing msgThing
+                [ Form.State.Submit formDataThing msgThing
                     |> Html.Events.onSubmit
                 ]
                )
@@ -1039,7 +1039,7 @@ renderStyledHelper formId attrs accessResponse formState input ((Internal.Form.F
     in
     Html.Styled.form
         ((Form.listeners formId
-            |> List.map (Attr.map Form.Msg.FormFieldEvent)
+            |> List.map (Attr.map Form.State.FormFieldEvent)
             |> List.map StyledAttr.fromUnstyled
          )
             ++ [ StyledAttr.method (Internal.Form.methodToString options.method)
@@ -1057,7 +1057,7 @@ renderStyledHelper formId attrs accessResponse formState input ((Internal.Form.F
                --             Pages.Internal.Msg.submitIfValid options.onSubmit formId (\_ -> isValid)
                ]
             ++ (let
-                    formDataThing : Form.Msg.FormData
+                    formDataThing : Form.State.FormData
                     formDataThing =
                         Debug.todo ""
 
@@ -1072,7 +1072,7 @@ renderStyledHelper formId attrs accessResponse formState input ((Internal.Form.F
                                         }
                                 )
                 in
-                [ Form.Msg.Submit formDataThing msgThing
+                [ Form.State.Submit formDataThing msgThing
                     |> Html.Events.onSubmit
                     |> StyledAttr.fromUnstyled
                 ]

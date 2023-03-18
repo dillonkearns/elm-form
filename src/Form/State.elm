@@ -1,4 +1,4 @@
-module Form.Msg exposing
+module Form.State exposing
     ( Msg(..), FormData, Method(..), onSubmitDecoder
     , init, update
     )
@@ -10,6 +10,8 @@ module Form.Msg exposing
 @docs init, update
 
 -}
+
+-- TODO merge this with `FormState` module and expose there?
 
 import Dict
 import Json.Decode as Decode exposing (Decoder)

@@ -11,7 +11,7 @@
         "Form.FormData",
         "Form",
         "Form.FieldView",
-        "Form.Msg",
+        "Form.State",
         "Form.Handler",
         "Form.Value"
     ],
