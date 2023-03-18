@@ -14,20 +14,10 @@ module Form exposing
     -- subGroup
     )
 
-{-| One of the core features of elm-pages is helping you manage form data end-to-end, including
+{-|
 
-  - Presenting the HTML form with its fields
-  - Maintaining client-side form state
-  - Showing validation errors on the client-side
-  - Receiving a form submission on the server-side
-  - Using the exact same client-side validations on the server-side
-  - Letting you run server-only Validations with BackendTask's (things like checking for a unique username)
 
-Because elm-pages is a framework, it has its own internal Model and Msg's. That means you, the user,
-can offload some of the responsibility to elm-pages and build an interactive form with real-time
-client-side state and validation errors without wiring up your own Model and Msg's to manage that
-state. You define the source of truth for your form (how to parse it into data or errors), and
-elm-pages manages the state.
+## Example
 
 Let's look at a sign-up form example.
 

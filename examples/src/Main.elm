@@ -112,11 +112,10 @@ signUpForm =
                 let
                     fieldView label field =
                         Html.div []
-                            [ Html.label
-                                []
+                            [ Html.label []
                                 [ Html.text (label ++ " ")
                                 , FieldView.input [] field
-                                , errorsView formState.submitAttempted formState.errors field
+                                , errorsView formState field
                                 ]
                             ]
                 in
@@ -144,11 +143,10 @@ type alias SignUpForm =
 
 
 errorsView :
-    Bool
-    -> Form.Errors String
+    Form.Context String input
     -> Validation.Field String parsed kind
     -> Html msg
-errorsView submitAttempted errors field =
+errorsView { submitAttempted, errors } field =
     if submitAttempted || Validation.statusAtLeast Form.State.Blurred field then
         -- only show validations when a field has been blurred
         -- (it can be annoying to see errors while you type the initial entry for a field, but we want to see the current
