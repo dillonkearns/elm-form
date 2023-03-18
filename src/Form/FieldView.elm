@@ -1,11 +1,11 @@
 module Form.FieldView exposing
-    ( Input, Options, input, radio, toHtmlProperties, Hidden, select, valueButton
+    ( Input, Options, input, radio, Hidden, select, valueButton
     , radioStyled, inputStyled, valueButtonStyled
     )
 
 {-|
 
-@docs Input, Options, input, radio, toHtmlProperties, Hidden, select, valueButton
+@docs Input, Options, input, radio, Hidden, select, valueButton
 
 
 ## Html.Styled Helpers
@@ -424,7 +424,6 @@ radioStyled selectAttrs enumToOption (Validation viewField fieldName _) =
         )
 
 
-{-| -}
 toHtmlProperties : List ( String, Encode.Value ) -> List (Html.Attribute msg)
 toHtmlProperties properties =
     properties

@@ -127,7 +127,7 @@ normalizeServerForm mapFn (Internal.Form.Form options _ parseFn _) =
                     parseFn Nothing formState
             in
             { result = parsed.result
-            , combineAndView = parsed.combineAndView.combine |> Form.Validation.mapWithNever mapFn
+            , combineAndView = parsed.combineAndView.combine |> Form.Validation.mapToCombined mapFn
             , isMatchCandidate = parsed.isMatchCandidate
             }
         )

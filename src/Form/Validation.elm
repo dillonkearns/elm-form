@@ -1,11 +1,11 @@
 module Form.Validation exposing
     ( Combined, Field, Validation
-    , andMap, andThen, fail, fromMaybe, fromResult, map, map2, parseWithError, succeed, succeed2, withError, withErrorIf, withFallback
+    , andMap, andThen, fail, fromMaybe, fromResult, map, map2, parseWithError, succeed, withError, withErrorIf, withFallback
     , value, fieldName, fieldStatus
     , statusAtLeast
     , map3, map4, map5, map6, map7, map8, map9
+    , mapToCombined
     , global
-    , mapWithNever
     )
 
 {-|
@@ -15,7 +15,7 @@ module Form.Validation exposing
 
 @docs Combined, Field, Validation
 
-@docs andMap, andThen, fail, fromMaybe, fromResult, map, map2, parseWithError, succeed, succeed2, withError, withErrorIf, withFallback
+@docs andMap, andThen, fail, fromMaybe, fromResult, map, map2, parseWithError, succeed, withError, withErrorIf, withFallback
 
 
 ## Field Metadata
@@ -29,15 +29,12 @@ module Form.Validation exposing
 
 @docs map3, map4, map5, map6, map7, map8, map9
 
+@docs mapToCombined
+
 
 ## Global Validation
 
 @docs global
-
-
-## Temporary?
-
-@docs mapWithNever
 
 -}
 
@@ -115,7 +112,6 @@ succeed parsed =
     Pages.Internal.Form.Validation Nothing Nothing ( Just parsed, Dict.empty )
 
 
-{-| -}
 succeed2 : parsed -> Validation error parsed kind constraints
 succeed2 parsed =
     Pages.Internal.Form.Validation Nothing Nothing ( Just parsed, Dict.empty )
@@ -192,8 +188,8 @@ map mapFn (Pages.Internal.Form.Validation _ name ( maybeParsedA, errorsA )) =
 
 
 {-| -}
-mapWithNever : (parsed -> mapped) -> Validation error parsed named constraint -> Validation error mapped Never Never
-mapWithNever mapFn (Pages.Internal.Form.Validation _ name ( maybeParsedA, errorsA )) =
+mapToCombined : (parsed -> mapped) -> Validation error parsed named constraint -> Combined error mapped
+mapToCombined mapFn (Pages.Internal.Form.Validation _ name ( maybeParsedA, errorsA )) =
     Pages.Internal.Form.Validation Nothing name ( Maybe.map mapFn maybeParsedA, errorsA )
 
 
