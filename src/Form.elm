@@ -2,14 +2,15 @@ module Form exposing
     ( Form, HtmlForm, StyledHtmlForm, DoneForm
     , Response
     , init
-    , field, hiddenField, hiddenKind
+    , field
     , Context
-    , renderHtml, renderStyledHtml
-    , withGetMethod
     , Errors, errorsForField
+    , renderHtml, renderStyledHtml
     , parse, runServerSide
-    , dynamic
     , withOnSubmit
+    , hiddenField, hiddenKind
+    , withGetMethod
+    , dynamic
     -- subGroup
     )
 
@@ -216,9 +217,9 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
 @docs init
 
 
-## Adding Fields
+### Adding Fields
 
-@docs field, hiddenField, hiddenKind
+@docs field
 
 
 ## View Functions
@@ -226,16 +227,14 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
 @docs Context
 
 
-## Rendering Forms
-
-@docs renderHtml, renderStyledHtml
-
-@docs withGetMethod
-
-
 ## Showing Errors
 
 @docs Errors, errorsForField
+
+
+## Rendering Forms
+
+@docs renderHtml, renderStyledHtml
 
 
 ## Running Parsers
@@ -243,14 +242,32 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
 @docs parse, runServerSide
 
 
-## Dynamic Fields
-
-@docs dynamic
-
-
 ## Submission
 
 @docs withOnSubmit
+
+
+## Progressively Enhanced Form Techniques (elm-pages)
+
+
+### Hidden Fields
+
+Hidden fields are a useful technique when you are progressively enhancing form submissions and sending the key-value form data directly.
+In `elm-pages` apps this is used often and is an idiomatic approach. If you are wiring up your own `onSubmit` with a Msg
+and never submit the forms directly, then you will likely include additional context as part of your `Msg` instead of
+through hidden fields.
+
+@docs hiddenField, hiddenKind
+
+
+### GET Forms
+
+@docs withGetMethod
+
+
+## Dynamic Fields
+
+@docs dynamic
 
 -}
 
