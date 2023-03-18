@@ -6,7 +6,6 @@
     "version": "1.0.0",
     "exposed-modules": [
         "Form.Field",
-        "Form.FieldStatus",
         "Form.Validation",
         "Form.FormData",
         "Form",

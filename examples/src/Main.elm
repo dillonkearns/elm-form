@@ -3,7 +3,6 @@ module Main exposing (main)
 import Browser
 import Form
 import Form.Field as Field
-import Form.FieldStatus exposing (FieldStatus)
 import Form.FieldView as FieldView
 import Form.State
 import Form.Validation as Validation
@@ -158,7 +157,7 @@ errorsView :
     -> Validation.Field String parsed kind
     -> Html msg
 errorsView submitAttempted errors field =
-    if submitAttempted || Validation.statusAtLeast Form.FieldStatus.Blurred field then
+    if submitAttempted || Validation.statusAtLeast Form.State.Blurred field then
         -- only show validations when a field has been blurred
         -- (it can be annoying to see errors while you type the initial entry for a field, but we want to see the current
         -- errors once we've left the field, even if we are changing it so we know once it's been fixed or whether a new

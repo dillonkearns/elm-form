@@ -259,9 +259,8 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
 
 import Dict exposing (Dict)
 import Form.Field as Field exposing (Field(..))
-import Form.FieldStatus as FieldStatus exposing (FieldStatus)
 import Form.FieldView
-import Form.State exposing (Msg)
+import Form.State exposing (FieldStatus, Msg)
 import Form.Validation exposing (Combined)
 import Html exposing (Html)
 import Html.Attributes as Attr
@@ -514,7 +513,7 @@ field name (Field fieldParser kind) (Internal.Form.Form renderOptions definition
                             ( Just info.value, info.status )
 
                         Nothing ->
-                            ( Maybe.map2 (|>) maybeData fieldParser.initialValue |> Maybe.andThen identity, FieldStatus.NotVisited )
+                            ( Maybe.map2 (|>) maybeData fieldParser.initialValue |> Maybe.andThen identity, Form.State.NotVisited )
 
                 thing : Pages.Internal.Form.ViewField kind
                 thing =
@@ -611,7 +610,7 @@ hiddenField name (Field fieldParser _) (Internal.Form.Form options definitions p
                             ( Just info.value, info.status )
 
                         Nothing ->
-                            ( Maybe.map2 (|>) maybeData fieldParser.initialValue |> Maybe.andThen identity, FieldStatus.NotVisited )
+                            ( Maybe.map2 (|>) maybeData fieldParser.initialValue |> Maybe.andThen identity, Form.State.NotVisited )
 
                 thing : Pages.Internal.Form.ViewField Form.FieldView.Hidden
                 thing =
@@ -852,7 +851,7 @@ runServerSide rawFormData (Internal.Form.Form _ _ parser _) =
                             (Tuple.mapSecond
                                 (\value ->
                                     { value = value
-                                    , status = FieldStatus.NotVisited
+                                    , status = Form.State.NotVisited
                                     }
                                 )
                             )
@@ -1108,7 +1107,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
                         maybeValue
                             |> Maybe.map
                                 (\value ->
-                                    ( key, { value = value, status = FieldStatus.NotVisited } )
+                                    ( key, { value = value, status = Form.State.NotVisited } )
                                 )
                     )
                 |> Dict.fromList
@@ -1126,7 +1125,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
                             (\{ fields } ->
                                 { fields =
                                     fields
-                                        |> List.map (Tuple.mapSecond (\value -> { value = value, status = FieldStatus.NotVisited }))
+                                        |> List.map (Tuple.mapSecond (\value -> { value = value, status = Form.State.NotVisited }))
                                         |> Dict.fromList
                                 , submitAttempted = True
                                 }
@@ -1194,7 +1193,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
                             (\{ fields } ->
                                 { fields =
                                     fields
-                                        |> List.map (Tuple.mapSecond (\value -> { value = value, status = FieldStatus.NotVisited }))
+                                        |> List.map (Tuple.mapSecond (\value -> { value = value, status = Form.State.NotVisited }))
                                         |> Dict.fromList
                                 , submitAttempted = True
                                 }

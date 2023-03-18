@@ -42,7 +42,7 @@ module Form.Validation exposing
 -}
 
 import Dict exposing (Dict)
-import Form.FieldStatus exposing (FieldStatus)
+import Form.State exposing (FieldStatus)
 import Pages.Internal.Form exposing (ViewField)
 
 
@@ -86,16 +86,16 @@ statusAtLeast status field =
 statusRank : FieldStatus -> Int
 statusRank status =
     case status of
-        Form.FieldStatus.NotVisited ->
+        Form.State.NotVisited ->
             0
 
-        Form.FieldStatus.Focused ->
+        Form.State.Focused ->
             1
 
-        Form.FieldStatus.Changed ->
+        Form.State.Changed ->
             2
 
-        Form.FieldStatus.Blurred ->
+        Form.State.Blurred ->
             3
 
 
