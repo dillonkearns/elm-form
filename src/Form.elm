@@ -273,7 +273,6 @@ import Html.Styled.Lazy
 import Internal.Form
 import Pages.FormState as Form exposing (FormState)
 import Pages.Internal.Form exposing (Validation(..), unwrapResponse)
-import Pages.Transition exposing (Transition(..))
 
 
 {-| -}
@@ -743,20 +742,20 @@ errorsForField field_ (Errors errorsDict) =
 
 
 {-| -}
-type alias AppContext app actionData =
-    { app
-        | --, sharedData : Shared.Data
-          --, routeParams : routeParams
-          path : List String
-        , action : Maybe actionData
+type alias AppContext =
+    { --, sharedData : Shared.Data
+      --, routeParams : routeParams
+      path : List String
 
-        --, submit :
-        --    { fields : List ( String, String ), headers : List ( String, String ) }
-        --    -> Pages.Fetcher.Fetcher (Result Http.Error action)
-        , transition : Maybe Transition
-        , fetchers : Dict String (Pages.Transition.FetcherState (Maybe actionData))
-        , pageFormState :
-            Dict String { fields : Dict String { value : String, status : FieldStatus }, submitAttempted : Bool }
+    --, action : Maybe actionData
+    --, submit :
+    --    { fields : List ( String, String ), headers : List ( String, String ) }
+    --    -> Pages.Fetcher.Fetcher (Result Http.Error action)
+    --, transition : Maybe Transition
+    --, fetchers : Dict String (Pages.Transition.FetcherState (Maybe actionData))
+    , isTransitioning : Bool
+    , pageFormState :
+        Dict String { fields : Dict String { value : String, status : FieldStatus }, submitAttempted : Bool }
     }
 
 
@@ -793,7 +792,7 @@ mergeErrors errors1 errors2 =
 {-| -}
 parse :
     String
-    -> AppContext app actionData
+    -> AppContext
     -> input
     -> Form error { info | combine : Form.Validation.Validation error parsed named constraints } parsed input msg
     -> ( Maybe parsed, Dict String (List error) )
@@ -880,7 +879,7 @@ renderHtml :
     String
     -> List (Html.Attribute (Msg msg))
     -> (actionData -> Maybe (Response error))
-    -> AppContext app actionData
+    -> AppContext
     -> input
     ->
         Form
@@ -943,7 +942,7 @@ renderStyledHtml :
     String
     -> List (Html.Styled.Attribute (Msg msg))
     -> (actionData -> Maybe (Response error))
-    -> AppContext app actionData
+    -> AppContext
     -> input
     ->
         Form
@@ -968,7 +967,7 @@ renderHelper :
     String
     -> List (Html.Attribute (Msg msg))
     -> (actionData -> Maybe (Response error))
-    -> AppContext app actionData
+    -> AppContext
     -> input
     ->
         Form
@@ -1041,7 +1040,7 @@ renderStyledHelper :
     String
     -> List (Html.Styled.Attribute (Msg msg))
     -> (actionData -> Maybe (Response error))
-    -> AppContext app actionData
+    -> AppContext
     -> input
     ->
         Form
@@ -1113,7 +1112,7 @@ helperValues :
     String
     -> (List (Html.Attribute (Msg msg)) -> view)
     -> (actionData -> Maybe (Response error))
-    -> AppContext app actionData
+    -> AppContext
     -> input
     ->
         Form
@@ -1145,7 +1144,9 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
             formState.pageFormState
                 |> Dict.get formId
                 |> Maybe.withDefault
-                    (formState.action
+                    -- TODO pass in formState.action in a different way?
+                    --formState.action
+                    (Nothing
                         |> Maybe.andThen (accessResponse >> Maybe.map unwrapResponse)
                         |> Maybe.map
                             (\{ fields } ->
@@ -1197,7 +1198,9 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
                             |> Tuple.mapSecond
                                 (\errors1 ->
                                     mergeErrors errors1
-                                        (formState.action
+                                        -- TODO
+                                        --formState.action
+                                        (Nothing
                                             |> Maybe.andThen (accessResponse >> Maybe.map (unwrapResponse >> .errors))
                                             |> Maybe.withDefault Dict.empty
                                         )
@@ -1209,7 +1212,9 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
             formState.pageFormState
                 |> Dict.get formId
                 |> Maybe.withDefault
-                    (formState.action
+                    (Nothing
+                        -- TODO
+                        --formState.action
                         |> Maybe.andThen (accessResponse >> Maybe.map unwrapResponse)
                         |> Maybe.map
                             (\{ fields } ->
@@ -1231,36 +1236,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
                     |> unwrapValidation
                     |> Tuple.second
                     |> Errors
-            , isTransitioning =
-                -- TODO instead of isTransitioning : Bool, it would be useful to get a custom type with the exact state
-                (case formState.fetchers |> Dict.get formId of
-                    Just { status } ->
-                        case status of
-                            Pages.Transition.FetcherComplete _ ->
-                                False
-
-                            Pages.Transition.FetcherSubmitting ->
-                                True
-
-                            Pages.Transition.FetcherReloading _ ->
-                                True
-
-                    Nothing ->
-                        False
-                )
-                    || (case formState.transition of
-                            Just (Submitting formData) ->
-                                formData.id == Just formId
-
-                            Just (LoadAfterSubmit submitData _ _) ->
-                                submitData.id == Just formId
-
-                            Just (Loading _ _) ->
-                                False
-
-                            Nothing ->
-                                False
-                       )
+            , isTransitioning = formState.isTransitioning
             , submitAttempted = thisFormState.submitAttempted
             , input = input
             }

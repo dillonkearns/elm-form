@@ -1,7 +1,6 @@
 module Main exposing (main)
 
 import Browser
-import Dict exposing (Dict)
 import Form
 import Form.Field as Field
 import Form.FieldStatus exposing (FieldStatus)
@@ -37,6 +36,7 @@ type alias Model =
     { pageFormState :
         -- TODO move `Pages.FormState.PageFormState` type into a nicer module name (and one that is exposed)
         Pages.FormState.PageFormState
+    , isTransitioning : Bool
     }
 
 
@@ -45,6 +45,7 @@ init flags =
     ( { pageFormState =
             -- TODO move `Form.Msg.init` into a different module... `Form.State`?
             Form.Msg.init
+      , isTransitioning = False
       }
     , Cmd.none
     )
@@ -82,9 +83,7 @@ view model =
                     (\_ -> Nothing)
                     -- TODO for vanilla apps, ideally user passes in `model.pageFormState` instead of this record
                     { path = []
-                    , action = Nothing -- Maybe actionData
-                    , transition = Nothing --Maybe Transition
-                    , fetchers = Dict.empty --Dict String (Pages.Transition.FetcherState (Maybe actionData))
+                    , isTransitioning = model.isTransitioning
                     , pageFormState = model.pageFormState
                     }
                     ()
