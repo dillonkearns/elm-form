@@ -8,7 +8,6 @@ import Form.State
 import Form.Validation as Validation
 import Html exposing (Html, div)
 import Html.Attributes
-import Pages.FormState
 import Username exposing (Username)
 
 
