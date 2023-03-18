@@ -113,7 +113,6 @@ normalizeServerForm :
 normalizeServerForm mapFn (Internal.Form.Form options _ parseFn _) =
     Internal.Form.Form
         { onSubmit = Nothing
-        , submitStrategy = options.submitStrategy
         , method = options.method
         }
         []

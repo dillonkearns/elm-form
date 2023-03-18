@@ -1,4 +1,4 @@
-module Internal.Form exposing (FieldDefinition(..), Form(..), Method(..), RenderOptions, SubmitStrategy(..), methodToString)
+module Internal.Form exposing (FieldDefinition(..), Form(..), Method(..), RenderOptions, methodToString)
 
 {-| -}
 
@@ -22,16 +22,9 @@ type Form error combineAndView parsed input userMsg
 
 
 type alias RenderOptions parsed userMsg =
-    { submitStrategy : SubmitStrategy
-    , method : Method
+    { method : Method
     , onSubmit : Maybe ({ fields : List ( String, String ), parsed : Result () parsed } -> userMsg)
     }
-
-
-{-| -}
-type SubmitStrategy
-    = FetcherStrategy
-    | TransitionStrategy
 
 
 {-| -}

@@ -5,7 +5,7 @@ module Form exposing
     , field, hiddenField, hiddenKind
     , Context
     , renderHtml, renderStyledHtml
-    , withGetMethod, toDynamicFetcher
+    , withGetMethod
     , Errors, errorsForField
     , parse, runServerSide
     , dynamic
@@ -231,7 +231,7 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
 
 @docs renderHtml, renderStyledHtml
 
-@docs withGetMethod, toDynamicFetcher
+@docs withGetMethod
 
 
 ## Showing Errors
@@ -296,8 +296,7 @@ type alias Context error input =
 init : combineAndView -> Form String combineAndView parsed input msg
 init combineAndView =
     Internal.Form.Form
-        { submitStrategy = Internal.Form.TransitionStrategy
-        , method = Internal.Form.Post
+        { method = Internal.Form.Post
         , onSubmit = Nothing
         }
         []
@@ -344,8 +343,7 @@ dynamic :
             msg
 dynamic forms formBuilder =
     Internal.Form.Form
-        { submitStrategy = Internal.Form.TransitionStrategy
-        , method = Internal.Form.Post
+        { method = Internal.Form.Post
         , onSubmit = Nothing
         }
         []
@@ -896,29 +894,6 @@ renderHtml formId attrs accessResponse app input form =
 
 
 {-| -}
-toDynamicFetcher :
-    Form
-        error
-        { combine : Form.Validation.Validation error parsed field constraints
-        , view : Context error input -> view
-        }
-        parsed
-        input
-        userMsg
-    ->
-        Form
-            error
-            { combine : Form.Validation.Validation error parsed field constraints
-            , view : Context error input -> view
-            }
-            parsed
-            input
-            userMsg
-toDynamicFetcher (Internal.Form.Form renderOptions a b c) =
-    Internal.Form.Form { renderOptions | submitStrategy = Internal.Form.FetcherStrategy } a b c
-
-
-{-| -}
 withGetMethod : Form error combineAndView parsed input userMsg -> Form error combineAndView parsed input userMsg
 withGetMethod (Internal.Form.Form options a b c) =
     Internal.Form.Form { options | method = Internal.Form.Get } a b c
@@ -929,7 +904,6 @@ withOnSubmit : ({ fields : List ( String, String ), parsed : Result () parsed } 
 withOnSubmit onSubmit (Internal.Form.Form options a b c) =
     Internal.Form.Form
         { onSubmit = Just onSubmit
-        , submitStrategy = options.submitStrategy
         , method = options.method
         }
         a
