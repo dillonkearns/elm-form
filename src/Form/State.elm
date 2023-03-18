@@ -1,5 +1,5 @@
 module Form.State exposing
-    ( Msg
+    ( State, Msg
     , init, update
     , FieldStatus(..), fieldStatusToString
     )
@@ -7,7 +7,7 @@ module Form.State exposing
 {-| `elm-form` manages the client-side state of fields, including FieldStatus which you can use to determine when
 in the user's workflow to show validation errors.
 
-@docs Msg
+@docs State, Msg
 
 @docs init, update
 
