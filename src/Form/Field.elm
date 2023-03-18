@@ -55,8 +55,9 @@ module Form.Field exposing
 
 import Date exposing (Date)
 import Dict exposing (Dict)
-import Form.FieldView as FieldView exposing (Input, Options(..))
+import Form.FieldView as FieldView exposing (Input)
 import Form.Value
+import Internal.Input exposing (Options(..))
 import Json.Encode as Encode
 
 
@@ -150,7 +151,7 @@ text =
                 )
         , properties = []
         }
-        (FieldView.Input FieldView.Text)
+        (Internal.Input.Input Internal.Input.Text)
 
 
 {-| -}
@@ -190,7 +191,7 @@ date toError =
                             ( Nothing, [ error ] )
         , properties = []
         }
-        (FieldView.Input FieldView.Date)
+        (Internal.Input.Input Internal.Input.Date)
 
 
 {-| -}
@@ -238,7 +239,7 @@ time toError =
                             ( Nothing, [ error ] )
         , properties = []
         }
-        (FieldView.Input FieldView.Time)
+        (Internal.Input.Input Internal.Input.Time)
 
 
 parseTimeOfDay : String -> Result () { hours : Int, minutes : Int }
@@ -337,7 +338,7 @@ exactValue initialValue error =
                     ( rawValue, [ error ] )
         , properties = []
         }
-        (FieldView.Input FieldView.Text)
+        (Internal.Input.Input Internal.Input.Text)
 
 
 {-| -}
@@ -361,7 +362,7 @@ checkbox =
                 )
         , properties = []
         }
-        (FieldView.Input FieldView.Checkbox)
+        (Internal.Input.Input Internal.Input.Checkbox)
 
 
 {-| -}
@@ -401,7 +402,7 @@ int toError =
                                 ( Nothing, [ toError.invalid string ] )
         , properties = []
         }
-        (FieldView.Input FieldView.Number)
+        (Internal.Input.Input Internal.Input.Number)
 
 
 {-| -}
@@ -440,7 +441,7 @@ float toError =
                                 ( Nothing, [ toError.invalid string ] )
         , properties = []
         }
-        (FieldView.Input FieldView.Number)
+        (Internal.Input.Input Internal.Input.Number)
 
 
 {-| -}
@@ -449,7 +450,7 @@ telephone :
     -> Field error parsed data Input constraints
 telephone (Field field _) =
     Field field
-        (FieldView.Input FieldView.Tel)
+        (Internal.Input.Input Internal.Input.Tel)
 
 
 {-| -}
@@ -458,7 +459,7 @@ search :
     -> Field error parsed data Input constraints
 search (Field field _) =
     Field field
-        (FieldView.Input FieldView.Search)
+        (Internal.Input.Input Internal.Input.Search)
 
 
 {-| -}
@@ -467,7 +468,7 @@ password :
     -> Field error parsed data Input constraints
 password (Field field _) =
     Field field
-        (FieldView.Input FieldView.Password)
+        (Internal.Input.Input Internal.Input.Password)
 
 
 {-| -}
@@ -476,7 +477,7 @@ email :
     -> Field error parsed data Input constraints
 email (Field field _) =
     Field field
-        (FieldView.Input FieldView.Email)
+        (Internal.Input.Input Internal.Input.Email)
 
 
 {-| -}
@@ -485,7 +486,7 @@ url :
     -> Field error parsed data Input constraints
 url (Field field _) =
     Field field
-        (FieldView.Input FieldView.Url)
+        (Internal.Input.Input Internal.Input.Url)
 
 
 {-| -}
@@ -494,7 +495,7 @@ textarea :
     -> Field error parsed data Input { constraints | plainText : () }
     -> Field error parsed data Input constraints
 textarea options (Field field _) =
-    Field field (FieldView.Input (FieldView.Textarea options))
+    Field field (Internal.Input.Input (Internal.Input.Textarea options))
 
 
 {-| -}
@@ -536,7 +537,7 @@ range info field =
         |> required info.missing
         |> withMin info.min (info.invalid BelowRange)
         |> withMax info.max (info.invalid AboveRange)
-        |> (\(Field innerField _) -> Field { innerField | initialValue = Just (info.initial >> Form.Value.toString >> Just) } (FieldView.Input FieldView.Range))
+        |> (\(Field innerField _) -> Field { innerField | initialValue = Just (info.initial >> Form.Value.toString >> Just) } (Internal.Input.Input Internal.Input.Range))
 
 
 {-| -}

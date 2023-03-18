@@ -270,6 +270,7 @@ import Html.Styled
 import Html.Styled.Attributes as StyledAttr
 import Html.Styled.Lazy
 import Internal.Form
+import Internal.Input
 import Pages.FormState as Form exposing (FormState)
 import Pages.Internal.Form exposing (Validation(..), unwrapResponse)
 
@@ -616,7 +617,7 @@ hiddenField name (Field fieldParser _) (Internal.Form.Form options definitions p
                 thing =
                     { value = rawFieldValue
                     , status = fieldStatus
-                    , kind = ( Form.FieldView.Hidden, fieldParser.properties )
+                    , kind = ( Internal.Input.Hidden, fieldParser.properties )
                     }
 
                 parsedField : Form.Validation.Field error parsed Form.FieldView.Hidden
