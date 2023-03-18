@@ -32,18 +32,14 @@ main =
 
 
 type alias Model =
-    { pageFormState :
-        -- TODO move `Pages.FormState.PageFormState` type into a nicer module name (and one that is exposed)
-        Pages.FormState.PageFormState
+    { formState : Form.State.State
     , isTransitioning : Bool
     }
 
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { pageFormState =
-            -- TODO move `Form.Msg.init` into a different module... `Form.State`?
-            Form.State.init
+    ( { formState = Form.State.init
       , isTransitioning = False
       }
     , Cmd.none
@@ -63,10 +59,9 @@ update msg model =
         FormMsg formMsg ->
             let
                 ( updatedFormModel, cmd ) =
-                    -- TODO move `Form.Msg.update` into a different module... `Form.State`?
-                    Form.State.update formMsg model.pageFormState
+                    Form.State.update formMsg model.formState
             in
-            ( { model | pageFormState = updatedFormModel }, cmd )
+            ( { model | formState = updatedFormModel }, cmd )
 
 
 view : Model -> Browser.Document Msg
@@ -80,10 +75,8 @@ view model =
                     []
                     -- TODO get rid of errorData argument (completely, or just for vanilla apps)
                     (\_ -> Nothing)
-                    -- TODO for vanilla apps, ideally user passes in `model.pageFormState` instead of this record
-                    { path = []
-                    , isTransitioning = model.isTransitioning
-                    , pageFormState = model.pageFormState
+                    { isTransitioning = model.isTransitioning
+                    , state = model.formState
                     }
                     ()
                 |> Html.map FormMsg

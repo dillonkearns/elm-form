@@ -9,7 +9,6 @@ module Form exposing
     , Errors, errorsForField
     , parse, runServerSide
     , dynamic
-    , AppContext
     , withOnSubmit
     -- subGroup
     )
@@ -248,8 +247,6 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
 
 @docs dynamic
 
-@docs AppContext
-
 
 ## Submission
 
@@ -260,7 +257,7 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
 import Dict exposing (Dict)
 import Form.Field as Field exposing (Field(..))
 import Form.FieldView
-import Form.State exposing (FieldStatus, Msg)
+import Form.State exposing (FieldStatus, Msg, State)
 import Form.Validation exposing (Combined)
 import Html exposing (Html)
 import Html.Attributes as Attr
@@ -744,17 +741,15 @@ errorsForField field_ (Errors errorsDict) =
 type alias AppContext =
     { --, sharedData : Shared.Data
       --, routeParams : routeParams
-      path : List String
-
-    --, action : Maybe actionData
-    --, submit :
-    --    { fields : List ( String, String ), headers : List ( String, String ) }
-    --    -> Pages.Fetcher.Fetcher (Result Http.Error action)
-    --, transition : Maybe Transition
-    --, fetchers : Dict String (Pages.Transition.FetcherState (Maybe actionData))
-    , isTransitioning : Bool
-    , pageFormState :
-        Dict String { fields : Dict String { value : String, status : FieldStatus }, submitAttempted : Bool }
+      --path : List String
+      --, action : Maybe actionData
+      --, submit :
+      --    { fields : List ( String, String ), headers : List ( String, String ) }
+      --    -> Pages.Fetcher.Fetcher (Result Http.Error action)
+      --, transition : Maybe Transition
+      --, fetchers : Dict String (Pages.Transition.FetcherState (Maybe actionData))
+      isTransitioning : Bool
+    , state : State
     }
 
 
@@ -809,7 +804,7 @@ parse formId app input (Internal.Form.Form _ _ parser _) =
 
         thisFormState : FormState
         thisFormState =
-            app.pageFormState
+            app.state
                 |> Dict.get formId
                 |> Maybe.withDefault initFormState
     in
@@ -878,7 +873,10 @@ renderHtml :
     String
     -> List (Html.Attribute (Msg msg))
     -> (actionData -> Maybe (Response error))
-    -> AppContext
+    ->
+        { isTransitioning : Bool
+        , state : State
+        }
     -> input
     ->
         Form
@@ -917,7 +915,10 @@ renderStyledHtml :
     String
     -> List (Html.Styled.Attribute (Msg msg))
     -> (actionData -> Maybe (Response error))
-    -> AppContext
+    ->
+        { isTransitioning : Bool
+        , state : State
+        }
     -> input
     ->
         Form
@@ -973,8 +974,8 @@ renderHelper formId attrs accessResponse formState input ((Internal.Form.Form op
                , Attr.novalidate True
 
                -- TODO provide a way to override the action so users can submit to other Routes
-               , Attr.action ("/" ++ String.join "/" formState.path)
-
+               -- TODO get Path from options (make it configurable, `withPath`)
+               --, Attr.action ("/" ++ String.join "/" formState.path)
                --, case options.submitStrategy of
                --     FetcherStrategy ->
                --         Pages.Internal.Msg.fetcherOnSubmit options.onSubmit formId (\_ -> isValid)
@@ -987,7 +988,7 @@ renderHelper formId attrs accessResponse formState input ((Internal.Form.Form op
                     formDataThing =
                         { fields = [] -- TODO
                         , method = Internal.FieldEvent.Post
-                        , action = formState.path |> String.join "/"
+                        , action = "TODO" -- formState.path |> String.join "/"
                         , id = Just formId
                         }
 
@@ -1045,8 +1046,9 @@ renderStyledHelper formId attrs accessResponse formState input ((Internal.Form.F
          )
             ++ [ StyledAttr.method (Internal.Form.methodToString options.method)
                , StyledAttr.novalidate True
-               , StyledAttr.action ("/" ++ String.join "/" formState.path)
 
+               -- TODO
+               --, StyledAttr.action ("/" ++ String.join "/" formState.path)
                --, Html.Events.onSubmit (options.onSubmit parsed)
                --, case options.submitStrategy of
                --     FetcherStrategy ->
@@ -1060,6 +1062,7 @@ renderStyledHelper formId attrs accessResponse formState input ((Internal.Form.F
             ++ (let
                     formDataThing : Internal.FieldEvent.FormData
                     formDataThing =
+                        -- TODO
                         Debug.todo ""
 
                     msgThing : Maybe msg
@@ -1116,7 +1119,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
 
         part2 : Dict String Form.FieldState
         part2 =
-            formState.pageFormState
+            formState.state
                 |> Dict.get formId
                 |> Maybe.withDefault
                     -- TODO pass in formState.action in a different way?
@@ -1184,7 +1187,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
 
         thisFormState : FormState
         thisFormState =
-            formState.pageFormState
+            formState.state
                 |> Dict.get formId
                 |> Maybe.withDefault
                     (Nothing
