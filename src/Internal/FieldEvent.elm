@@ -1,6 +1,4 @@
-module Internal.FieldEvent exposing (..)
-
-{-| -}
+module Internal.FieldEvent exposing (Event(..), FieldEvent, FormData, Method(..), Msg(..))
 
 
 type alias FieldEvent =
@@ -11,9 +9,27 @@ type alias FieldEvent =
     }
 
 
-{-| -}
 type Event
     = InputEvent String
     | FocusEvent
       --| ChangeEvent
     | BlurEvent
+
+
+type Msg msg
+    = Submit FormData (Maybe msg)
+    | FormFieldEvent FieldEvent
+    | UserMsg msg
+
+
+type alias FormData =
+    { fields : List ( String, String )
+    , method : Method
+    , action : String
+    , id : Maybe String
+    }
+
+
+type Method
+    = Get
+    | Post

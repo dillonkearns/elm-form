@@ -1,5 +1,5 @@
 module Form.State exposing
-    ( Msg(..), FormData, Method(..), onSubmitDecoder
+    ( Msg
     , init, update
     , FieldStatus(..), fieldStatusToString
     )
@@ -7,7 +7,7 @@ module Form.State exposing
 {-| `elm-form` manages the client-side state of fields, including FieldStatus which you can use to determine when
 in the user's workflow to show validation errors.
 
-@docs Msg, FormData, Method, onSubmitDecoder
+@docs Msg
 
 @docs init, update
 
@@ -18,83 +18,31 @@ in the user's workflow to show validation errors.
 
 -}
 
--- TODO merge this with `FormState` module and expose there?
-
 import Dict exposing (Dict)
 import Internal.FieldEvent exposing (Event(..), FieldEvent)
-import Json.Decode as Decode exposing (Decoder)
 import Task
 
 
 {-| -}
-onSubmitDecoder : Decoder (Msg msg)
-onSubmitDecoder =
-    Decode.map4 FormData
-        (Decode.field "fields"
-            (Decode.list
-                (Decode.map2 Tuple.pair
-                    (Decode.index 0 Decode.string)
-                    (Decode.index 1 Decode.string)
-                )
-            )
-        )
-        (Decode.field "method" methodDecoder)
-        (Decode.field "action" Decode.string)
-        (Decode.field "id" (Decode.nullable Decode.string))
-        |> Decode.map (\thing -> Submit thing Nothing)
-
-
-methodDecoder : Decoder Method
-methodDecoder =
-    Decode.string
-        |> Decode.andThen
-            (\method ->
-                case method |> String.toUpper of
-                    "GET" ->
-                        Decode.succeed Get
-
-                    _ ->
-                        Decode.succeed Post
-            )
-
-
-{-| -}
-type Msg msg
-    = Submit FormData (Maybe msg)
-    | FormFieldEvent FieldEvent
-    | UserMsg msg
-
-
-{-| -}
-type alias FormData =
-    { fields : List ( String, String )
-    , method : Method
-    , action : String
-    , id : Maybe String
-    }
-
-
-{-| -}
-type Method
-    = Get
-    | Post
+type alias Msg msg =
+    Internal.FieldEvent.Msg msg
 
 
 {-| -}
 update : Msg msg -> State -> ( State, Cmd msg )
 update formMsg formModel =
     case formMsg of
-        UserMsg myMsg ->
+        Internal.FieldEvent.UserMsg myMsg ->
             ( formModel
             , Task.succeed myMsg |> Task.perform identity
             )
 
-        FormFieldEvent value ->
+        Internal.FieldEvent.FormFieldEvent value ->
             ( updateInternal value formModel
             , Cmd.none
             )
 
-        Submit formData maybeMsg ->
+        Internal.FieldEvent.Submit formData maybeMsg ->
             ( setSubmitAttempted
                 (formData.id |> Maybe.withDefault "form")
                 formModel
