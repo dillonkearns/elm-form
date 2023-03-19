@@ -11,6 +11,7 @@ module Form exposing
     , hiddenField, hiddenKind
     , withGetMethod
     , dynamic
+    , Msg, Model, init, update
     -- subGroup
     )
 
@@ -259,12 +260,20 @@ through hidden fields.
 
 @docs dynamic
 
+
+## Wiring
+
+`elm-form` manages the client-side state of fields, including FieldStatus which you can use to determine when
+in the user's workflow to show validation errors.
+
+@docs Msg, Model, init, update
+
 -}
 
 import Dict exposing (Dict)
 import Form.Field as Field exposing (Field(..))
 import Form.FieldView
-import Form.State exposing (FieldStatus, Msg, State)
+import Form.State exposing (FieldStatus)
 import Form.Validation exposing (Combined)
 import Html exposing (Html)
 import Html.Attributes as Attr
@@ -273,11 +282,12 @@ import Html.Lazy
 import Html.Styled
 import Html.Styled.Attributes as StyledAttr
 import Html.Styled.Lazy
-import Internal.FieldEvent
+import Internal.FieldEvent exposing (Event(..), FieldEvent)
 import Internal.Form
 import Internal.Input
 import Pages.FormState as Form exposing (FormState)
 import Pages.Internal.Form exposing (Validation(..), unwrapResponse)
+import Task
 
 
 {-| -}
@@ -756,7 +766,7 @@ type alias AppContext =
       --, transition : Maybe Transition
       --, fetchers : Dict String (Pages.Transition.FetcherState (Maybe actionData))
       isTransitioning : Bool
-    , state : State
+    , state : Model
     }
 
 
@@ -882,7 +892,7 @@ renderHtml :
     -> (actionData -> Maybe (Response error))
     ->
         { isTransitioning : Bool
-        , state : State
+        , state : Model
         }
     -> input
     ->
@@ -924,7 +934,7 @@ renderStyledHtml :
     -> (actionData -> Maybe (Response error))
     ->
         { isTransitioning : Bool
-        , state : State
+        , state : Model
         }
     -> input
     ->
@@ -1334,3 +1344,136 @@ addErrorsInternal name newErrors allErrors =
             (\errors ->
                 Just (newErrors ++ (errors |> Maybe.withDefault []))
             )
+
+
+{-| -}
+type alias Msg msg =
+    Internal.FieldEvent.Msg msg
+
+
+{-| -}
+type alias Model =
+    Dict String FormState
+
+
+{-| -}
+init : Model
+init =
+    Dict.empty
+
+
+{-| -}
+update : Msg msg -> Model -> ( Model, Cmd msg )
+update formMsg formModel =
+    case formMsg of
+        Internal.FieldEvent.UserMsg myMsg ->
+            ( formModel
+            , Task.succeed myMsg |> Task.perform identity
+            )
+
+        Internal.FieldEvent.FormFieldEvent value ->
+            ( updateInternal value formModel
+            , Cmd.none
+            )
+
+        Internal.FieldEvent.Submit formData maybeMsg ->
+            ( setSubmitAttempted
+                (formData.id |> Maybe.withDefault "form")
+                formModel
+            , maybeMsg
+                |> Maybe.map (\userMsg -> Task.succeed userMsg |> Task.perform identity)
+                |> Maybe.withDefault Cmd.none
+            )
+
+
+{-| -}
+updateInternal : FieldEvent -> Model -> Model
+updateInternal fieldEvent pageFormState =
+    --if Dict.isEmpty pageFormState then
+    --    -- TODO get all initial field values
+    --    pageFormState
+    --
+    --else
+    pageFormState
+        |> Dict.update fieldEvent.formId
+            (\previousValue_ ->
+                let
+                    previousValue : FormState
+                    previousValue =
+                        previousValue_
+                            |> Maybe.withDefault initSingle
+                in
+                previousValue
+                    |> updateForm fieldEvent
+                    |> Just
+            )
+
+
+{-| -}
+updateForm : FieldEvent -> FormState -> FormState
+updateForm fieldEvent formState =
+    { formState
+        | fields =
+            formState.fields
+                |> Dict.update fieldEvent.name
+                    (\previousValue_ ->
+                        let
+                            previousValue : Form.FieldState
+                            previousValue =
+                                previousValue_
+                                    |> Maybe.withDefault { value = fieldEvent.value, status = Form.State.NotVisited }
+                        in
+                        (case fieldEvent.event of
+                            InputEvent newValue ->
+                                { previousValue | value = newValue }
+
+                            FocusEvent ->
+                                { previousValue | status = previousValue.status |> increaseStatusTo Form.State.Focused }
+
+                            BlurEvent ->
+                                { previousValue | status = previousValue.status |> increaseStatusTo Form.State.Blurred }
+                        )
+                            |> Just
+                    )
+    }
+
+
+setSubmitAttempted : String -> Model -> Model
+setSubmitAttempted fieldId pageFormState =
+    pageFormState
+        |> Dict.update fieldId
+            (\maybeForm ->
+                case maybeForm of
+                    Just formState ->
+                        Just { formState | submitAttempted = True }
+
+                    Nothing ->
+                        Just { initSingle | submitAttempted = True }
+            )
+
+
+{-| -}
+increaseStatusTo : FieldStatus -> FieldStatus -> FieldStatus
+increaseStatusTo increaseTo currentStatus =
+    if statusRank increaseTo > statusRank currentStatus then
+        increaseTo
+
+    else
+        currentStatus
+
+
+{-| -}
+statusRank : FieldStatus -> Int
+statusRank status =
+    case status of
+        Form.State.NotVisited ->
+            0
+
+        Form.State.Focused ->
+            1
+
+        Form.State.Changed ->
+            2
+
+        Form.State.Blurred ->
+            3

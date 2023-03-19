@@ -12,7 +12,7 @@ import Username exposing (Username)
 
 
 type Msg
-    = FormMsg (Form.State.Msg Msg)
+    = FormMsg (Form.Msg Msg)
     | OnSubmit { fields : List ( String, String ), parsed : Result () SignUpForm }
 
 
@@ -31,14 +31,14 @@ main =
 
 
 type alias Model =
-    { formState : Form.State.State
+    { formState : Form.Model
     , isTransitioning : Bool
     }
 
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { formState = Form.State.init
+    ( { formState = Form.init
       , isTransitioning = False
       }
     , Cmd.none
@@ -58,7 +58,7 @@ update msg model =
         FormMsg formMsg ->
             let
                 ( updatedFormModel, cmd ) =
-                    Form.State.update formMsg model.formState
+                    Form.update formMsg model.formState
             in
             ( { model | formState = updatedFormModel }, cmd )
 
