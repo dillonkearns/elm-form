@@ -6,7 +6,7 @@
 of managing a single [`Form.State.State`](Form-State#State) value as an unparsed set of raw field values and [`FieldStatus` (blurred, changed, etc.)](Form-State#FieldStatus).
 This `Form.State.State` can even handle form state of more than one form on a page, or even across multiple pages.
 The package manages all of the unparsed state for you with a single `Msg`, a single `Model` entry, and then
-uses your [`Form`](#Form) definition run its validations against the unparsed values ([`State`](Form-State#State)),
+uses your [`Form`](#Form) definition to run its validations against the unparsed values ([`State`](Form-State#State)),
 and to render the form fields along with any validation errors.
 
 If you use `elm-form` with `elm-pages`, the wiring is built into the framework so you don't need to wire in `update` or `Model`
