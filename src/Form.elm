@@ -509,7 +509,7 @@ Use [`Form.Field`](Form-Field) to define the field and its validations.
 -}
 field :
     String
-    -> Field error parsed input initial kind constraints
+    -> Field error parsed initial kind constraints
     -> Form error (Form.Validation.Field error parsed initial kind -> combineAndView) parsedCombined input msg
     -> Form error combineAndView parsedCombined input msg
 field name (Field fieldParser kind) (Internal.Form.Form renderOptions definitions parseFn toInitialValues) =
@@ -524,12 +524,13 @@ field name (Field fieldParser kind) (Internal.Form.Form renderOptions definition
                     fieldParser.decode rawFieldValue
 
                 ( rawFieldValue, fieldStatus ) =
-                    case formState.fields |> Dict.get name of
-                        Just info ->
-                            ( Just info.value, info.status )
-
-                        Nothing ->
-                            ( Maybe.map2 (|>) maybeData fieldParser.initialValue |> Maybe.andThen identity, Form.FieldStatus.NotVisited )
+                    let
+                        fieldState =
+                            formState.fields |> Dict.get name
+                    in
+                    ( fieldState |> Maybe.map .value
+                    , fieldState |> Maybe.map .status |> Maybe.withDefault Form.FieldStatus.NotVisited
+                    )
 
                 thing : Pages.Internal.Form.ViewField kind
                 thing =
@@ -570,15 +571,7 @@ field name (Field fieldParser kind) (Internal.Form.Form renderOptions definition
                 |> parseFn maybeData
                 |> myFn
         )
-        (\input ->
-            case fieldParser.initialValue of
-                Just toInitialValue ->
-                    ( name, toInitialValue input )
-                        :: toInitialValues input
-
-                Nothing ->
-                    toInitialValues input
-        )
+        toInitialValues
 
 
 {-| Declare a hidden field for the form.
@@ -607,7 +600,7 @@ You define the field's validations the same way as for `field`, with the
 -}
 hiddenField :
     String
-    -> Field error parsed input initial kind constraints
+    -> Field error parsed initial kind constraints
     -> Form error (Form.Validation.Field error parsed initial Form.FieldView.Hidden -> combineAndView) parsed input msg
     -> Form error combineAndView parsed input msg
 hiddenField name (Field fieldParser _) (Internal.Form.Form options definitions parseFn toInitialValues) =
@@ -621,12 +614,13 @@ hiddenField name (Field fieldParser _) (Internal.Form.Form options definitions p
                     fieldParser.decode rawFieldValue
 
                 ( rawFieldValue, fieldStatus ) =
-                    case formState.fields |> Dict.get name of
-                        Just info ->
-                            ( Just info.value, info.status )
-
-                        Nothing ->
-                            ( Maybe.map2 (|>) maybeData fieldParser.initialValue |> Maybe.andThen identity, Form.FieldStatus.NotVisited )
+                    let
+                        fieldState =
+                            formState.fields |> Dict.get name
+                    in
+                    ( fieldState |> Maybe.map .value
+                    , fieldState |> Maybe.map .status |> Maybe.withDefault Form.FieldStatus.NotVisited
+                    )
 
                 thing : Pages.Internal.Form.ViewField Form.FieldView.Hidden
                 thing =
@@ -667,15 +661,7 @@ hiddenField name (Field fieldParser _) (Internal.Form.Form options definitions p
                 |> parseFn maybeData
                 |> myFn
         )
-        (\input ->
-            case fieldParser.initialValue of
-                Just toInitialValue ->
-                    ( name, toInitialValue input )
-                        :: toInitialValues input
-
-                Nothing ->
-                    toInitialValues input
-        )
+        toInitialValues
 
 
 {-| -}
@@ -700,13 +686,7 @@ hiddenKind ( name, value ) error_ (Internal.Form.Form options definitions parseF
 
                 rawFieldValue : Maybe String
                 rawFieldValue =
-                    case formState.fields |> Dict.get name of
-                        Just info ->
-                            Just info.value
-
-                        Nothing ->
-                            Maybe.map2 (|>) maybeData fieldParser.initialValue
-                                |> Maybe.andThen identity
+                    formState.fields |> Dict.get name |> Maybe.map .value
 
                 myFn :
                     { result : Dict String (List error)
@@ -730,15 +710,7 @@ hiddenKind ( name, value ) error_ (Internal.Form.Form options definitions parseF
                 |> parseFn maybeData
                 |> myFn
         )
-        (\input ->
-            case fieldParser.initialValue of
-                Just toInitialValue ->
-                    ( name, toInitialValue input )
-                        :: toInitialValues input
-
-                Nothing ->
-                    toInitialValues input
-        )
+        toInitialValues
 
 
 {-| -}
