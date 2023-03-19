@@ -9,7 +9,7 @@
         "Form.Validation",
         "Form",
         "Form.FieldView",
-        "Form.State",
+        "Form.FieldStatus",
         "Form.Handler",
         "Form.Value"
     ],

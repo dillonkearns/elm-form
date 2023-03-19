@@ -1,9 +1,6 @@
-module Form.State exposing (FieldStatus(..), fieldStatusToString)
+module Form.FieldStatus exposing (FieldStatus(..), fieldStatusToString)
 
 {-|
-
-
-## Field Status
 
 @docs FieldStatus, fieldStatusToString
 

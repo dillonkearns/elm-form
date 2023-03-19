@@ -1,7 +1,7 @@
 module Pages.Internal.Form exposing (Response(..), Validation(..), ViewField, unwrapResponse)
 
 import Dict exposing (Dict)
-import Form.State exposing (FieldStatus)
+import Form.FieldStatus exposing (FieldStatus)
 import Json.Encode as Encode
 
 

@@ -3,10 +3,10 @@
 [Pre-release package docs](https://elm-doc-preview.netlify.app/Form?repo=dillonkearns%2Felm-form&version=master)
 
 `elm-form` is built around the idea
-of managing a single [`Form.State.State`](Form-State#State) value as an unparsed set of raw field values and [`FieldStatus` (blurred, changed, etc.)](Form-State#FieldStatus).
-This `Form.State.State` can even handle form state of more than one form on a page, or even across multiple pages.
+of managing a single [`Form.Model`](Form#Model) value as an unparsed set of raw field values and [`FieldStatus` (blurred, changed, etc.)](Form-FieldStatus#FieldStatus).
+This `Form.Model` can even handle form state of more than one form on a page, or even across multiple pages.
 The package manages all of the unparsed state for you with a single `Msg`, a single `Model` entry, and then
-uses your [`Form`](#Form) definition to run its validations against the unparsed values ([`State`](Form-State#State)),
+uses your [`Form`](#Form) definition to run its validations against the unparsed values ([`Model`](Form#Model)),
 and to render the form fields along with any validation errors.
 
 If you use `elm-form` with `elm-pages`, the wiring is built into the framework so you don't need to wire in `update` or `Model`
@@ -79,18 +79,18 @@ Instead of wiring in different Msg's and Model fields for each individual form f
 
 ```elm
 type Msg
-    = FormMsg (Form.State.Msg Msg)
+    = FormMsg (Form.Msg Msg)
     -- | ... Other Msg's for your app
 
 type alias Model =
-    { formState : Form.State.State
+    { formModel : Form.Model
     , isTransitioning : Bool
     -- , ... additional state for your app
     }
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { formState = Form.State.init
+    ( { formModel = Form.init
       , isTransitioning = False
       }
     , Cmd.none
@@ -112,9 +112,9 @@ update msg model =
         FormMsg formMsg ->
             let
                 ( updatedFormModel, cmd ) =
-                    Form.State.update formMsg model.formState
+                    Form.update formMsg model.formModel
             in
-            ( { model | formState = updatedFormModel }, cmd )
+            ( { model | formModel = updatedFormModel }, cmd )
 
 
 formView : Model -> Html Msg
@@ -124,7 +124,7 @@ formView model =
         |> Form.renderHtml "unique-form-id"
             []
             { isTransitioning = model.isTransitioning
-            , state = model.formState
+            , state = model.formModel
             }
             ()
         |> Html.map FormMsg
@@ -179,7 +179,7 @@ signUpForm =
                 ]
         }
     )
-        |> Form.init
+        |> Form.form
         |> Form.field "username" (Field.text |> Field.required "Required")
         |> Form.field "password" (Field.text |> Field.password |> Field.required "Required")
         |> Form.field "password-confirmation" (Field.text |> Field.password |> Field.required "Required")

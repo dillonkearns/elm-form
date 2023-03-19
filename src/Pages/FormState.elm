@@ -1,7 +1,7 @@
 module Pages.FormState exposing (FieldState, FormState, PageFormState, init, listeners, setField, setSubmitAttempted, update)
 
 import Dict exposing (Dict)
-import Form.State exposing (FieldStatus)
+import Form.FieldStatus exposing (FieldStatus)
 import Html exposing (Attribute)
 import Html.Attributes as Attr
 import Html.Events
@@ -120,7 +120,7 @@ setField info pageFormState =
                                         previousFieldValue : FieldState
                                         previousFieldValue =
                                             previousFieldValue_
-                                                |> Maybe.withDefault { value = "", status = Form.State.NotVisited }
+                                                |> Maybe.withDefault { value = "", status = Form.FieldStatus.NotVisited }
                                     in
                                     { previousFieldValue | value = info.value }
                                         |> Just
@@ -142,17 +142,17 @@ updateForm fieldEvent formState =
                             previousValue : FieldState
                             previousValue =
                                 previousValue_
-                                    |> Maybe.withDefault { value = fieldEvent.value, status = Form.State.NotVisited }
+                                    |> Maybe.withDefault { value = fieldEvent.value, status = Form.FieldStatus.NotVisited }
                         in
                         (case fieldEvent.event of
                             InputEvent newValue ->
                                 { previousValue | value = newValue }
 
                             FocusEvent ->
-                                { previousValue | status = previousValue.status |> increaseStatusTo Form.State.Focused }
+                                { previousValue | status = previousValue.status |> increaseStatusTo Form.FieldStatus.Focused }
 
                             BlurEvent ->
-                                { previousValue | status = previousValue.status |> increaseStatusTo Form.State.Blurred }
+                                { previousValue | status = previousValue.status |> increaseStatusTo Form.FieldStatus.Blurred }
                         )
                             |> Just
                     )
@@ -220,14 +220,14 @@ increaseStatusTo increaseTo currentStatus =
 statusRank : FieldStatus -> Int
 statusRank status =
     case status of
-        Form.State.NotVisited ->
+        Form.FieldStatus.NotVisited ->
             0
 
-        Form.State.Focused ->
+        Form.FieldStatus.Focused ->
             1
 
-        Form.State.Changed ->
+        Form.FieldStatus.Changed ->
             2
 
-        Form.State.Blurred ->
+        Form.FieldStatus.Blurred ->
             3

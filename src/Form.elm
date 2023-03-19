@@ -272,8 +272,8 @@ in the user's workflow to show validation errors.
 
 import Dict exposing (Dict)
 import Form.Field as Field exposing (Field(..))
+import Form.FieldStatus exposing (FieldStatus)
 import Form.FieldView
-import Form.State exposing (FieldStatus)
 import Form.Validation exposing (Combined)
 import Html exposing (Html)
 import Html.Attributes as Attr
@@ -529,7 +529,7 @@ field name (Field fieldParser kind) (Internal.Form.Form renderOptions definition
                             ( Just info.value, info.status )
 
                         Nothing ->
-                            ( Maybe.map2 (|>) maybeData fieldParser.initialValue |> Maybe.andThen identity, Form.State.NotVisited )
+                            ( Maybe.map2 (|>) maybeData fieldParser.initialValue |> Maybe.andThen identity, Form.FieldStatus.NotVisited )
 
                 thing : Pages.Internal.Form.ViewField kind
                 thing =
@@ -626,7 +626,7 @@ hiddenField name (Field fieldParser _) (Internal.Form.Form options definitions p
                             ( Just info.value, info.status )
 
                         Nothing ->
-                            ( Maybe.map2 (|>) maybeData fieldParser.initialValue |> Maybe.andThen identity, Form.State.NotVisited )
+                            ( Maybe.map2 (|>) maybeData fieldParser.initialValue |> Maybe.andThen identity, Form.FieldStatus.NotVisited )
 
                 thing : Pages.Internal.Form.ViewField Form.FieldView.Hidden
                 thing =
@@ -865,7 +865,7 @@ runServerSide rawFormData (Internal.Form.Form _ _ parser _) =
                             (Tuple.mapSecond
                                 (\value ->
                                     { value = value
-                                    , status = Form.State.NotVisited
+                                    , status = Form.FieldStatus.NotVisited
                                     }
                                 )
                             )
@@ -1129,7 +1129,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
                         maybeValue
                             |> Maybe.map
                                 (\value ->
-                                    ( key, { value = value, status = Form.State.NotVisited } )
+                                    ( key, { value = value, status = Form.FieldStatus.NotVisited } )
                                 )
                     )
                 |> Dict.fromList
@@ -1147,7 +1147,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
                             (\{ fields } ->
                                 { fields =
                                     fields
-                                        |> List.map (Tuple.mapSecond (\value -> { value = value, status = Form.State.NotVisited }))
+                                        |> List.map (Tuple.mapSecond (\value -> { value = value, status = Form.FieldStatus.NotVisited }))
                                         |> Dict.fromList
                                 , submitAttempted = True
                                 }
@@ -1215,7 +1215,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
                             (\{ fields } ->
                                 { fields =
                                     fields
-                                        |> List.map (Tuple.mapSecond (\value -> { value = value, status = Form.State.NotVisited }))
+                                        |> List.map (Tuple.mapSecond (\value -> { value = value, status = Form.FieldStatus.NotVisited }))
                                         |> Dict.fromList
                                 , submitAttempted = True
                                 }
@@ -1421,17 +1421,17 @@ updateForm fieldEvent formState =
                             previousValue : Form.FieldState
                             previousValue =
                                 previousValue_
-                                    |> Maybe.withDefault { value = fieldEvent.value, status = Form.State.NotVisited }
+                                    |> Maybe.withDefault { value = fieldEvent.value, status = Form.FieldStatus.NotVisited }
                         in
                         (case fieldEvent.event of
                             InputEvent newValue ->
                                 { previousValue | value = newValue }
 
                             FocusEvent ->
-                                { previousValue | status = previousValue.status |> increaseStatusTo Form.State.Focused }
+                                { previousValue | status = previousValue.status |> increaseStatusTo Form.FieldStatus.Focused }
 
                             BlurEvent ->
-                                { previousValue | status = previousValue.status |> increaseStatusTo Form.State.Blurred }
+                                { previousValue | status = previousValue.status |> increaseStatusTo Form.FieldStatus.Blurred }
                         )
                             |> Just
                     )
@@ -1466,14 +1466,14 @@ increaseStatusTo increaseTo currentStatus =
 statusRank : FieldStatus -> Int
 statusRank status =
     case status of
-        Form.State.NotVisited ->
+        Form.FieldStatus.NotVisited ->
             0
 
-        Form.State.Focused ->
+        Form.FieldStatus.Focused ->
             1
 
-        Form.State.Changed ->
+        Form.FieldStatus.Changed ->
             2
 
-        Form.State.Blurred ->
+        Form.FieldStatus.Blurred ->
             3
