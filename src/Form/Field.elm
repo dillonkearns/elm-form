@@ -55,22 +55,23 @@ module Form.Field exposing
 
 import Date exposing (Date)
 import Dict exposing (Dict)
-import Form.FieldView as FieldView exposing (Input)
+import Form.FieldView exposing (Input)
 import Form.Value
 import Internal.Input exposing (Options(..))
 import Json.Encode as Encode
 
 
 {-| -}
-type Field error parsed data kind constraints
-    = Field (FieldInfo error parsed data) kind
+type Field error parsed data initial kind constraints
+    = Field (FieldInfo error parsed data initial) kind
 
 
 {-| -}
-type alias FieldInfo error parsed data =
+type alias FieldInfo error parsed data initial =
     { initialValue : Maybe (data -> Maybe String)
     , decode : Maybe String -> ( Maybe parsed, List error )
     , properties : List ( String, Encode.Value )
+    , initialToString : initial -> String
     }
 
 
@@ -93,14 +94,16 @@ required :
             (Maybe parsed)
             data
             kind
+            initial
             { constraints
                 | required : ()
                 , wasMapped : No
             }
-    -> Field error parsed data kind { constraints | wasMapped : No }
+    -> Field error parsed data kind initial { constraints | wasMapped : No }
 required missingError (Field field kind) =
     Field
         { initialValue = field.initialValue
+        , initialToString = field.initialToString
         , decode =
             \rawValue ->
                 let
@@ -129,6 +132,7 @@ text :
         error
         (Maybe String)
         data
+        String
         Input
         { required : ()
         , plainText : ()
@@ -140,6 +144,7 @@ text :
 text =
     Field
         { initialValue = Nothing
+        , initialToString = identity
         , decode =
             \rawValue ->
                 ( if rawValue == Just "" then
@@ -162,6 +167,7 @@ date :
             error
             (Maybe Date)
             data
+            Date
             Input
             { min : Date
             , max : Date
@@ -172,6 +178,7 @@ date :
 date toError =
     Field
         { initialValue = Nothing
+        , initialToString = Date.toIsoString
         , decode =
             \rawString ->
                 if (rawString |> Maybe.withDefault "") == "" then
@@ -210,6 +217,7 @@ time :
             error
             (Maybe TimeOfDay)
             data
+            TimeOfDay
             Input
             { -- TODO support min/max
               --min : ???,
@@ -220,6 +228,7 @@ time :
 time toError =
     Field
         { initialValue = Nothing
+        , initialToString = \{ hours, minutes } -> "TODO hh:mm format here"
         , decode =
             \rawString ->
                 if (rawString |> Maybe.withDefault "") == "" then
@@ -264,6 +273,7 @@ select :
             error
             (Maybe option)
             data
+            option
             (Options option)
             { required : ()
             , wasMapped : No
@@ -280,6 +290,7 @@ select optionsMapping invalidError =
     in
     Field
         { initialValue = Nothing
+        , initialToString = \option -> "TODO"
         , decode =
             \rawValue ->
                 case rawValue of
@@ -320,6 +331,7 @@ exactValue :
             error
             String
             data
+            Never
             Input
             { required : ()
             , plainText : ()
@@ -329,6 +341,7 @@ exactValue :
 exactValue initialValue error =
     Field
         { initialValue = Just (\_ -> Just initialValue)
+        , initialToString = never
         , decode =
             \rawValue ->
                 if rawValue == Just initialValue then
@@ -347,6 +360,7 @@ checkbox :
         error
         Bool
         data
+        Bool
         Input
         { required : ()
         , initial : Bool
@@ -354,6 +368,13 @@ checkbox :
 checkbox =
     Field
         { initialValue = Nothing
+        , initialToString =
+            \bool ->
+                if bool then
+                    "on"
+
+                else
+                    ""
         , decode =
             \rawString ->
                 ( (rawString == Just "on")
@@ -373,6 +394,7 @@ int :
             error
             (Maybe Int)
             data
+            Int
             Input
             { min : Int
             , max : Int
@@ -384,6 +406,7 @@ int :
 int toError =
     Field
         { initialValue = Nothing
+        , initialToString = String.fromInt
         , decode =
             \rawString ->
                 case rawString of
@@ -413,6 +436,7 @@ float :
             error
             (Maybe Float)
             data
+            Float
             Input
             { min : Float
             , max : Float
@@ -423,6 +447,7 @@ float :
 float toError =
     Field
         { initialValue = Nothing
+        , initialToString = String.fromFloat
         , decode =
             \rawString ->
                 case rawString of
@@ -446,8 +471,8 @@ float toError =
 
 {-| -}
 telephone :
-    Field error parsed data Input { constraints | plainText : () }
-    -> Field error parsed data Input constraints
+    Field error parsed data initial Input { constraints | plainText : () }
+    -> Field error parsed data initial Input constraints
 telephone (Field field _) =
     Field field
         (Internal.Input.Input Internal.Input.Tel)
@@ -455,8 +480,8 @@ telephone (Field field _) =
 
 {-| -}
 search :
-    Field error parsed data Input { constraints | plainText : () }
-    -> Field error parsed data Input constraints
+    Field error parsed data initial Input { constraints | plainText : () }
+    -> Field error parsed data initial Input constraints
 search (Field field _) =
     Field field
         (Internal.Input.Input Internal.Input.Search)
@@ -464,8 +489,8 @@ search (Field field _) =
 
 {-| -}
 password :
-    Field error parsed data Input { constraints | plainText : () }
-    -> Field error parsed data Input constraints
+    Field error parsed data initial Input { constraints | plainText : () }
+    -> Field error parsed data initial Input constraints
 password (Field field _) =
     Field field
         (Internal.Input.Input Internal.Input.Password)
@@ -473,8 +498,8 @@ password (Field field _) =
 
 {-| -}
 email :
-    Field error parsed data Input { constraints | plainText : () }
-    -> Field error parsed data Input constraints
+    Field error parsed data initial Input { constraints | plainText : () }
+    -> Field error parsed data initial Input constraints
 email (Field field _) =
     Field field
         (Internal.Input.Input Internal.Input.Email)
@@ -482,8 +507,8 @@ email (Field field _) =
 
 {-| -}
 url :
-    Field error parsed data Input { constraints | plainText : () }
-    -> Field error parsed data Input constraints
+    Field error parsed data initial Input { constraints | plainText : () }
+    -> Field error parsed data initial Input constraints
 url (Field field _) =
     Field field
         (Internal.Input.Input Internal.Input.Url)
@@ -492,8 +517,8 @@ url (Field field _) =
 {-| -}
 textarea :
     { rows : Maybe Int, cols : Maybe Int }
-    -> Field error parsed data Input { constraints | plainText : () }
-    -> Field error parsed data Input constraints
+    -> Field error parsed data initial Input { constraints | plainText : () }
+    -> Field error parsed data initial Input constraints
 textarea options (Field field _) =
     Field field (Internal.Input.Input (Internal.Input.Textarea options))
 
@@ -517,6 +542,8 @@ range :
             error
             (Maybe valueType)
             data
+            Never
+            -- TODO
             kind
             { constraints
                 | required : ()
@@ -530,6 +557,8 @@ range :
             error
             valueType
             data
+            Never
+            -- TODO
             Input
             { constraints | wasMapped : No }
 range info field =
@@ -541,7 +570,7 @@ range info field =
 
 
 {-| -}
-map : (parsed -> mapped) -> Field error parsed data kind constraints -> Field error mapped data kind { constraints | wasMapped : Yes }
+map : (parsed -> mapped) -> Field error parsed data initial kind constraints -> Field error mapped data initial kind { constraints | wasMapped : Yes }
 map mapFn field_ =
     withClientValidation
         (\value -> ( Just (mapFn value), [] ))
@@ -549,10 +578,11 @@ map mapFn field_ =
 
 
 {-| -}
-withClientValidation : (parsed -> ( Maybe mapped, List error )) -> Field error parsed data kind constraints -> Field error mapped data kind { constraints | wasMapped : Yes }
+withClientValidation : (parsed -> ( Maybe mapped, List error )) -> Field error parsed data initial kind constraints -> Field error mapped data initial kind { constraints | wasMapped : Yes }
 withClientValidation mapFn (Field field kind) =
     Field
         { initialValue = field.initialValue
+        , initialToString = field.initialToString
         , decode =
             \value ->
                 value
@@ -573,7 +603,7 @@ withClientValidation mapFn (Field field kind) =
 
 
 {-| -}
-withInitialValue : (data -> Form.Value.Value valueType) -> Field error value data kind { constraints | initial : valueType } -> Field error value data kind constraints
+withInitialValue : (data -> Form.Value.Value valueType) -> Field error value data initial kind { constraints | initial : valueType } -> Field error value data initial kind constraints
 withInitialValue toInitialValue (Field field kind) =
     Field
         { field
@@ -584,7 +614,7 @@ withInitialValue toInitialValue (Field field kind) =
 
 
 {-| -}
-withOptionalInitialValue : (data -> Maybe (Form.Value.Value valueType)) -> Field error value data kind { constraints | initial : valueType } -> Field error value data kind constraints
+withOptionalInitialValue : (data -> Maybe (Form.Value.Value valueType)) -> Field error value data initial kind { constraints | initial : valueType } -> Field error value data initial kind constraints
 withOptionalInitialValue toInitialValue (Field field kind) =
     Field
         { field
@@ -599,10 +629,11 @@ withOptionalInitialValue toInitialValue (Field field kind) =
 
 
 {-| -}
-withMin : Form.Value.Value valueType -> error -> Field error parsed data kind { constraints | min : valueType } -> Field error parsed data kind constraints
+withMin : Form.Value.Value valueType -> error -> Field error parsed data initial kind { constraints | min : valueType } -> Field error parsed data initial kind constraints
 withMin min error (Field field kind) =
     Field
         { initialValue = field.initialValue
+        , initialToString = field.initialToString
         , decode =
             \value ->
                 value
@@ -630,10 +661,11 @@ withMin min error (Field field kind) =
 
 
 {-| -}
-withMinLength : Int -> error -> Field error parsed data kind { constraints | minlength : () } -> Field error parsed data kind constraints
+withMinLength : Int -> error -> Field error parsed data initial kind { constraints | minlength : () } -> Field error parsed data initial kind constraints
 withMinLength minLength error (Field field kind) =
     Field
         { initialValue = field.initialValue
+        , initialToString = field.initialToString
         , decode =
             \value ->
                 value
@@ -656,10 +688,11 @@ withMinLength minLength error (Field field kind) =
 
 
 {-| -}
-withMaxLength : Int -> error -> Field error parsed data kind { constraints | maxlength : () } -> Field error parsed data kind constraints
+withMaxLength : Int -> error -> Field error parsed data initial kind { constraints | maxlength : () } -> Field error parsed data initial kind constraints
 withMaxLength maxLength error (Field field kind) =
     Field
         { initialValue = field.initialValue
+        , initialToString = field.initialToString
         , decode =
             \value ->
                 value
@@ -687,10 +720,11 @@ isEmptyValue value =
 
 
 {-| -}
-withMax : Form.Value.Value valueType -> error -> Field error parsed data kind { constraints | max : valueType } -> Field error parsed data kind constraints
+withMax : Form.Value.Value valueType -> error -> Field error parsed data initial kind { constraints | max : valueType } -> Field error parsed data initial kind constraints
 withMax max error (Field field kind) =
     Field
         { initialValue = field.initialValue
+        , initialToString = field.initialToString
         , decode =
             \value ->
                 value
@@ -718,12 +752,12 @@ withMax max error (Field field kind) =
 
 
 {-| -}
-withStep : Form.Value.Value valueType -> Field msg error value view { constraints | step : valueType } -> Field msg error value view constraints
+withStep : Form.Value.Value valueType -> Field msg error value initial view { constraints | step : valueType } -> Field msg error value initial view constraints
 withStep max field =
     withStringProperty ( "step", Form.Value.toString max ) field
 
 
-withStringProperty : ( String, String ) -> Field error parsed data kind constraints1 -> Field error parsed data kind constraints2
+withStringProperty : ( String, String ) -> Field error parsed data initial kind constraints1 -> Field error parsed data initial kind constraints2
 withStringProperty ( key, value ) (Field field kind) =
     Field
         { field | properties = ( key, Encode.string value ) :: field.properties }

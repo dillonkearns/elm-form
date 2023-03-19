@@ -330,7 +330,7 @@ dynamic :
      ->
         Form
             error
-            { combine : Form.Validation.Validation error parsed named constraints1
+            { combine : Form.Validation.Validation error parsed named initial1 constraints1
             , view : subView
             }
             parsed
@@ -341,7 +341,7 @@ dynamic :
         Form
             error
             --((decider -> Validation error parsed named) -> combined)
-            ({ combine : decider -> Form.Validation.Validation error parsed named constraints1
+            ({ combine : decider -> Form.Validation.Validation error parsed named initial1 constraints1
              , view : decider -> subView
              }
              -> combineAndView
@@ -369,7 +369,7 @@ dynamic forms formBuilder =
                     ->
                         { result : Dict String (List error)
                         , isMatchCandidate : Bool
-                        , combineAndView : { combine : Validation error parsed named constraints1, view : subView }
+                        , combineAndView : { combine : Validation error parsed named initial1 constraints1, view : subView }
                         }
                 toParser decider =
                     case forms decider of
@@ -387,14 +387,14 @@ dynamic forms formBuilder =
                         newThing :
                             { result : Dict String (List error)
                             , isMatchCandidate : Bool
-                            , combineAndView : { combine : decider -> Validation error parsed named constraints1, view : decider -> subView } -> combineAndView
+                            , combineAndView : { combine : decider -> Validation error parsed named initial1 constraints1, view : decider -> subView } -> combineAndView
                             }
                         newThing =
                             case formBuilder of
                                 Internal.Form.Form _ _ parseFn _ ->
                                     parseFn maybeData formState
 
-                        arg : { combine : decider -> Validation error parsed named constraints1, view : decider -> subView }
+                        arg : { combine : decider -> Validation error parsed named initial1 constraints1, view : decider -> subView }
                         arg =
                             { combine =
                                 toParser
@@ -509,8 +509,8 @@ Use [`Form.Field`](Form-Field) to define the field and its validations.
 -}
 field :
     String
-    -> Field error parsed input kind constraints
-    -> Form error (Form.Validation.Field error parsed kind -> combineAndView) parsedCombined input msg
+    -> Field error parsed input initial kind constraints
+    -> Form error (Form.Validation.Field error parsed initial kind -> combineAndView) parsedCombined input msg
     -> Form error combineAndView parsedCombined input msg
 field name (Field fieldParser kind) (Internal.Form.Form renderOptions definitions parseFn toInitialValues) =
     Internal.Form.Form renderOptions
@@ -538,13 +538,13 @@ field name (Field fieldParser kind) (Internal.Form.Form renderOptions definition
                     , kind = ( kind, fieldParser.properties )
                     }
 
-                parsedField : Form.Validation.Field error parsed kind
+                parsedField : Form.Validation.Field error parsed initial kind
                 parsedField =
-                    Pages.Internal.Form.Validation (Just thing) (Just name) ( maybeParsed, Dict.empty )
+                    Pages.Internal.Form.Validation (Just thing) (Just name) ( maybeParsed, Dict.empty ) fieldParser.initialToString
 
                 myFn :
                     { result : Dict String (List error)
-                    , combineAndView : Form.Validation.Field error parsed kind -> combineAndView
+                    , combineAndView : Form.Validation.Field error parsed initial kind -> combineAndView
                     , isMatchCandidate : Bool
                     }
                     ->
@@ -554,7 +554,7 @@ field name (Field fieldParser kind) (Internal.Form.Form renderOptions definition
                         }
                 myFn soFar =
                     let
-                        validationField : Form.Validation.Field error parsed kind
+                        validationField : Form.Validation.Field error parsed initial kind
                         validationField =
                             parsedField
                     in
@@ -607,8 +607,8 @@ You define the field's validations the same way as for `field`, with the
 -}
 hiddenField :
     String
-    -> Field error parsed input kind constraints
-    -> Form error (Form.Validation.Field error parsed Form.FieldView.Hidden -> combineAndView) parsed input msg
+    -> Field error parsed input initial kind constraints
+    -> Form error (Form.Validation.Field error parsed initial Form.FieldView.Hidden -> combineAndView) parsed input msg
     -> Form error combineAndView parsed input msg
 hiddenField name (Field fieldParser _) (Internal.Form.Form options definitions parseFn toInitialValues) =
     Internal.Form.Form options
@@ -635,13 +635,13 @@ hiddenField name (Field fieldParser _) (Internal.Form.Form options definitions p
                     , kind = ( Internal.Input.Hidden, fieldParser.properties )
                     }
 
-                parsedField : Form.Validation.Field error parsed Form.FieldView.Hidden
+                parsedField : Form.Validation.Field error parsed initial Form.FieldView.Hidden
                 parsedField =
-                    Pages.Internal.Form.Validation (Just thing) (Just name) ( maybeParsed, Dict.empty )
+                    Pages.Internal.Form.Validation (Just thing) (Just name) ( maybeParsed, Dict.empty ) fieldParser.initialToString
 
                 myFn :
                     { result : Dict String (List error)
-                    , combineAndView : Form.Validation.Field error parsed Form.FieldView.Hidden -> combineAndView
+                    , combineAndView : Form.Validation.Field error parsed initial Form.FieldView.Hidden -> combineAndView
                     , isMatchCandidate : Bool
                     }
                     ->
@@ -651,7 +651,7 @@ hiddenField name (Field fieldParser _) (Internal.Form.Form options definitions p
                         }
                 myFn soFar =
                     let
-                        validationField : Form.Validation.Field error parsed Form.FieldView.Hidden
+                        validationField : Form.Validation.Field error parsed initial Form.FieldView.Hidden
                         validationField =
                             parsedField
                     in
@@ -747,7 +747,7 @@ type Errors error
 
 
 {-| -}
-errorsForField : Form.Validation.Field error parsed kind -> Errors error -> List error
+errorsForField : Form.Validation.Field error parsed initial kind -> Errors error -> List error
 errorsForField field_ (Errors errorsDict) =
     errorsDict
         |> Dict.get (Form.Validation.fieldName field_)
@@ -771,16 +771,17 @@ type alias AppContext =
 
 
 mergeResults :
-    { a | result : ( Validation error parsed named constraints1, Dict String (List error) ) }
-    -> Validation error parsed unnamed constraints2
+    { a | result : ( Validation error parsed named initial constraints1, Dict String (List error) ) }
+    -> Validation error parsed unnamed initial constraints2
 mergeResults parsed =
     case parsed.result of
-        ( Pages.Internal.Form.Validation _ name ( parsedThing, combineErrors ), individualFieldErrors ) ->
+        ( Pages.Internal.Form.Validation _ name ( parsedThing, combineErrors ) initialToString, individualFieldErrors ) ->
             Pages.Internal.Form.Validation Nothing
                 name
                 ( parsedThing
                 , mergeErrors combineErrors individualFieldErrors
                 )
+                initialToString
 
 
 mergeErrors : Dict comparable (List value) -> Dict comparable (List value) -> Dict comparable (List value)
@@ -805,7 +806,7 @@ parse :
     String
     -> AppContext
     -> input
-    -> Form error { info | combine : Form.Validation.Validation error parsed named constraints } parsed input msg
+    -> Form error { info | combine : Form.Validation.Validation error parsed named initial constraints } parsed input msg
     -> ( Maybe parsed, Dict String (List error) )
 parse formId app input (Internal.Form.Form _ _ parser _) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
@@ -814,7 +815,7 @@ parse formId app input (Internal.Form.Form _ _ parser _) =
         parsed :
             { result : Dict String (List error)
             , isMatchCandidate : Bool
-            , combineAndView : { info | combine : Validation error parsed named constraints }
+            , combineAndView : { info | combine : Validation error parsed named initial constraints }
             }
         parsed =
             parser (Just input) thisFormState
@@ -844,14 +845,14 @@ insertIfNonempty key values dict =
 {-| -}
 runServerSide :
     List ( String, String )
-    -> Form error (Form.Validation.Validation error parsed kind constraints) Never input msg
+    -> Form error (Form.Validation.Validation error parsed kind initial constraints) Never input msg
     -> ( Bool, ( Maybe parsed, Dict String (List error) ) )
 runServerSide rawFormData (Internal.Form.Form _ _ parser _) =
     let
         parsed :
             { result : Dict String (List error)
             , isMatchCandidate : Bool
-            , combineAndView : Validation error parsed kind constraints
+            , combineAndView : Validation error parsed kind initial constraints
             }
         parsed =
             parser Nothing thisFormState
@@ -880,8 +881,8 @@ runServerSide rawFormData (Internal.Form.Form _ _ parser _) =
     )
 
 
-unwrapValidation : Validation error parsed named constraints -> ( Maybe parsed, Dict String (List error) )
-unwrapValidation (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors )) =
+unwrapValidation : Validation error parsed named initial constraints -> ( Maybe parsed, Dict String (List error) )
+unwrapValidation (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors ) _) =
     ( maybeParsed, errors )
 
 
@@ -898,7 +899,7 @@ renderHtml :
     ->
         Form
             error
-            { combine : Form.Validation.Validation error parsed named constraints
+            { combine : Form.Validation.Validation error parsed named initial constraints
             , view : Context error input -> List (Html (Msg msg))
             }
             parsed
@@ -940,7 +941,7 @@ renderStyledHtml :
     ->
         Form
             error
-            { combine : Form.Validation.Validation error parsed field constraints
+            { combine : Form.Validation.Validation error parsed field initial constraints
             , view : Context error input -> List (Html.Styled.Html (Msg msg))
             }
             parsed
@@ -965,7 +966,7 @@ renderHelper :
     ->
         Form
             error
-            { combine : Form.Validation.Validation error parsed named constraints
+            { combine : Form.Validation.Validation error parsed named initial constraints
             , view : Context error input -> List (Html (Msg msg))
             }
             parsed
@@ -1038,7 +1039,7 @@ renderStyledHelper :
     ->
         Form
             error
-            { combine : Form.Validation.Validation error parsed field constraints
+            { combine : Form.Validation.Validation error parsed field initial constraints
             , view : Context error input -> List (Html.Styled.Html (Msg msg))
             }
             parsed
@@ -1112,7 +1113,7 @@ helperValues :
     ->
         Form
             error
-            { combine : Form.Validation.Validation error parsed field constraints
+            { combine : Form.Validation.Validation error parsed field initial constraints
             , view : Context error input -> List view
             }
             parsed
@@ -1162,7 +1163,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
                 |> Dict.union part2
 
         parsed :
-            { result : ( Form.Validation.Validation error parsed field constraints, Dict String (List error) )
+            { result : ( Form.Validation.Validation error parsed field initial constraints, Dict String (List error) )
             , isMatchCandidate : Bool
             , view : Context error input -> List view
             }
@@ -1175,16 +1176,16 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
         parsed1 :
             { result : Dict String (List error)
             , isMatchCandidate : Bool
-            , combineAndView : { combine : Form.Validation.Validation error parsed field constraints, view : Context error input -> List view }
+            , combineAndView : { combine : Form.Validation.Validation error parsed field initial constraints, view : Context error input -> List view }
             }
         parsed1 =
             parser (Just input) thisFormState
 
-        withoutServerErrors : Form.Validation.Validation error parsed named constraints
+        withoutServerErrors : Form.Validation.Validation error parsed named initial constraints
         withoutServerErrors =
             parsed |> mergeResults
 
-        withServerErrors : Form.Validation.Validation error parsed named constraints
+        withServerErrors : Form.Validation.Validation error parsed named initial constraints
         withServerErrors =
             mergeResults
                 { parsed
@@ -1266,7 +1267,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
         isValid : Bool
         isValid =
             case withoutServerErrors of
-                Validation _ _ ( Just parsedValue, errors ) ->
+                Validation _ _ ( Just parsedValue, errors ) _ ->
                     Dict.isEmpty errors
 
                 _ ->
@@ -1275,7 +1276,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
         maybeParsed : Maybe parsed
         maybeParsed =
             case withoutServerErrors of
-                Validation _ _ ( Just parsedValue, errors ) ->
+                Validation _ _ ( Just parsedValue, errors ) _ ->
                     Just parsedValue
 
                 _ ->
