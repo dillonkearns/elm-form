@@ -901,6 +901,7 @@ renderHtml :
             error
             { combine : Form.Validation.Validation error parsed named initial constraints
             , view : Context error input -> List (Html (Msg msg))
+            , initial : input -> List ( String, String )
             }
             parsed
             input
@@ -943,6 +944,7 @@ renderStyledHtml :
             error
             { combine : Form.Validation.Validation error parsed field initial constraints
             , view : Context error input -> List (Html.Styled.Html (Msg msg))
+            , initial : input -> List ( String, String )
             }
             parsed
             input
@@ -968,6 +970,7 @@ renderHelper :
             error
             { combine : Form.Validation.Validation error parsed named initial constraints
             , view : Context error input -> List (Html (Msg msg))
+            , initial : input -> List ( String, String )
             }
             parsed
             input
@@ -1041,6 +1044,7 @@ renderStyledHelper :
             error
             { combine : Form.Validation.Validation error parsed field initial constraints
             , view : Context error input -> List (Html.Styled.Html (Msg msg))
+            , initial : input -> List ( String, String )
             }
             parsed
             input
@@ -1115,6 +1119,7 @@ helperValues :
             error
             { combine : Form.Validation.Validation error parsed field initial constraints
             , view : Context error input -> List view
+            , initial : input -> List ( String, String )
             }
             parsed
             input
@@ -1124,14 +1129,14 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
     let
         initialValues : Dict String Form.FieldState
         initialValues =
-            toInitialValues input
-                |> List.filterMap
-                    (\( key, maybeValue ) ->
-                        maybeValue
-                            |> Maybe.map
-                                (\value ->
-                                    ( key, { value = value, status = Form.FieldStatus.NotVisited } )
-                                )
+            (parser (Just input) initSingle
+                |> .combineAndView
+                >> .initial
+            )
+                input
+                |> List.map
+                    (\( key, value ) ->
+                        ( key, { value = value, status = Form.FieldStatus.NotVisited } )
                     )
                 |> Dict.fromList
 
@@ -1176,7 +1181,11 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
         parsed1 :
             { result : Dict String (List error)
             , isMatchCandidate : Bool
-            , combineAndView : { combine : Form.Validation.Validation error parsed field initial constraints, view : Context error input -> List view }
+            , combineAndView :
+                { combine : Form.Validation.Validation error parsed field initial constraints
+                , view : Context error input -> List view
+                , initial : input -> List ( String, String )
+                }
             }
         parsed1 =
             parser (Just input) thisFormState
@@ -1302,6 +1311,7 @@ type alias DoneForm error parsed input view msg =
         error
         { combine : Combined error parsed
         , view : Context error input -> view
+        , initial : input -> List ( String, String )
         }
         parsed
         input
@@ -1314,6 +1324,7 @@ type alias HtmlForm error parsed input msg =
         error
         { combine : Combined error parsed
         , view : Context error input -> List (Html (Msg msg))
+        , initial : input -> List ( String, String )
         }
         parsed
         input
@@ -1326,6 +1337,7 @@ type alias StyledHtmlForm error parsed input msg =
         error
         { combine : Combined error parsed
         , view : Context error input -> List (Html.Styled.Html (Msg msg))
+        , initial : input -> List ( String, String )
         }
         parsed
         input

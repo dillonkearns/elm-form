@@ -290,7 +290,7 @@ select optionsMapping invalidError =
     in
     Field
         { initialValue = Nothing
-        , initialToString = \option -> "TODO"
+        , initialToString = enumToString optionsMapping
         , decode =
             \rawValue ->
                 case rawValue of
@@ -320,6 +320,16 @@ select optionsMapping invalidError =
         , properties = []
         }
         (Options fromString (optionsMapping |> List.map Tuple.first))
+
+
+enumToString : List ( String, enum ) -> enum -> String
+enumToString optionsMapping a =
+    case optionsMapping |> List.filter (\( _, b ) -> b == a) |> List.head of
+        Just ( str, _ ) ->
+            str
+
+        Nothing ->
+            "Missing enum"
 
 
 {-| -}

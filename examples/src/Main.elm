@@ -86,7 +86,7 @@ view model =
 
 signUpForm : Form.HtmlForm String SignUpForm input msg
 signUpForm =
-    (\username password passwordConfirmation ->
+    (\username password passwordConfirmation role ->
         { combine =
             Validation.succeed SignUpForm
                 |> Validation.andMap
@@ -107,6 +107,12 @@ signUpForm =
                         passwordConfirmation
                         |> Validation.andThen identity
                     )
+                |> Validation.andMap role
+        , initial =
+            \input ->
+                [ username |> Validation.withInitial "dillon"
+                , role |> Validation.withInitial Admin
+                ]
         , view =
             \formState ->
                 let
@@ -122,6 +128,11 @@ signUpForm =
                 [ fieldView "username" username
                 , fieldView "Password" password
                 , fieldView "Password Confirmation" passwordConfirmation
+                , Html.div []
+                    [ FieldView.select []
+                        (\entry -> ( [], roleToString entry ))
+                        role
+                    ]
                 , if formState.submitting then
                     Html.button
                         [ Html.Attributes.disabled True ]
@@ -136,15 +147,43 @@ signUpForm =
         |> Form.field "username" (Field.text |> Field.required "Required")
         |> Form.field "password" (Field.text |> Field.password |> Field.required "Required")
         |> Form.field "password-confirmation" (Field.text |> Field.password |> Field.required "Required")
+        |> Form.field "role"
+            (Field.select
+                [ ( "admin", Admin )
+                , ( "super-admin", SuperAdmin )
+                , ( "regular", Regular )
+                ]
+                (\_ -> "Invalid")
+                |> Field.required "Required"
+            )
+
+
+roleToString : Role -> String
+roleToString role =
+    case role of
+        SuperAdmin ->
+            "SuperAdmin"
+
+        Admin ->
+            "Admin"
+
+        Regular ->
+            "Regular"
+
+
+type Role
+    = SuperAdmin
+    | Admin
+    | Regular
 
 
 type alias SignUpForm =
-    { username : Username, password : String }
+    { username : Username, password : String, role : Role }
 
 
 errorsView :
     Form.Context String input
-    -> Validation.Field String parsed kind
+    -> Validation.Field String parsed initial kind
     -> Html msg
 errorsView { submitAttempted, errors } field =
     if submitAttempted || Validation.statusAtLeast Form.FieldStatus.Blurred field then

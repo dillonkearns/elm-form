@@ -269,7 +269,14 @@ select selectAttrs enumToOption (Validation viewField fieldName _ _) =
                                 ( optionAttrs, content ) =
                                     enumToOption justParsed
                             in
-                            Html.option (Attr.value possibleValue :: optionAttrs) [ Html.text content ]
+                            Html.option
+                                (if rawField.value == Just possibleValue then
+                                    Attr.selected True :: Attr.value possibleValue :: optionAttrs
+
+                                 else
+                                    Attr.value possibleValue :: optionAttrs
+                                )
+                                [ Html.text content ]
                                 |> Just
 
                         Nothing ->

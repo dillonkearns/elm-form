@@ -3,6 +3,7 @@ module Form.Validation exposing
     , andMap, andThen, fail, fromMaybe, fromResult, map, map2, parseWithError, succeed, withError, withErrorIf, withFallback
     , value, fieldName, fieldStatus
     , statusAtLeast
+    , withInitial, InitialValue
     , map3, map4, map5, map6, map7, map8, map9
     , mapToCombined
     , global
@@ -23,6 +24,11 @@ module Form.Validation exposing
 @docs value, fieldName, fieldStatus
 
 @docs statusAtLeast
+
+
+## Setting Initial Values
+
+@docs withInitial, InitialValue
 
 
 ## Mapping
@@ -417,13 +423,20 @@ insertIfNonempty key values dict =
             |> Dict.insert key values
 
 
-type InitialValue
-    = InitialValue ( String, String )
+
+--type InitialValue
+--    = InitialValue ( String, String )
 
 
+{-| -}
+type alias InitialValue =
+    ( String, String )
+
+
+{-| -}
 withInitial : initial -> Field error parsed initial kind -> InitialValue
 withInitial initialValue (Pages.Internal.Form.Validation _ name _ initialToString) =
-    InitialValue
-        ( name |> Maybe.withDefault ""
-        , initialToString initialValue
-        )
+    --InitialValue
+    ( name |> Maybe.withDefault ""
+    , initialToString initialValue
+    )
