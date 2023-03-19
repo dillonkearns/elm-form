@@ -100,7 +100,7 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
                             , fieldView info "Confirm Password" passwordConfirmation
                             ]
                         , Html.button []
-                            [ if info.isTransitioning then
+                            [ if info.submitting then
                                 Html.text "Signing Up..."
 
                               else
@@ -301,7 +301,7 @@ initFormState =
 {-| -}
 type alias Context error input =
     { errors : Errors error
-    , isTransitioning : Bool
+    , submitting : Bool
     , submitAttempted : Bool
     , input : input
     }
@@ -765,7 +765,7 @@ type alias AppContext =
       --    -> Pages.Fetcher.Fetcher (Result Http.Error action)
       --, transition : Maybe Transition
       --, fetchers : Dict String (Pages.Transition.FetcherState (Maybe actionData))
-      isTransitioning : Bool
+      submitting : Bool
     , state : Model
     }
 
@@ -891,7 +891,7 @@ renderHtml :
     -> List (Html.Attribute (Msg msg))
     -> (actionData -> Maybe (Response error))
     ->
-        { isTransitioning : Bool
+        { submitting : Bool
         , state : Model
         }
     -> input
@@ -933,7 +933,7 @@ renderStyledHtml :
     -> List (Html.Styled.Attribute (Msg msg))
     -> (actionData -> Maybe (Response error))
     ->
-        { isTransitioning : Bool
+        { submitting : Bool
         , state : Model
         }
     -> input
@@ -1231,7 +1231,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
                     |> unwrapValidation
                     |> Tuple.second
                     |> Errors
-            , isTransitioning = formState.isTransitioning
+            , submitting = formState.submitting
             , submitAttempted = thisFormState.submitAttempted
             , input = input
             }

@@ -32,14 +32,14 @@ main =
 
 type alias Model =
     { formState : Form.Model
-    , isTransitioning : Bool
+    , submitting : Bool
     }
 
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { formState = Form.init
-      , isTransitioning = False
+      , submitting = False
       }
     , Cmd.none
     )
@@ -74,7 +74,7 @@ view model =
                     []
                     -- TODO get rid of errorData argument (completely, or just for vanilla apps)
                     (\_ -> Nothing)
-                    { isTransitioning = model.isTransitioning
+                    { submitting = model.submitting
                     , state = model.formState
                     }
                     ()
@@ -122,7 +122,7 @@ signUpForm =
                 [ fieldView "username" username
                 , fieldView "Password" password
                 , fieldView "Password Confirmation" passwordConfirmation
-                , if formState.isTransitioning then
+                , if formState.submitting then
                     Html.button
                         [ Html.Attributes.disabled True ]
                         [ Html.text "Signing Up..." ]

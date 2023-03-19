@@ -84,14 +84,14 @@ type Msg
 
 type alias Model =
     { formModel : Form.Model
-    , isTransitioning : Bool
+    , submitting : Bool
     -- , ... additional state for your app
     }
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { formModel = Form.init
-      , isTransitioning = False
+      , submitting = False
       }
     , Cmd.none
     )
@@ -102,7 +102,7 @@ update msg model =
         OnSubmit { parsed } ->
             case parsed of
                 Ok signUpData ->
-                    ( { model | isTransitioning = True }
+                    ( { model | submitting = True }
                     , sendSignUpData signUpData )
                 Err _ ->
                     -- validation errors are displayed already so
@@ -123,7 +123,7 @@ formView model =
         |> Form.withOnSubmit OnSubmit
         |> Form.renderHtml "unique-form-id"
             []
-            { isTransitioning = model.isTransitioning
+            { submitting = model.submitting
             , state = model.formModel
             }
             ()
@@ -169,7 +169,7 @@ signUpForm =
                 [ fieldView "username" username
                 , fieldView "Password" password
                 , fieldView "Password Confirmation" passwordConfirmation
-                , if formState.isTransitioning then
+                , if formState.submitting then
                     Html.button
                         [ Html.Attributes.disabled True ]
                         [ Html.text "Signing Up..." ]
