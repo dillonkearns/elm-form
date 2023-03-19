@@ -46,6 +46,7 @@ module Form.Validation exposing
 
 import Dict exposing (Dict)
 import Form.FieldStatus exposing (FieldStatus)
+import Internal.InitialValue
 import Pages.Internal.Form exposing (ViewField)
 
 
@@ -423,20 +424,15 @@ insertIfNonempty key values dict =
             |> Dict.insert key values
 
 
-
---type InitialValue
---    = InitialValue ( String, String )
-
-
 {-| -}
 type alias InitialValue =
-    ( String, String )
+    Internal.InitialValue.InitialValue
 
 
 {-| -}
 withInitial : initial -> Field error parsed initial kind -> InitialValue
 withInitial initialValue (Pages.Internal.Form.Validation _ name _ initialToString) =
-    --InitialValue
-    ( name |> Maybe.withDefault ""
-    , initialToString initialValue
-    )
+    Internal.InitialValue.InitialValue
+        ( name |> Maybe.withDefault ""
+        , initialToString initialValue
+        )

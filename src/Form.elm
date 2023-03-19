@@ -274,7 +274,7 @@ import Dict exposing (Dict)
 import Form.Field as Field exposing (Field(..))
 import Form.FieldStatus exposing (FieldStatus)
 import Form.FieldView
-import Form.Validation exposing (Combined)
+import Form.Validation exposing (Combined, InitialValue)
 import Html exposing (Html)
 import Html.Attributes as Attr
 import Html.Events
@@ -284,6 +284,7 @@ import Html.Styled.Attributes as StyledAttr
 import Html.Styled.Lazy
 import Internal.FieldEvent exposing (Event(..), FieldEvent)
 import Internal.Form
+import Internal.InitialValue
 import Internal.Input
 import Pages.FormState as Form exposing (FormState)
 import Pages.Internal.Form exposing (Validation(..), unwrapResponse)
@@ -873,7 +874,7 @@ renderHtml :
             error
             { combine : Form.Validation.Validation error parsed named initial constraints
             , view : Context error input -> List (Html (Msg msg))
-            , initial : input -> List ( String, String )
+            , initial : input -> List InitialValue
             }
             parsed
             input
@@ -916,7 +917,7 @@ renderStyledHtml :
             error
             { combine : Form.Validation.Validation error parsed field initial constraints
             , view : Context error input -> List (Html.Styled.Html (Msg msg))
-            , initial : input -> List ( String, String )
+            , initial : input -> List InitialValue
             }
             parsed
             input
@@ -942,7 +943,7 @@ renderHelper :
             error
             { combine : Form.Validation.Validation error parsed named initial constraints
             , view : Context error input -> List (Html (Msg msg))
-            , initial : input -> List ( String, String )
+            , initial : input -> List InitialValue
             }
             parsed
             input
@@ -952,7 +953,7 @@ renderHelper formId attrs accessResponse formState input ((Internal.Form.Form op
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
-        { hiddenInputs, children, isValid, parsed } =
+        { hiddenInputs, children, parsed } =
             helperValues formId toHiddenInput accessResponse formState input form_
 
         toHiddenInput : List (Html.Attribute (Msg msg)) -> Html (Msg msg)
@@ -1016,7 +1017,7 @@ renderStyledHelper :
             error
             { combine : Form.Validation.Validation error parsed field initial constraints
             , view : Context error input -> List (Html.Styled.Html (Msg msg))
-            , initial : input -> List ( String, String )
+            , initial : input -> List InitialValue
             }
             parsed
             input
@@ -1026,7 +1027,7 @@ renderStyledHelper formId attrs accessResponse formState input ((Internal.Form.F
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
-        { hiddenInputs, children, isValid, parsed } =
+        { hiddenInputs, children, parsed } =
             helperValues formId toHiddenInput accessResponse formState input form_
 
         toHiddenInput : List (Html.Attribute (Msg msg)) -> Html.Styled.Html (Msg msg)
@@ -1091,7 +1092,7 @@ helperValues :
             error
             { combine : Form.Validation.Validation error parsed field initial constraints
             , view : Context error input -> List view
-            , initial : input -> List ( String, String )
+            , initial : input -> List InitialValue
             }
             parsed
             input
@@ -1107,7 +1108,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
             )
                 input
                 |> List.map
-                    (\( key, value ) ->
+                    (\(Internal.InitialValue.InitialValue ( key, value )) ->
                         ( key, { value = value, status = Form.FieldStatus.NotVisited } )
                     )
                 |> Dict.fromList
@@ -1156,7 +1157,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
             , combineAndView :
                 { combine : Form.Validation.Validation error parsed field initial constraints
                 , view : Context error input -> List view
-                , initial : input -> List ( String, String )
+                , initial : input -> List InitialValue
                 }
             }
         parsed1 =
@@ -1248,7 +1249,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
         isValid : Bool
         isValid =
             case withoutServerErrors of
-                Validation _ _ ( Just parsedValue, errors ) _ ->
+                Validation _ _ ( Just _, errors ) _ ->
                     Dict.isEmpty errors
 
                 _ ->
@@ -1257,7 +1258,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
         maybeParsed : Maybe parsed
         maybeParsed =
             case withoutServerErrors of
-                Validation _ _ ( Just parsedValue, errors ) _ ->
+                Validation _ _ ( Just parsedValue, _ ) _ ->
                     Just parsedValue
 
                 _ ->
@@ -1283,7 +1284,7 @@ type alias DoneForm error parsed input view msg =
         error
         { combine : Combined error parsed
         , view : Context error input -> view
-        , initial : input -> List ( String, String )
+        , initial : input -> List InitialValue
         }
         parsed
         input
@@ -1296,7 +1297,7 @@ type alias HtmlForm error parsed input msg =
         error
         { combine : Combined error parsed
         , view : Context error input -> List (Html (Msg msg))
-        , initial : input -> List ( String, String )
+        , initial : input -> List InitialValue
         }
         parsed
         input
@@ -1309,7 +1310,7 @@ type alias StyledHtmlForm error parsed input msg =
         error
         { combine : Combined error parsed
         , view : Context error input -> List (Html.Styled.Html (Msg msg))
-        , initial : input -> List ( String, String )
+        , initial : input -> List InitialValue
         }
         parsed
         input
