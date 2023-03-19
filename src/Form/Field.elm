@@ -138,7 +138,6 @@ text :
         { required : ()
         , plainText : ()
         , wasMapped : No
-        , initial : String
         , minlength : ()
         , maxlength : ()
         }
@@ -174,7 +173,6 @@ date :
             , max : Date
             , required : ()
             , wasMapped : No
-            , initial : Date
             }
 date toError =
     Field
@@ -359,7 +357,6 @@ exactValue :
             { required : ()
             , plainText : ()
             , wasMapped : No
-            , initial : String
             }
 exactValue initialValue error =
     Field
@@ -386,7 +383,6 @@ checkbox :
         Bool
         Input
         { required : ()
-        , initial : Bool
         }
 checkbox =
     Field
@@ -424,7 +420,6 @@ int :
             , required : ()
             , wasMapped : No
             , step : Int
-            , initial : Int
             }
 int toError =
     Field
@@ -465,7 +460,6 @@ float :
             , max : Float
             , required : ()
             , wasMapped : No
-            , initial : Float
             }
 float toError =
     Field
