@@ -18,7 +18,7 @@ Some of these underlying ideas were discussed in [the Elm Radio episode Explorin
 
 ## Core Values
 
-- Progressive Enhancement - to make things more robust, and to leverage existing standards to get features for free instead of re-inventing them for every app. Forms are great for sending data to servers, lets use them! Let's go back our Web fundamentals - it's worth reading [the MDN docs on form submissions](https://developer.mozilla.org/en-US/docs/Learn/Forms/Sending_and_retrieving_form_data) to understand the core building blocks.
+- Progressive Enhancement - to make things more robust, and to leverage existing standards to get features for free instead of re-inventing them for every app. Forms are great for sending data to servers, lets use them! Let's go back to our Web fundamentals - it's worth reading [the MDN docs on form submissions](https://developer.mozilla.org/en-US/docs/Learn/Forms/Sending_and_retrieving_form_data) to understand the core building blocks.
 - Accessibility - using standards to provide an experience that supports a broad range of users and use cases
 
 ## Core Ideas
