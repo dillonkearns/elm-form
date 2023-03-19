@@ -132,7 +132,7 @@ signUpForm =
                 ]
         }
     )
-        |> Form.init
+        |> Form.form
         |> Form.field "username" (Field.text |> Field.required "Required")
         |> Form.field "password" (Field.text |> Field.password |> Field.required "Required")
         |> Form.field "password-confirmation" (Field.text |> Field.password |> Field.required "Required")

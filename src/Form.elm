@@ -1,7 +1,7 @@
 module Form exposing
     ( Form, HtmlForm, StyledHtmlForm, DoneForm
     , Response
-    , init
+    , form
     , field
     , Context
     , Errors, errorsForField
@@ -28,7 +28,7 @@ What to look for:
 
 **The field declarations**
 
-Below the `Form.init` call you will find all of the form's fields declared with
+Below the `Form.form` call you will find all of the form's fields declared with
 
     |> Form.field ...
 
@@ -37,7 +37,7 @@ These are the form's field declarations.
 These fields each have individual validations. For example, `|> Field.required ...` means we'll get a validation
 error if that field is empty (similar for checking the minimum password length).
 
-There will be a corresponding parameter in the function we pass in to `Form.init` for every
+There will be a corresponding parameter in the function we pass in to `Form.form` for every
 field declaration (in this example, `\email password passwordConfirmation -> ...`).
 
 **The `combine` validation**
@@ -71,7 +71,7 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
 
     signupForm : Form.HtmlForm String NewUser () Msg
     signupForm =
-        Form.init
+        Form.form
             (\email password passwordConfirmation ->
                 { combine =
                     Validation.succeed Login
@@ -204,7 +204,7 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
 
 @docs Response
 
-@docs init
+@docs form
 
 
 ### Adding Fields
@@ -298,8 +298,8 @@ type alias Context error input =
 
 
 {-| -}
-init : combineAndView -> Form String combineAndView parsed input msg
-init combineAndView =
+form : combineAndView -> Form String combineAndView parsed input msg
+form combineAndView =
     Internal.Form.Form
         { method = Internal.Form.Post
         , onSubmit = Nothing
@@ -485,7 +485,7 @@ dynamic forms formBuilder =
 Use [`Form.Field`](Form-Field) to define the field and its validations.
 
     form =
-        Form.init
+        Form.form
             (\email ->
                 { combine =
                     Validation.succeed NewUser
@@ -580,7 +580,7 @@ You define the field's validations the same way as for `field`, with the
 [`Form.Field`](Form-Field) API.
 
     form =
-        Form.init
+        Form.form
             (\quantity productId ->
                 { combine = {- combine fields -}
                 , view = \info -> [{- render visible fields -}]
@@ -895,8 +895,8 @@ renderHtml :
             input
             msg
     -> Html (Msg msg)
-renderHtml formId attrs accessResponse app input form =
-    Html.Lazy.lazy6 renderHelper formId attrs accessResponse app input form
+renderHtml formId attrs accessResponse app input form_ =
+    Html.Lazy.lazy6 renderHelper formId attrs accessResponse app input form_
 
 
 {-| -}
@@ -937,8 +937,8 @@ renderStyledHtml :
             input
             msg
     -> Html.Styled.Html (Msg msg)
-renderStyledHtml formId attrs accessResponse app input form =
-    Html.Styled.Lazy.lazy6 renderStyledHelper formId attrs accessResponse app input form
+renderStyledHtml formId attrs accessResponse app input form_ =
+    Html.Styled.Lazy.lazy6 renderStyledHelper formId attrs accessResponse app input form_
 
 
 {-| -}
@@ -962,12 +962,12 @@ renderHelper :
             input
             msg
     -> Html (Msg msg)
-renderHelper formId attrs accessResponse formState input ((Internal.Form.Form options _ _ _) as form) =
+renderHelper formId attrs accessResponse formState input ((Internal.Form.Form options _ _ _) as form_) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
         { hiddenInputs, children, isValid, parsed } =
-            helperValues formId toHiddenInput accessResponse formState input form
+            helperValues formId toHiddenInput accessResponse formState input form_
 
         toHiddenInput : List (Html.Attribute (Msg msg)) -> Html (Msg msg)
         toHiddenInput hiddenAttrs =
@@ -1035,12 +1035,12 @@ renderStyledHelper :
             input
             msg
     -> Html.Styled.Html (Msg msg)
-renderStyledHelper formId attrs accessResponse formState input ((Internal.Form.Form options _ _ _) as form) =
+renderStyledHelper formId attrs accessResponse formState input ((Internal.Form.Form options _ _ _) as form_) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
         { hiddenInputs, children, isValid, parsed } =
-            helperValues formId toHiddenInput accessResponse formState input form
+            helperValues formId toHiddenInput accessResponse formState input form_
 
         toHiddenInput : List (Html.Attribute (Msg msg)) -> Html.Styled.Html (Msg msg)
         toHiddenInput hiddenAttrs =
