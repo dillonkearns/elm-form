@@ -164,12 +164,12 @@ signUpForm =
                     { hours = 10
                     , minutes = 0
                     }
-                    ""
+                    "Must be after 10"
                 |> Field.withMax
                     { hours = 12
                     , minutes = 0
                     }
-                    ""
+                    "Must be before noon"
             )
         |> Form.field "role"
             (Field.select

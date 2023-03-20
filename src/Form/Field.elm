@@ -83,6 +83,7 @@ type alias FieldInfo error parsed input initial =
     , decode : Maybe String -> ( Maybe parsed, List error )
     , properties : List ( String, Encode.Value )
     , initialToString : initial -> String
+    , compare : String -> initial -> Order
     }
 
 
@@ -133,6 +134,7 @@ required missingError (Field field kind) =
                     allErrors
                 )
         , properties = field.properties
+        , compare = field.compare
         }
         kind
 
@@ -165,6 +167,7 @@ text =
                 , []
                 )
         , properties = []
+        , compare = Basics.compare
         }
         (Internal.Input.Input Internal.Input.Text)
 
@@ -207,6 +210,12 @@ date toError =
                         Err error ->
                             ( Nothing, [ error ] )
         , properties = []
+        , compare =
+            \raw value ->
+                Result.map2 Date.compare
+                    (Ok value)
+                    (Date.fromIsoString raw)
+                    |> Result.withDefault LT
         }
         (Internal.Input.Input Internal.Input.Date)
 
@@ -256,6 +265,18 @@ time toError =
                         Err error ->
                             ( Nothing, [ error ] )
         , properties = []
+        , compare =
+            \raw value ->
+                parseTimeOfDay raw
+                    |> Result.map
+                        (\parsedRaw ->
+                            if parsedRaw.hours == value.hours then
+                                Basics.compare parsedRaw.minutes value.minutes
+
+                            else
+                                Basics.compare parsedRaw.hours value.hours
+                        )
+                    |> Result.withDefault LT
         }
         (Internal.Input.Input Internal.Input.Time)
 
@@ -275,6 +296,12 @@ paddedInt intValue =
 parseTimeOfDay : String -> Result () { hours : Int, minutes : Int }
 parseTimeOfDay rawTimeOfDay =
     case rawTimeOfDay |> String.split ":" |> List.map String.toInt of
+        [ Just hours, Just minutes, Just seconds ] ->
+            Ok
+                { hours = hours
+                , minutes = minutes
+                }
+
         [ Just hours, Just minutes ] ->
             Ok
                 { hours = hours
@@ -339,6 +366,10 @@ select optionsMapping invalidError =
                                   ]
                                 )
         , properties = []
+        , compare =
+            \_ _ ->
+                -- min/max properties aren't allowed for this field type
+                EQ
         }
         (Options fromString (optionsMapping |> List.map Tuple.first))
 
@@ -380,6 +411,10 @@ exactValue initialValue error =
                 else
                     ( rawValue, [ error ] )
         , properties = []
+        , compare =
+            \_ _ ->
+                -- min/max properties aren't allowed for this field type
+                EQ
         }
         (Internal.Input.Input Internal.Input.Text)
 
@@ -411,6 +446,10 @@ checkbox =
                 , []
                 )
         , properties = []
+        , compare =
+            \_ _ ->
+                -- min/max properties aren't allowed for this field type
+                EQ
         }
         (Internal.Input.Input Internal.Input.Checkbox)
 
@@ -452,6 +491,14 @@ int toError =
                             Nothing ->
                                 ( Nothing, [ toError.invalid string ] )
         , properties = []
+        , compare =
+            \raw value ->
+                case String.toInt raw of
+                    Just parsed ->
+                        Basics.compare parsed value
+
+                    _ ->
+                        LT
         }
         (Internal.Input.Input Internal.Input.Number)
 
@@ -492,6 +539,14 @@ float toError =
                             Nothing ->
                                 ( Nothing, [ toError.invalid string ] )
         , properties = []
+        , compare =
+            \raw value ->
+                case String.toFloat raw of
+                    Just parsed ->
+                        Basics.compare parsed value
+
+                    _ ->
+                        LT
         }
         (Internal.Input.Input Internal.Input.Number)
 
@@ -622,6 +677,7 @@ withClientValidation mapFn (Field field kind) =
                                         |> Tuple.mapSecond ((++) errors)
                        )
         , properties = field.properties
+        , compare = field.compare
         }
         kind
 
@@ -646,15 +702,15 @@ withMin min error (Field field kind) =
                                         ( Just okValue, errors )
 
                                     else
-                                        -- TODO wire in a compare function in the `Field` definition
-                                        --case Form.Value.compare (value |> Maybe.withDefault "") min of
-                                        --    LT ->
-                                        --        ( Just okValue, error :: errors )
-                                        --
-                                        --    _ ->
-                                        ( Just okValue, errors )
+                                        case field.compare (value |> Maybe.withDefault "") min of
+                                            LT ->
+                                                ( Just okValue, error :: errors )
+
+                                            _ ->
+                                                ( Just okValue, errors )
                        )
         , properties = ( "min", Encode.string (field.initialToString min) ) :: field.properties
+        , compare = field.compare
         }
         kind
 
@@ -682,6 +738,7 @@ withMinLength minLength error (Field field kind) =
                                         ( Just okValue, error :: errors )
                        )
         , properties = ( "minlength", Encode.string (String.fromInt minLength) ) :: field.properties
+        , compare = field.compare
         }
         kind
 
@@ -709,6 +766,7 @@ withMaxLength maxLength error (Field field kind) =
                                         ( Just okValue, error :: errors )
                        )
         , properties = ( "maxlength", Encode.string (String.fromInt maxLength) ) :: field.properties
+        , compare = field.compare
         }
         kind
 
@@ -738,15 +796,15 @@ withMax max error (Field field kind) =
                                         ( Just okValue, errors )
 
                                     else
-                                        -- TODO wire in a compare function in the `Field` definition
-                                        --case Form.Value.compare (value |> Maybe.withDefault "") max of
-                                        --    GT ->
-                                        --        ( Just okValue, error :: errors )
-                                        --
-                                        --    _ ->
-                                        ( Just okValue, errors )
+                                        case field.compare (value |> Maybe.withDefault "") max of
+                                            GT ->
+                                                ( Just okValue, error :: errors )
+
+                                            _ ->
+                                                ( Just okValue, errors )
                        )
         , properties = ( "max", Encode.string (field.initialToString max) ) :: field.properties
+        , compare = field.compare
         }
         kind
 
