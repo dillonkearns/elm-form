@@ -86,7 +86,7 @@ view model =
 
 signUpForm : Form.HtmlForm String SignUpForm input msg
 signUpForm =
-    (\username password passwordConfirmation role ->
+    (\username password passwordConfirmation chaos time role ->
         { combine =
             Validation.succeed SignUpForm
                 |> Validation.andMap
@@ -108,11 +108,6 @@ signUpForm =
                         |> Validation.andThen identity
                     )
                 |> Validation.andMap role
-        , initial =
-            \input ->
-                [ username |> Validation.withInitial "dillon"
-                , role |> Validation.withInitial Admin
-                ]
         , view =
             \formState ->
                 let
@@ -128,6 +123,8 @@ signUpForm =
                 [ fieldView "username" username
                 , fieldView "Password" password
                 , fieldView "Password Confirmation" passwordConfirmation
+                , fieldView "Chaos" chaos
+                , fieldView "Time" time
                 , Html.div []
                     [ FieldView.select []
                         (\entry -> ( [], roleToString entry ))
@@ -144,9 +141,36 @@ signUpForm =
         }
     )
         |> Form.form
-        |> Form.field "username" (Field.text |> Field.required "Required")
+        |> Form.field "username"
+            (Field.text
+                |> Field.required "Required"
+                |> Field.withInitialValue (\_ -> "dillon")
+            )
         |> Form.field "password" (Field.text |> Field.password |> Field.required "Required")
         |> Form.field "password-confirmation" (Field.text |> Field.password |> Field.required "Required")
+        |> Form.field "chaos"
+            (Field.int { invalid = \_ -> "Invalid" }
+                |> Field.range
+                    { invalid = \_ -> "Outside of range"
+                    , missing = "Required"
+                    , min = 1
+                    , max = 100
+                    }
+                |> Field.withInitialValue (\_ -> 10)
+            )
+        |> Form.field "time"
+            (Field.time { invalid = \_ -> "Invalid" }
+                |> Field.withMin
+                    { hours = 10
+                    , minutes = 0
+                    }
+                    ""
+                |> Field.withMax
+                    { hours = 12
+                    , minutes = 0
+                    }
+                    ""
+            )
         |> Form.field "role"
             (Field.select
                 [ ( "admin", Admin )
@@ -155,6 +179,7 @@ signUpForm =
                 ]
                 (\_ -> "Invalid")
                 |> Field.required "Required"
+                |> Field.withInitialValue (\_ -> Admin)
             )
 
 
@@ -183,7 +208,7 @@ type alias SignUpForm =
 
 errorsView :
     Form.Context String input
-    -> Validation.Field String parsed initial kind
+    -> Validation.Field String parsed kind
     -> Html msg
 errorsView { submitAttempted, errors } field =
     if submitAttempted || Validation.statusAtLeast Form.FieldStatus.Blurred field then

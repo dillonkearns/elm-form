@@ -41,7 +41,7 @@ init :
         Form
             error
             { combineAndView
-                | combine : Form.Validation.Validation error parsed kind initial constraints
+                | combine : Form.Validation.Validation error parsed kind constraints
             }
             parsed
             input
@@ -58,7 +58,7 @@ with :
         Form
             error
             { combineAndView
-                | combine : Form.Validation.Validation error parsed kind initial constraints
+                | combine : Form.Validation.Validation error parsed kind constraints
             }
             parsed
             input
@@ -108,7 +108,7 @@ with mapFn form (Handler serverForms) =
 
 normalizeServerForm :
     (parsed -> combined)
-    -> Form error { combineAndView | combine : Form.Validation.Validation error parsed kind initial constraints } parsed input msg
+    -> Form error { combineAndView | combine : Form.Validation.Validation error parsed kind constraints } parsed input msg
     -> Form error (Combined error combined) Never Never Never
 normalizeServerForm mapFn (Internal.Form.Form options _ parseFn _) =
     Internal.Form.Form
@@ -121,7 +121,7 @@ normalizeServerForm mapFn (Internal.Form.Form options _ parseFn _) =
                 parsed :
                     { result : Dict String (List error)
                     , isMatchCandidate : Bool
-                    , combineAndView : { combineAndView | combine : Form.Validation.Validation error parsed kind initial constraints }
+                    , combineAndView : { combineAndView | combine : Form.Validation.Validation error parsed kind constraints }
                     }
                 parsed =
                     parseFn Nothing formState
