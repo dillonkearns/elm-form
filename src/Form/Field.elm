@@ -5,10 +5,10 @@ module Form.Field exposing
     , Field(..), FieldInfo, exactValue
     , required, withClientValidation, map
     , email, password, search, telephone, url, textarea
+    , range, withMin, withMax
     , withMinLength, withMaxLength
+    , withStep, withFloatStep
     , No, Yes
-    --, withMax, withStep, withMin, range,
-    --withInitialValue, withOptionalInitialValue
     )
 
 {-|
@@ -46,7 +46,11 @@ module Form.Field exposing
 
 ## Numeric Field Options
 
+@docs range, withMin, withMax
+
 @docs withMinLength, withMaxLength
+
+@docs withStep, withFloatStep
 
 
 ## Phantom Options
@@ -167,6 +171,7 @@ date :
             , max : Date
             , required : ()
             , wasMapped : No
+            , step : Int
             }
 date toError =
     Field
@@ -527,45 +532,39 @@ type OutsideRange
     | BelowRange
 
 
-
---{-| -}
---range :
---    { min : Form.Value.Value valueType
---    , max : Form.Value.Value valueType
---    , initial : data -> Form.Value.Value valueType
---    , missing : error
---    , invalid : OutsideRange -> error
---    }
---    ->
---        Field
---            error
---            (Maybe valueType)
---            data
---            Never
---            -- TODO
---            kind
---            { constraints
---                | required : ()
---                , initial : valueType
---                , min : valueType
---                , max : valueType
---                , wasMapped : No
---            }
---    ->
---        Field
---            error
---            valueType
---            data
---            Never
---            -- TODO
---            Input
---            { constraints | wasMapped : No }
---range info field =
---    field
---        |> required info.missing
---        |> withMin info.min (info.invalid BelowRange)
---        |> withMax info.max (info.invalid AboveRange)
---        |> (\(Field innerField _) -> Field { innerField | initialValue = Just (info.initial >> Form.Value.toString >> Just) } (Internal.Input.Input Internal.Input.Range))
+{-| -}
+range :
+    { min : numberInitial
+    , max : numberInitial
+    , missing : error
+    , invalid : OutsideRange -> error
+    }
+    ->
+        Field
+            error
+            (Maybe valueType)
+            numberInitial
+            kind
+            { constraints
+                | required : ()
+                , min : numberInitial
+                , max : numberInitial
+                , wasMapped : No
+            }
+    ->
+        Field
+            error
+            valueType
+            numberInitial
+            Input
+            { constraints | wasMapped : No }
+range info field =
+    -- TODO set the default value (if not overridden) using this https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/range#value
+    field
+        |> required info.missing
+        |> withMin info.min (info.invalid BelowRange)
+        |> withMax info.max (info.invalid AboveRange)
+        |> (\(Field innerField _) -> Field innerField (Internal.Input.Input Internal.Input.Range))
 
 
 {-| -}
@@ -600,37 +599,36 @@ withClientValidation mapFn (Field field kind) =
         kind
 
 
+{-| -}
+withMin : initial -> error -> Field error parsed initial kind { constraints | min : initial } -> Field error parsed initial kind constraints
+withMin min error (Field field kind) =
+    Field
+        { initialToString = field.initialToString
+        , decode =
+            \value ->
+                value
+                    |> field.decode
+                    |> (\( maybeValue, errors ) ->
+                            case maybeValue of
+                                Nothing ->
+                                    ( Nothing, errors )
 
---{-| -}
---withMin : Form.Value.Value valueType -> error -> Field error parsed data initial kind { constraints | min : valueType } -> Field error parsed data initial kind constraints
---withMin min error (Field field kind) =
---    Field
---        { initialValue = field.initialValue
---        , initialToString = field.initialToString
---        , decode =
---            \value ->
---                value
---                    |> field.decode
---                    |> (\( maybeValue, errors ) ->
---                            case maybeValue of
---                                Nothing ->
---                                    ( Nothing, errors )
---
---                                Just okValue ->
---                                    if isEmptyValue value then
---                                        ( Just okValue, errors )
---
---                                    else
---                                        case Form.Value.compare (value |> Maybe.withDefault "") min of
---                                            LT ->
---                                                ( Just okValue, error :: errors )
---
---                                            _ ->
---                                                ( Just okValue, errors )
---                       )
---        , properties = ( "min", Encode.string (Form.Value.toString min) ) :: field.properties
---        }
---        kind
+                                Just okValue ->
+                                    if isEmptyValue value then
+                                        ( Just okValue, errors )
+
+                                    else
+                                        -- TODO wire in a compare function in the `Field` definition
+                                        --case Form.Value.compare (value |> Maybe.withDefault "") min of
+                                        --    LT ->
+                                        --        ( Just okValue, error :: errors )
+                                        --
+                                        --    _ ->
+                                        ( Just okValue, errors )
+                       )
+        , properties = ( "min", Encode.string (field.initialToString min) ) :: field.properties
+        }
+        kind
 
 
 {-| -}
@@ -690,43 +688,48 @@ isEmptyValue value =
     (value |> Maybe.withDefault "") == ""
 
 
+{-| -}
+withMax : initial -> error -> Field error parsed initial kind { constraints | max : initial } -> Field error parsed initial kind constraints
+withMax max error (Field field kind) =
+    Field
+        { initialToString = field.initialToString
+        , decode =
+            \value ->
+                value
+                    |> field.decode
+                    |> (\( maybeValue, errors ) ->
+                            case maybeValue of
+                                Nothing ->
+                                    ( Nothing, errors )
 
---{-| -}
---withMax : Form.Value.Value valueType -> error -> Field error parsed data initial kind { constraints | max : valueType } -> Field error parsed data initial kind constraints
---withMax max error (Field field kind) =
---    Field
---        { initialValue = field.initialValue
---        , initialToString = field.initialToString
---        , decode =
---            \value ->
---                value
---                    |> field.decode
---                    |> (\( maybeValue, errors ) ->
---                            case maybeValue of
---                                Nothing ->
---                                    ( Nothing, errors )
---
---                                Just okValue ->
---                                    if isEmptyValue value then
---                                        ( Just okValue, errors )
---
---                                    else
---                                        case Form.Value.compare (value |> Maybe.withDefault "") max of
---                                            GT ->
---                                                ( Just okValue, error :: errors )
---
---                                            _ ->
---                                                ( Just okValue, errors )
---                       )
---        , properties = ( "max", Encode.string (Form.Value.toString max) ) :: field.properties
---        }
---        kind
---
---
---{-| -}
---withStep : Form.Value.Value valueType -> Field msg error value initial view { constraints | step : valueType } -> Field msg error value initial view constraints
---withStep max field =
---    withStringProperty ( "step", Form.Value.toString max ) field
+                                Just okValue ->
+                                    if isEmptyValue value then
+                                        ( Just okValue, errors )
+
+                                    else
+                                        -- TODO wire in a compare function in the `Field` definition
+                                        --case Form.Value.compare (value |> Maybe.withDefault "") max of
+                                        --    GT ->
+                                        --        ( Just okValue, error :: errors )
+                                        --
+                                        --    _ ->
+                                        ( Just okValue, errors )
+                       )
+        , properties = ( "max", Encode.string (field.initialToString max) ) :: field.properties
+        }
+        kind
+
+
+{-| -}
+withStep : Int -> Field error value initial view { constraints | step : Int } -> Field error value initial view constraints
+withStep step (Field info kind) =
+    withStringProperty ( "step", String.fromInt step ) (Field info kind)
+
+
+{-| -}
+withFloatStep : Float -> Field error value initial view { constraints | step : Float } -> Field error value initial view constraints
+withFloatStep step (Field info kind) =
+    withStringProperty ( "step", String.fromFloat step ) (Field info kind)
 
 
 withStringProperty : ( String, String ) -> Field error parsed initial kind constraints1 -> Field error parsed initial kind constraints2
