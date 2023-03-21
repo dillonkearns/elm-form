@@ -3,10 +3,10 @@
 [Pre-release package docs](https://elm-doc-preview.netlify.app/Form?repo=dillonkearns%2Felm-form&version=master)
 
 `elm-form` is built around the idea
-of managing a single [`Form.Model`](Form#Model) value as an unparsed set of raw field values and [`FieldStatus` (blurred, changed, etc.)](Form-FieldStatus#FieldStatus).
+of managing a single [`Form.Model`](https://package.elm-lang.org/packages/dillonkearns/elm-form/1.0.0/Form#Model) value as an unparsed set of raw field values and [`FieldStatus` (blurred, changed, etc.)](https://package.elm-lang.org/packages/dillonkearns/elm-form/1.0.0/Form-FieldStatus#FieldStatus).
 This `Form.Model` can even handle form state of more than one form on a page, or even across multiple pages.
 The package manages all of the unparsed state for you with a single `Msg`, a single `Model` entry, and then
-uses your [`Form`](#Form) definition to run its validations against the unparsed values ([`Model`](Form#Model)),
+uses your [`Form`](#Form) definition to run its validations against the unparsed values ([`Model`](https://package.elm-lang.org/packages/dillonkearns/elm-form/1.0.0/Form#Model)),
 and to render the form fields along with any validation errors.
 
 If you use `elm-form` with `elm-pages`, the wiring is built into the framework so you don't need to wire in `update` or `Model`
@@ -23,9 +23,9 @@ Some of these underlying ideas were discussed in [the Elm Radio episode Explorin
 
 ## Core Ideas
 
-- [`Form.Validation`](Form-Validation) lets you build up validations and parse fields into a combined value in the same pass (if you wanted to, you could even parse into a `Json.Encode.Value` or some payload to send to an API `onSubmit`)
-- [`Form.Field`](Form-Field) lets you declare the fields (in the applicative pipeline in the Form definition)
-- You can pass an input value when you render the form which can be used in rendering the view, and for getting initial values ([`withInitialValue`](Form-Field#withInitialValue))
+- [`Form.Validation`](https://package.elm-lang.org/packages/dillonkearns/elm-form/1.0.0/Form-Validation) lets you build up validations and parse fields into a combined value in the same pass (if you wanted to, you could even parse into a `Json.Encode.Value` or some payload to send to an API `onSubmit`)
+- [`Form.Field`](https://package.elm-lang.org/packages/dillonkearns/elm-form/1.0.0/Form-Field) lets you declare the fields (in the applicative pipeline in the Form definition)
+- You can pass an input value when you render the form which can be used in rendering the view, and for getting initial values ([`withInitialValue`](https://package.elm-lang.org/packages/dillonkearns/elm-form/1.0.0/Form-Field#withInitialValue))
 ## Opinions
 
 - Forms are always rendered within a `<form>` element for accessibility, and to enable progressive enhancement

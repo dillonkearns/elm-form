@@ -1,4 +1,4 @@
-module Internal.Field exposing (..)
+module Internal.Field exposing (Field(..), FieldInfo)
 
 {-| -}
 

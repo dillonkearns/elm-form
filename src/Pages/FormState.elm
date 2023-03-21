@@ -1,4 +1,4 @@
-module Pages.FormState exposing (FieldState, FormState, PageFormState, init, listeners, setField, setSubmitAttempted, update)
+module Pages.FormState exposing (FieldState, FormState, PageFormState, listeners)
 
 import Dict exposing (Dict)
 import Form.FieldStatus exposing (FieldStatus)
