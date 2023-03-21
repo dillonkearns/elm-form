@@ -826,8 +826,5 @@ withStringProperty ( key, value ) (Internal.Field.Field field kind) =
 withInitialValue : (input -> initial) -> Field error value input initial kind constraints -> Field error value input initial kind constraints
 withInitialValue toInitialValue (Internal.Field.Field field kind) =
     Internal.Field.Field
-        { field
-            | initialValue =
-                Just (toInitialValue >> field.initialToString)
-        }
+        { field | initialValue = Just (toInitialValue >> field.initialToString) }
         kind

@@ -277,14 +277,13 @@ import Form.FieldView
 import Form.Validation exposing (Combined)
 import Html exposing (Html)
 import Html.Attributes as Attr
-import Html.Events
 import Html.Lazy
 import Html.Styled
 import Html.Styled.Attributes as StyledAttr
 import Html.Styled.Lazy
 import Internal.Field
 import Internal.FieldEvent exposing (Event(..), FieldEvent)
-import Internal.Form
+import Internal.Form exposing (Method)
 import Internal.Input
 import Pages.FormState as Form exposing (FormState)
 import Pages.Internal.Form exposing (Validation(..), unwrapResponse)
@@ -976,7 +975,7 @@ renderHelper formId attrs accessResponse formState input ((Internal.Form.Form op
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
-        { hiddenInputs, children, isValid, parsed } =
+        { hiddenInputs, children, isValid, parsed, fields } =
             helperValues formId toHiddenInput accessResponse formState input form_
 
         toHiddenInput : List (Html.Attribute (Msg msg)) -> Html (Msg msg)
@@ -1000,30 +999,24 @@ renderHelper formId attrs accessResponse formState input ((Internal.Form.Form op
                --     TransitionStrategy ->
                --         Pages.Internal.Msg.submitIfValid options.onSubmit formId (\_ -> isValid)
                ]
-            ++ (let
-                    formDataThing : Internal.FieldEvent.FormData
-                    formDataThing =
-                        { fields = [] -- TODO
-                        , method = Internal.FieldEvent.Post
-                        , action = "TODO" -- formState.path |> String.join "/"
-                        , id = Just formId
-                        }
-
-                    msgThing : Maybe msg
-                    msgThing =
-                        options.onSubmit
-                            |> Maybe.map
-                                (\onSubmit ->
-                                    onSubmit
-                                        { fields = []
-                                        , parsed = parsed |> Result.fromMaybe ()
-                                        }
-                                )
-                in
-                [ Internal.FieldEvent.Submit formDataThing msgThing
-                    |> Html.Events.onSubmit
-                ]
-               )
+            ++ [ Internal.FieldEvent.formDataOnSubmit
+                    |> Attr.map
+                        (\formDataThing ->
+                            let
+                                msgThing : Maybe msg
+                                msgThing =
+                                    options.onSubmit
+                                        |> Maybe.map
+                                            (\onSubmit ->
+                                                onSubmit
+                                                    { fields = formDataThing.fields |> Maybe.withDefault fields
+                                                    , parsed = parsed |> Result.fromMaybe ()
+                                                    }
+                                            )
+                            in
+                            Internal.FieldEvent.Submit formDataThing msgThing
+                        )
+               ]
             ++ attrs
         )
         (hiddenInputs ++ children)
@@ -1049,7 +1042,7 @@ renderStyledHelper formId attrs accessResponse formState input ((Internal.Form.F
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
-        { hiddenInputs, children, isValid, parsed } =
+        { hiddenInputs, children, isValid, parsed, fields } =
             helperValues formId toHiddenInput accessResponse formState input form_
 
         toHiddenInput : List (Html.Attribute (Msg msg)) -> Html.Styled.Html (Msg msg)
@@ -1076,31 +1069,25 @@ renderStyledHelper formId attrs accessResponse formState input ((Internal.Form.F
                --         StyledAttr.fromUnstyled <|
                --             Pages.Internal.Msg.submitIfValid options.onSubmit formId (\_ -> isValid)
                ]
-            ++ (let
-                    formDataThing : Internal.FieldEvent.FormData
-                    formDataThing =
-                        { fields = [] -- TODO
-                        , method = Internal.FieldEvent.Post -- TODO
-                        , action = "TODO" -- formState.path |> String.join "/"
-                        , id = Just formId
-                        }
-
-                    msgThing : Maybe msg
-                    msgThing =
-                        options.onSubmit
-                            |> Maybe.map
-                                (\onSubmit ->
-                                    onSubmit
-                                        { fields = []
-                                        , parsed = parsed |> Result.fromMaybe ()
-                                        }
-                                )
-                in
-                [ Internal.FieldEvent.Submit formDataThing msgThing
-                    |> Html.Events.onSubmit
+            ++ [ Internal.FieldEvent.formDataOnSubmit
+                    |> Attr.map
+                        (\formDataThing ->
+                            let
+                                msgThing : Maybe msg
+                                msgThing =
+                                    options.onSubmit
+                                        |> Maybe.map
+                                            (\onSubmit ->
+                                                onSubmit
+                                                    { fields = formDataThing.fields |> Maybe.withDefault fields
+                                                    , parsed = parsed |> Result.fromMaybe ()
+                                                    }
+                                            )
+                            in
+                            Internal.FieldEvent.Submit formDataThing msgThing
+                        )
                     |> StyledAttr.fromUnstyled
-                ]
-               )
+               ]
             ++ attrs
         )
         (hiddenInputs ++ children)
@@ -1121,7 +1108,7 @@ helperValues :
             parsed
             input
             msg
-    -> { hiddenInputs : List view, children : List view, isValid : Bool, parsed : Maybe parsed }
+    -> { hiddenInputs : List view, children : List view, isValid : Bool, parsed : Maybe parsed, fields : List ( String, String ) }
 helperValues formId toHiddenInput accessResponse formState input (Internal.Form.Form _ fieldDefinitions parser toInitialValues) =
     let
         initialValues : Dict String Form.FieldState
@@ -1227,6 +1214,10 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
                     )
                 |> (\state -> { state | fields = fullFormState })
 
+        rawFields : List ( String, String )
+        rawFields =
+            fullFormState |> Dict.toList |> List.map (Tuple.mapSecond .value)
+
         context : Context error input
         context =
             { errors =
@@ -1288,6 +1279,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
     , children = children
     , isValid = isValid
     , parsed = maybeParsed
+    , fields = rawFields
     }
 
 
