@@ -7,7 +7,7 @@
     "elm-test": "latest-0.19.1",
     "elm-tooling": "1.6.0",
     "elm-verify-examples": "5.2.0",
-    "prettier": "2.4.1"
+    "prettier": "^2.8.6"
   },
   "scripts": {
     "test": "elm-verify-examples --run-tests && elm-test",
