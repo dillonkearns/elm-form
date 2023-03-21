@@ -1,7 +1,7 @@
 {
   "root": "../src",
   "tests": [
-    "REPLACEME",
+    "Form",
     "./README.md"
   ]
 }
