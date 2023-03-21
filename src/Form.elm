@@ -1079,8 +1079,11 @@ renderStyledHelper formId attrs accessResponse formState input ((Internal.Form.F
             ++ (let
                     formDataThing : Internal.FieldEvent.FormData
                     formDataThing =
-                        -- TODO
-                        Debug.todo ""
+                        { fields = [] -- TODO
+                        , method = Internal.FieldEvent.Post -- TODO
+                        , action = "TODO" -- formState.path |> String.join "/"
+                        , id = Just formId
+                        }
 
                     msgThing : Maybe msg
                     msgThing =
