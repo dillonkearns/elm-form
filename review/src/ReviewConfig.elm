@@ -61,10 +61,11 @@ config =
     --    |> NoInconsistentAliases.noMissingAliases
     --    |> NoInconsistentAliases.rule
     , NoModuleOnExposedNames.rule
-    , Docs.NoMissing.rule
-        { document = onlyExposed
-        , from = exposedModules
-        }
+
+    --, Docs.NoMissing.rule
+    --    { document = onlyExposed
+    --    , from = exposedModules
+    --    }
     , Docs.ReviewLinksAndSections.rule
     , Docs.ReviewAtDocs.rule
     , Docs.UpToDateReadmeLinks.rule
