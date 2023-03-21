@@ -271,7 +271,7 @@ in the user's workflow to show validation errors.
 -}
 
 import Dict exposing (Dict)
-import Form.Field as Field exposing (Field(..))
+import Form.Field as Field exposing (Field)
 import Form.FieldStatus exposing (FieldStatus)
 import Form.FieldView
 import Form.Validation exposing (Combined)
@@ -282,6 +282,7 @@ import Html.Lazy
 import Html.Styled
 import Html.Styled.Attributes as StyledAttr
 import Html.Styled.Lazy
+import Internal.Field
 import Internal.FieldEvent exposing (Event(..), FieldEvent)
 import Internal.Form
 import Internal.Input
@@ -512,7 +513,7 @@ field :
     -> Field error parsed input initial kind constraints
     -> Form error (Form.Validation.Field error parsed kind -> combineAndView) parsedCombined input msg
     -> Form error combineAndView parsedCombined input msg
-field name (Field fieldParser kind) (Internal.Form.Form renderOptions definitions parseFn toInitialValues) =
+field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form renderOptions definitions parseFn toInitialValues) =
     Internal.Form.Form renderOptions
         (( name, Internal.Form.RegularField )
             :: definitions
@@ -610,7 +611,7 @@ hiddenField :
     -> Field error parsed input initial kind constraints
     -> Form error (Form.Validation.Field error parsed Form.FieldView.Hidden -> combineAndView) parsed input msg
     -> Form error combineAndView parsed input msg
-hiddenField name (Field fieldParser _) (Internal.Form.Form options definitions parseFn toInitialValues) =
+hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form options definitions parseFn toInitialValues) =
     Internal.Form.Form options
         (( name, Internal.Form.HiddenField )
             :: definitions
@@ -686,7 +687,7 @@ hiddenKind :
     -> Form error combineAndView parsed input msg
 hiddenKind ( name, value ) error_ (Internal.Form.Form options definitions parseFn toInitialValues) =
     let
-        (Field fieldParser _) =
+        (Internal.Field.Field fieldParser _) =
             Field.exactValue value error_
     in
     Internal.Form.Form options
