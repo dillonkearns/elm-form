@@ -74,6 +74,6 @@ config =
             (\rule ->
                 rule
                     |> Review.Rule.ignoreErrorsForDirectories
-                        [ "tests/VerifyExamples" -- this is a generated folder
+                        [ "tests/"
                         ]
             )
