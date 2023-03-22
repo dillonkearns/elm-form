@@ -25,7 +25,16 @@ fieldEventDecoder =
     Decode.map4 FieldEvent
         inputValueDecoder
         (Decode.at [ "currentTarget", "id" ] Decode.string)
-        (Decode.at [ "target", "name" ] Decode.string)
+        (Decode.at [ "target", "name" ] Decode.string
+            |> Decode.andThen
+                (\name ->
+                    if name == "" then
+                        Decode.fail "Events only run on fields with names."
+
+                    else
+                        Decode.succeed name
+                )
+        )
         fieldDecoder
 
 
