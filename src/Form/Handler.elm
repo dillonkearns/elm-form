@@ -15,9 +15,12 @@ module Form.Handler exposing
 -}
 
 import Dict exposing (Dict)
-import Form exposing (Validated, runServerSide)
-import Form.Validation exposing (Combined)
+import Form exposing (Validated)
+import Form.FieldStatus
+import Form.Validation exposing (Combined, Validation)
 import Internal.Form exposing (Form)
+import Pages.FormState exposing (FormState)
+import Pages.Internal.Form
 
 
 {-| -}
@@ -41,7 +44,7 @@ init :
         Form
             error
             { combineAndView
-                | combine : Form.Validation.Validation error parsed kind constraints
+                | combine : Validation error parsed kind constraints
             }
             parsed
             input
@@ -58,7 +61,7 @@ with :
         Form
             error
             { combineAndView
-                | combine : Form.Validation.Validation error parsed kind constraints
+                | combine : Validation error parsed kind constraints
             }
             parsed
             input
@@ -108,7 +111,7 @@ with mapFn form (Handler serverForms) =
 
 normalizeServerForm :
     (parsed -> combined)
-    -> Form error { combineAndView | combine : Form.Validation.Validation error parsed kind constraints } parsed input msg
+    -> Form error { combineAndView | combine : Validation error parsed kind constraints } parsed input msg
     -> Form error (Combined error combined) Never Never Never
 normalizeServerForm mapFn (Internal.Form.Form options _ parseFn _) =
     Internal.Form.Form
@@ -121,7 +124,7 @@ normalizeServerForm mapFn (Internal.Form.Form options _ parseFn _) =
                 parsed :
                     { result : Dict String (List error)
                     , isMatchCandidate : Bool
-                    , combineAndView : { combineAndView | combine : Form.Validation.Validation error parsed kind constraints }
+                    , combineAndView : { combineAndView | combine : Validation error parsed kind constraints }
                     }
                 parsed =
                     parseFn Nothing formState
@@ -193,3 +196,87 @@ runOneOfServerSideHelp rawFormData firstFoundErrors (Handler parsers) =
         [] ->
             -- TODO need to pass errors
             ( Nothing, firstFoundErrors |> Maybe.withDefault [] |> Dict.fromList )
+
+
+{-| -}
+runServerSide :
+    List ( String, String )
+    -> Form error (Validation error parsed kind constraints) Never input msg
+    -> ( Bool, ( Maybe parsed, Dict String (List error) ) )
+runServerSide rawFormData (Internal.Form.Form _ _ parser _) =
+    let
+        parsed :
+            { result : Dict String (List error)
+            , isMatchCandidate : Bool
+            , combineAndView : Validation error parsed kind constraints
+            }
+        parsed =
+            parser Nothing thisFormState
+
+        thisFormState : FormState
+        thisFormState =
+            { fields =
+                rawFormData
+                    |> List.map
+                        (Tuple.mapSecond
+                            (\value ->
+                                { value = value
+                                , status = Form.FieldStatus.notVisited
+                                }
+                            )
+                        )
+                    |> Dict.fromList
+            , submitAttempted = False
+            }
+    in
+    ( parsed.isMatchCandidate
+    , { result = ( parsed.combineAndView, parsed.result )
+      }
+        |> mergeResults
+        |> unwrapValidation
+    )
+
+
+mergeResults :
+    { a | result : ( Validation error parsed named constraints1, Dict String (List error) ) }
+    -> Validation error parsed unnamed constraints2
+mergeResults parsed =
+    case parsed.result of
+        ( Pages.Internal.Form.Validation _ name ( parsedThing, combineErrors ), individualFieldErrors ) ->
+            Pages.Internal.Form.Validation Nothing
+                name
+                ( parsedThing
+                , mergeErrors combineErrors individualFieldErrors
+                )
+
+
+unwrapValidation : Validation error parsed named constraints -> ( Maybe parsed, Dict String (List error) )
+unwrapValidation (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors )) =
+    ( maybeParsed, errors )
+
+
+mergeErrors : Dict comparable (List value) -> Dict comparable (List value) -> Dict comparable (List value)
+mergeErrors errors1 errors2 =
+    Dict.merge
+        (\key entries soFar ->
+            soFar |> insertIfNonempty key entries
+        )
+        (\key entries1 entries2 soFar ->
+            soFar |> insertIfNonempty key (entries1 ++ entries2)
+        )
+        (\key entries soFar ->
+            soFar |> insertIfNonempty key entries
+        )
+        errors1
+        errors2
+        Dict.empty
+
+
+insertIfNonempty : comparable -> List value -> Dict comparable (List value) -> Dict comparable (List value)
+insertIfNonempty key values dict =
+    if values |> List.isEmpty then
+        dict
+
+    else
+        dict
+            |> Dict.insert key values

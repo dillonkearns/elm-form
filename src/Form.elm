@@ -5,7 +5,7 @@ module Form exposing
     , Context
     , Errors, errorsForField
     , renderHtml, renderStyledHtml
-    , parse, runServerSide
+    , parse
     , withOnSubmit
     , hiddenField, hiddenKind
     , withGetMethod
@@ -229,7 +229,7 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
 
 ## Running Parsers
 
-@docs parse, runServerSide
+@docs parse
 
 
 ## Submission
@@ -859,45 +859,6 @@ insertIfNonempty key values dict =
     else
         dict
             |> Dict.insert key values
-
-
-{-| -}
-runServerSide :
-    List ( String, String )
-    -> Form error (Form.Validation.Validation error parsed kind constraints) Never input msg
-    -> ( Bool, ( Maybe parsed, Dict String (List error) ) )
-runServerSide rawFormData (Internal.Form.Form _ _ parser _) =
-    let
-        parsed :
-            { result : Dict String (List error)
-            , isMatchCandidate : Bool
-            , combineAndView : Validation error parsed kind constraints
-            }
-        parsed =
-            parser Nothing thisFormState
-
-        thisFormState : FormState
-        thisFormState =
-            { initFormState
-                | fields =
-                    rawFormData
-                        |> List.map
-                            (Tuple.mapSecond
-                                (\value ->
-                                    { value = value
-                                    , status = Form.FieldStatus.notVisited
-                                    }
-                                )
-                            )
-                        |> Dict.fromList
-            }
-    in
-    ( parsed.isMatchCandidate
-    , { result = ( parsed.combineAndView, parsed.result )
-      }
-        |> mergeResults
-        |> unwrapValidation
-    )
 
 
 unwrapValidation : Validation error parsed named constraints -> ( Maybe parsed, Dict String (List error) )
