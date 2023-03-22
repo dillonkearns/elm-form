@@ -3,7 +3,7 @@ module Form.Field exposing
     , text, checkbox, int, float
     , select, OutsideRange(..)
     , date, time, TimeOfDay
-    , withInitialValue
+    , withInitialValue, withOptionalInitialValue
     , exactValue
     , required, withClientValidation, map
     , email, password, search, telephone, url, textarea
@@ -35,7 +35,7 @@ module Form.Field exposing
 
 ## Initial Values
 
-@docs withInitialValue
+@docs withInitialValue, withOptionalInitialValue
 
 
 ## Other
@@ -149,7 +149,7 @@ text :
         }
 text =
     Internal.Field.Field
-        { initialValue = Nothing
+        { initialValue = \_ -> Nothing
         , initialToString = identity
         , decode =
             \rawValue ->
@@ -184,7 +184,7 @@ date :
             }
 date toError =
     Internal.Field.Field
-        { initialValue = Nothing
+        { initialValue = \_ -> Nothing
         , initialToString = Date.toIsoString
         , decode =
             \rawString ->
@@ -239,7 +239,7 @@ time :
             }
 time toError =
     Internal.Field.Field
-        { initialValue = Nothing
+        { initialValue = \_ -> Nothing
         , initialToString = timeOfDayToString
         , decode =
             \rawString ->
@@ -331,7 +331,7 @@ select optionsMapping invalidError =
             Dict.get string dict
     in
     Internal.Field.Field
-        { initialValue = Nothing
+        { initialValue = \_ -> Nothing
         , initialToString = enumToString optionsMapping
         , decode =
             \rawValue ->
@@ -395,7 +395,7 @@ exactValue :
             }
 exactValue initialValue error =
     Internal.Field.Field
-        { initialValue = Nothing
+        { initialValue = \_ -> Nothing
         , initialToString = never
         , decode =
             \rawValue ->
@@ -425,7 +425,7 @@ checkbox :
         }
 checkbox =
     Internal.Field.Field
-        { initialValue = Nothing
+        { initialValue = \_ -> Nothing
         , initialToString =
             \bool ->
                 if bool then
@@ -466,7 +466,7 @@ int :
             }
 int toError =
     Internal.Field.Field
-        { initialValue = Nothing
+        { initialValue = \_ -> Nothing
         , initialToString = String.fromInt
         , decode =
             \rawString ->
@@ -514,7 +514,7 @@ float :
             }
 float toError =
     Internal.Field.Field
-        { initialValue = Nothing
+        { initialValue = \_ -> Nothing
         , initialToString = String.fromFloat
         , decode =
             \rawString ->
@@ -826,5 +826,16 @@ withStringProperty ( key, value ) (Internal.Field.Field field kind) =
 withInitialValue : (input -> initial) -> Field error value input initial kind constraints -> Field error value input initial kind constraints
 withInitialValue toInitialValue (Internal.Field.Field field kind) =
     Internal.Field.Field
-        { field | initialValue = Just (toInitialValue >> field.initialToString) }
+        { field | initialValue = toInitialValue >> field.initialToString >> Just }
+        kind
+
+
+{-| -}
+withOptionalInitialValue : (input -> Maybe initial) -> Field error value input initial kind constraints -> Field error value input initial kind constraints
+withOptionalInitialValue toInitialValue (Internal.Field.Field field kind) =
+    Internal.Field.Field
+        { field
+            | initialValue =
+                toInitialValue >> Maybe.map field.initialToString
+        }
         kind

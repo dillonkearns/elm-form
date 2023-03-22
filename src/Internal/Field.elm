@@ -11,7 +11,7 @@ type Field error parsed input initial kind constraints
 
 {-| -}
 type alias FieldInfo error parsed input initial =
-    { initialValue : Maybe (input -> String)
+    { initialValue : input -> Maybe String
     , decode : Maybe String -> ( Maybe parsed, List error )
     , properties : List ( String, Encode.Value )
     , initialToString : initial -> String

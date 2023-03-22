@@ -538,7 +538,7 @@ field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form renderOpt
                             ( Just info.value, info.status )
 
                         Nothing ->
-                            ( Maybe.map2 (|>) maybeData fieldParser.initialValue, Form.FieldStatus.notVisited )
+                            ( maybeData |> Maybe.andThen (\data -> fieldParser.initialValue data), Form.FieldStatus.notVisited )
 
                 thing : Pages.Internal.Form.ViewField kind
                 thing =
@@ -580,9 +580,9 @@ field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form renderOpt
                 |> myFn
         )
         (\input ->
-            case fieldParser.initialValue of
-                Just toInitialValue ->
-                    ( name, toInitialValue input |> Just )
+            case fieldParser.initialValue input of
+                Just initialValue ->
+                    ( name, Just initialValue )
                         :: toInitialValues input
 
                 Nothing ->
@@ -635,7 +635,7 @@ hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form option
                             ( Just info.value, info.status )
 
                         Nothing ->
-                            ( Maybe.map2 (|>) maybeData fieldParser.initialValue, Form.FieldStatus.notVisited )
+                            ( maybeData |> Maybe.andThen (\data -> fieldParser.initialValue data), Form.FieldStatus.notVisited )
 
                 thing : Pages.Internal.Form.ViewField Form.FieldView.Hidden
                 thing =
@@ -677,9 +677,9 @@ hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form option
                 |> myFn
         )
         (\input ->
-            case fieldParser.initialValue of
-                Just toInitialValue ->
-                    ( name, toInitialValue input |> Just )
+            case fieldParser.initialValue input of
+                Just initialValue ->
+                    ( name, Just initialValue )
                         :: toInitialValues input
 
                 Nothing ->
@@ -714,7 +714,7 @@ hiddenKind ( name, value ) error_ (Internal.Form.Form options definitions parseF
                             Just info.value
 
                         Nothing ->
-                            Maybe.map2 (|>) maybeData fieldParser.initialValue
+                            maybeData |> Maybe.andThen (\data -> fieldParser.initialValue data)
 
                 myFn :
                     { result : Dict String (List error)
@@ -739,9 +739,9 @@ hiddenKind ( name, value ) error_ (Internal.Form.Form options definitions parseF
                 |> myFn
         )
         (\input ->
-            case fieldParser.initialValue of
-                Just toInitialValue ->
-                    ( name, toInitialValue input |> Just )
+            case fieldParser.initialValue input of
+                Just initialValue ->
+                    ( name, Just initialValue )
                         :: toInitialValues input
 
                 Nothing ->
