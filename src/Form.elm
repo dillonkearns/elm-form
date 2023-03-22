@@ -12,6 +12,7 @@ module Form exposing
     , withGetMethod
     , dynamic
     , Msg, Model, init, update
+    , Validated(..)
     -- subGroup
     )
 
@@ -268,6 +269,8 @@ in the user's workflow to show validation errors.
 
 @docs Msg, Model, init, update
 
+@docs Validated
+
 -}
 
 import Dict exposing (Dict)
@@ -288,6 +291,12 @@ import Internal.Input
 import Pages.FormState as Form exposing (FormState)
 import Pages.Internal.Form exposing (Validation(..), unwrapResponse)
 import Task
+
+
+{-| -}
+type Validated error value
+    = Valid value
+    | Invalid (Maybe value) (Dict String (List error))
 
 
 {-| -}

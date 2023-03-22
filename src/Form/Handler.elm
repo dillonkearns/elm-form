@@ -1,6 +1,5 @@
 module Form.Handler exposing
     ( Handler
-    , Validated(..)
     , init, with
     , run
     )
@@ -9,8 +8,6 @@ module Form.Handler exposing
 
 @docs Handler
 
-@docs Validated
-
 @docs init, with
 
 @docs run
@@ -18,7 +15,7 @@ module Form.Handler exposing
 -}
 
 import Dict exposing (Dict)
-import Form exposing (runServerSide)
+import Form exposing (Validated, runServerSide)
 import Form.Validation exposing (Combined)
 import Internal.Form exposing (Form)
 
@@ -146,19 +143,13 @@ run rawFormData forms =
     case runOneOfServerSideHelp rawFormData Nothing forms of
         ( Just parsed, errors ) ->
             if Dict.isEmpty errors then
-                Valid parsed
+                Form.Valid parsed
 
             else
-                Invalid (Just parsed) errors
+                Form.Invalid (Just parsed) errors
 
         ( Nothing, errors ) ->
-            Invalid Nothing errors
-
-
-{-| -}
-type Validated error value
-    = Valid value
-    | Invalid (Maybe value) (Dict String (List error))
+            Form.Invalid Nothing errors
 
 
 {-| -}
