@@ -812,11 +812,11 @@ mergeErrors errors1 errors2 =
 {-| -}
 parse :
     String
-    -> AppContext error
+    -> Model
     -> input
     -> Form error { info | combine : Form.Validation.Validation error parsed named constraints } parsed input msg
-    -> ( Maybe parsed, Dict String (List error) )
-parse formId app input (Internal.Form.Form _ _ parser _) =
+    -> Validated error parsed
+parse formId state input (Internal.Form.Form _ _ parser _) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
@@ -830,14 +830,25 @@ parse formId app input (Internal.Form.Form _ _ parser _) =
 
         thisFormState : FormState
         thisFormState =
-            app.state
+            state
                 |> Dict.get formId
                 |> Maybe.withDefault initFormState
     in
-    { result = ( parsed.combineAndView.combine, parsed.result )
-    }
-        |> mergeResults
-        |> unwrapValidation
+    case
+        { result = ( parsed.combineAndView.combine, parsed.result )
+        }
+            |> mergeResults
+            |> unwrapValidation
+    of
+        ( Just justParsed, errors ) ->
+            if Dict.isEmpty errors then
+                Valid justParsed
+
+            else
+                Invalid (Just justParsed) errors
+
+        ( Nothing, errors ) ->
+            Invalid Nothing errors
 
 
 insertIfNonempty : comparable -> List value -> Dict comparable (List value) -> Dict comparable (List value)
