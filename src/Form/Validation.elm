@@ -77,6 +77,7 @@ fieldStatus (Pages.Internal.Form.Validation viewField _ _) =
         |> statusFromRank
 
 
+{-| -}
 fieldStatusToString : FieldStatus -> String
 fieldStatusToString status =
     case status of
