@@ -1,5 +1,6 @@
 module Form.Handler exposing
     ( Handler
+    , Validated(..)
     , init, with
     , run
     )
@@ -7,6 +8,8 @@ module Form.Handler exposing
 {-|
 
 @docs Handler
+
+@docs Validated
 
 @docs init, with
 
@@ -138,9 +141,24 @@ normalizeServerForm mapFn (Internal.Form.Form options _ parseFn _) =
 run :
     List ( String, String )
     -> Handler error parsed
-    -> ( Maybe parsed, Dict String (List error) )
+    -> Validated error parsed
 run rawFormData forms =
-    runOneOfServerSideHelp rawFormData Nothing forms
+    case runOneOfServerSideHelp rawFormData Nothing forms of
+        ( Just parsed, errors ) ->
+            if Dict.isEmpty errors then
+                Valid parsed
+
+            else
+                Invalid (Just parsed) errors
+
+        ( Nothing, errors ) ->
+            Invalid Nothing errors
+
+
+{-| -}
+type Validated error value
+    = Valid value
+    | Invalid (Maybe value) (Dict String (List error))
 
 
 {-| -}
