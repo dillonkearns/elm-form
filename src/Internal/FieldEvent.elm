@@ -69,7 +69,7 @@ alwaysPreventDefault msg =
     ( msg, True )
 
 
-tuplesDecoder : Decode.Decoder (List ( String, String ))
+tuplesDecoder : Decoder (List ( String, String ))
 tuplesDecoder =
     Decode.list
         (Decode.map2 Tuple.pair
@@ -78,7 +78,7 @@ tuplesDecoder =
         )
 
 
-currentForm : String -> Decode.Decoder a -> Decode.Decoder a
+currentForm : String -> Decoder a -> Decoder a
 currentForm field_ decoder_ =
     Decode.oneOf
         [ Decode.at [ "submitter", "form" ] decoder_
@@ -86,7 +86,7 @@ currentForm field_ decoder_ =
         ]
 
 
-methodDecoder : Decode.Decoder Method
+methodDecoder : Decoder Method
 methodDecoder =
     Decode.string
         |> Decode.map

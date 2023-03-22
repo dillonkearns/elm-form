@@ -115,6 +115,7 @@ signUpForm =
                             [ Html.label []
                                 [ Html.text (label ++ " ")
                                 , FieldView.input [] field
+                                , Validation.fieldStatus field |> Validation.fieldStatusToString |> Html.text
                                 , errorsView formState field
                                 ]
                             ]
