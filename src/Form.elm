@@ -924,10 +924,27 @@ withGetMethod (Internal.Form.Form options a b c) =
 
 
 {-| -}
-withOnSubmit : ({ fields : List ( String, String ), parsed : Result () parsed } -> userMsg) -> Form error combineAndView parsed input oldMsg -> Form error combineAndView parsed input userMsg
+withOnSubmit : ({ fields : List ( String, String ), parsed : Validated error parsed } -> userMsg) -> Form error combineAndView parsed input oldMsg -> Form error combineAndView parsed input userMsg
 withOnSubmit onSubmit (Internal.Form.Form options a b c) =
     Internal.Form.Form
-        { onSubmit = Just onSubmit
+        { onSubmit =
+            Just
+                (\{ fields, parsed } ->
+                    onSubmit
+                        { parsed =
+                            case parsed of
+                                ( Just justParsed, errors ) ->
+                                    if Dict.isEmpty errors then
+                                        Valid justParsed
+
+                                    else
+                                        Invalid (Just justParsed) errors
+
+                                ( Nothing, errors ) ->
+                                    Invalid Nothing errors
+                        , fields = fields
+                        }
+                )
         , method = options.method
         }
         a
@@ -984,7 +1001,7 @@ renderHelper formId attrs accessResponse formState input ((Internal.Form.Form op
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
-        { hiddenInputs, children, isValid, parsed, fields } =
+        { hiddenInputs, children, isValid, parsed, fields, errors } =
             helperValues formId toHiddenInput accessResponse formState input form_
 
         toHiddenInput : List (Html.Attribute (Msg msg)) -> Html (Msg msg)
@@ -1019,7 +1036,7 @@ renderHelper formId attrs accessResponse formState input ((Internal.Form.Form op
                                             (\onSubmit ->
                                                 onSubmit
                                                     { fields = formDataThing.fields |> Maybe.withDefault fields
-                                                    , parsed = parsed |> Result.fromMaybe ()
+                                                    , parsed = ( parsed, errors )
                                                     }
                                             )
                             in
@@ -1051,7 +1068,7 @@ renderStyledHelper formId attrs accessResponse formState input ((Internal.Form.F
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
-        { hiddenInputs, children, isValid, parsed, fields } =
+        { hiddenInputs, children, isValid, parsed, fields, errors } =
             helperValues formId toHiddenInput accessResponse formState input form_
 
         toHiddenInput : List (Html.Attribute (Msg msg)) -> Html.Styled.Html (Msg msg)
@@ -1089,7 +1106,7 @@ renderStyledHelper formId attrs accessResponse formState input ((Internal.Form.F
                                             (\onSubmit ->
                                                 onSubmit
                                                     { fields = formDataThing.fields |> Maybe.withDefault fields
-                                                    , parsed = parsed |> Result.fromMaybe ()
+                                                    , parsed = ( parsed, errors )
                                                     }
                                             )
                             in
@@ -1117,7 +1134,7 @@ helperValues :
             parsed
             input
             msg
-    -> { hiddenInputs : List view, children : List view, isValid : Bool, parsed : Maybe parsed, fields : List ( String, String ) }
+    -> { hiddenInputs : List view, children : List view, isValid : Bool, parsed : Maybe parsed, fields : List ( String, String ), errors : Dict String (List error) }
 helperValues formId toHiddenInput accessResponse formState input (Internal.Form.Form _ fieldDefinitions parser toInitialValues) =
     let
         initialValues : Dict String Form.FieldState
@@ -1275,20 +1292,17 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
                 _ ->
                     False
 
-        maybeParsed : Maybe parsed
-        maybeParsed =
+        ( maybeParsed, errorsDict ) =
             case withoutServerErrors of
-                Validation _ _ ( Just parsedValue, errors ) ->
-                    Just parsedValue
-
-                _ ->
-                    Nothing
+                Validation _ _ ( parsedValue, errors ) ->
+                    ( parsedValue, errors )
     in
     { hiddenInputs = hiddenInputs
     , children = children
     , isValid = isValid
     , parsed = maybeParsed
     , fields = rawFields
+    , errors = errorsDict
     }
 
 
