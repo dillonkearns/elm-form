@@ -71,9 +71,8 @@ view model =
                 |> Form.withOnSubmit OnSubmit
                 |> Form.renderHtml "form"
                     []
-                    -- TODO get rid of errorData argument (completely, or just for vanilla apps)
-                    (\_ -> Nothing)
                     { submitting = model.submitting
+                    , serverResponse = Nothing
                     , state = model.formState
                     }
                     ()

@@ -1,6 +1,5 @@
 module Form exposing
     ( Form, HtmlForm, StyledHtmlForm, DoneForm
-    , Response
     , form
     , field
     , Context
@@ -13,6 +12,7 @@ module Form exposing
     , dynamic
     , Msg, Model, init, update
     , Validated(..)
+    , ServerResponse
     -- subGroup
     )
 
@@ -204,8 +204,6 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
 
 @docs Form, HtmlForm, StyledHtmlForm, DoneForm
 
-@docs Response
-
 @docs form
 
 
@@ -271,6 +269,8 @@ in the user's workflow to show validation errors.
 
 @docs Validated
 
+@docs ServerResponse
+
 -}
 
 import Dict exposing (Dict)
@@ -289,7 +289,7 @@ import Internal.FieldEvent exposing (Event(..), FieldEvent)
 import Internal.Form exposing (Method)
 import Internal.Input
 import Pages.FormState as Form exposing (FormState)
-import Pages.Internal.Form exposing (Validation(..), unwrapResponse)
+import Pages.Internal.Form exposing (Validation(..))
 import Task
 
 
@@ -763,7 +763,7 @@ errorsForField field_ (Errors errorsDict) =
 
 
 {-| -}
-type alias AppContext =
+type alias AppContext error =
     { --, sharedData : Shared.Data
       --, routeParams : routeParams
       --path : List String
@@ -774,6 +774,7 @@ type alias AppContext =
       --, transition : Maybe Transition
       --, fetchers : Dict String (Pages.Transition.FetcherState (Maybe actionData))
       submitting : Bool
+    , serverResponse : Maybe (ServerResponse error)
     , state : Model
     }
 
@@ -811,7 +812,7 @@ mergeErrors errors1 errors2 =
 {-| -}
 parse :
     String
-    -> AppContext
+    -> AppContext error
     -> input
     -> Form error { info | combine : Form.Validation.Validation error parsed named constraints } parsed input msg
     -> ( Maybe parsed, Dict String (List error) )
@@ -897,9 +898,9 @@ unwrapValidation (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors )) =
 renderHtml :
     String
     -> List (Html.Attribute (Msg msg))
-    -> (actionData -> Maybe (Response error))
     ->
         { submitting : Bool
+        , serverResponse : Maybe (ServerResponse error)
         , state : Model
         }
     -> input
@@ -913,8 +914,8 @@ renderHtml :
             input
             msg
     -> Html (Msg msg)
-renderHtml formId attrs accessResponse app input form_ =
-    Html.Lazy.lazy6 renderHelper formId attrs accessResponse app input form_
+renderHtml formId attrs app input form_ =
+    Html.Lazy.lazy5 renderHelper formId attrs app input form_
 
 
 {-| -}
@@ -956,9 +957,9 @@ withOnSubmit onSubmit (Internal.Form.Form options a b c) =
 renderStyledHtml :
     String
     -> List (Html.Styled.Attribute (Msg msg))
-    -> (actionData -> Maybe (Response error))
     ->
         { submitting : Bool
+        , serverResponse : Maybe (ServerResponse error)
         , state : Model
         }
     -> input
@@ -972,20 +973,32 @@ renderStyledHtml :
             input
             msg
     -> Html.Styled.Html (Msg msg)
-renderStyledHtml formId attrs accessResponse app input form_ =
-    Html.Styled.Lazy.lazy6 renderStyledHelper formId attrs accessResponse app input form_
+renderStyledHtml formId attrs app input form_ =
+    Html.Styled.Lazy.lazy5 renderStyledHelper formId attrs app input form_
 
 
-{-| -}
-type alias Response error =
-    Pages.Internal.Form.Response error
+{-| The `persisted` state will be ignored if the client already has a form state. It is useful for persisting state between page loads. For example, `elm-pages` server-rendered routes
+use this `persisted` state in order to show client-side validations and preserve form field state when a submission is done with JavaScript disabled in the user's browser.
+
+`serverSideErrors` will show on the client-side error state until the form is re-submitted. For example, if you need to check that a username is unique, you can do so by including
+an error in `serverSideErrors` in the response back from the server. The client-side form will show the error until the user changes the username and re-submits the form, allowing the
+server to re-validate that input.
+
+-}
+type alias ServerResponse error =
+    { persisted :
+        { fields : Maybe (List ( String, String ))
+        , clientSideErrors : Maybe (Dict String (List error))
+        }
+    , serverSideErrors : Dict String (List error)
+    }
 
 
 renderHelper :
     String
     -> List (Html.Attribute (Msg msg))
-    -> (actionData -> Maybe (Response error))
-    -> AppContext
+    ---> (actionData -> Maybe (ServerResponse error))
+    -> AppContext error
     -> input
     ->
         Form
@@ -997,12 +1010,12 @@ renderHelper :
             input
             msg
     -> Html (Msg msg)
-renderHelper formId attrs accessResponse formState input ((Internal.Form.Form options _ _ _) as form_) =
+renderHelper formId attrs formState input ((Internal.Form.Form options _ _ _) as form_) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
         { hiddenInputs, children, isValid, parsed, fields, errors } =
-            helperValues formId toHiddenInput accessResponse formState input form_
+            helperValues formId toHiddenInput formState input form_
 
         toHiddenInput : List (Html.Attribute (Msg msg)) -> Html (Msg msg)
         toHiddenInput hiddenAttrs =
@@ -1051,8 +1064,7 @@ renderHelper formId attrs accessResponse formState input ((Internal.Form.Form op
 renderStyledHelper :
     String
     -> List (Html.Styled.Attribute (Msg msg))
-    -> (actionData -> Maybe (Response error))
-    -> AppContext
+    -> AppContext error
     -> input
     ->
         Form
@@ -1064,12 +1076,12 @@ renderStyledHelper :
             input
             msg
     -> Html.Styled.Html (Msg msg)
-renderStyledHelper formId attrs accessResponse formState input ((Internal.Form.Form options _ _ _) as form_) =
+renderStyledHelper formId attrs formState input ((Internal.Form.Form options _ _ _) as form_) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
         { hiddenInputs, children, isValid, parsed, fields, errors } =
-            helperValues formId toHiddenInput accessResponse formState input form_
+            helperValues formId toHiddenInput formState input form_
 
         toHiddenInput : List (Html.Attribute (Msg msg)) -> Html.Styled.Html (Msg msg)
         toHiddenInput hiddenAttrs =
@@ -1122,8 +1134,7 @@ renderStyledHelper formId attrs accessResponse formState input ((Internal.Form.F
 helperValues :
     String
     -> (List (Html.Attribute (Msg msg)) -> view)
-    -> (actionData -> Maybe (Response error))
-    -> AppContext
+    -> AppContext error
     -> input
     ->
         Form
@@ -1135,7 +1146,7 @@ helperValues :
             input
             msg
     -> { hiddenInputs : List view, children : List view, isValid : Bool, parsed : Maybe parsed, fields : List ( String, String ), errors : Dict String (List error) }
-helperValues formId toHiddenInput accessResponse formState input (Internal.Form.Form _ fieldDefinitions parser toInitialValues) =
+helperValues formId toHiddenInput formState input (Internal.Form.Form _ fieldDefinitions parser toInitialValues) =
     let
         initialValues : Dict String Form.FieldState
         initialValues =
@@ -1155,12 +1166,10 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
             formState.state
                 |> Dict.get formId
                 |> Maybe.withDefault
-                    -- TODO pass in formState.action in a different way?
-                    --formState.action
-                    (Nothing
-                        |> Maybe.andThen (accessResponse >> Maybe.map unwrapResponse)
+                    (formState.serverResponse
+                        |> Maybe.andThen (.persisted >> .fields)
                         |> Maybe.map
-                            (\{ fields } ->
+                            (\fields ->
                                 { fields =
                                     fields
                                         |> List.map (Tuple.mapSecond (\value -> { value = value, status = Form.FieldStatus.notVisited }))
@@ -1209,10 +1218,8 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
                             |> Tuple.mapSecond
                                 (\errors1 ->
                                     mergeErrors errors1
-                                        -- TODO
-                                        --formState.action
-                                        (Nothing
-                                            |> Maybe.andThen (accessResponse >> Maybe.map (unwrapResponse >> .errors))
+                                        (formState.serverResponse
+                                            |> Maybe.andThen (.persisted >> .clientSideErrors)
                                             |> Maybe.withDefault Dict.empty
                                         )
                                 )
@@ -1223,12 +1230,10 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
             formState.state
                 |> Dict.get formId
                 |> Maybe.withDefault
-                    (Nothing
-                        -- TODO
-                        --formState.action
-                        |> Maybe.andThen (accessResponse >> Maybe.map unwrapResponse)
+                    (formState.serverResponse
+                        |> Maybe.andThen (.persisted >> .fields)
                         |> Maybe.map
-                            (\{ fields } ->
+                            (\fields ->
                                 { fields =
                                     fields
                                         |> List.map (Tuple.mapSecond (\value -> { value = value, status = Form.FieldStatus.notVisited }))
