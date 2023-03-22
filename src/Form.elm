@@ -529,7 +529,7 @@ field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form renderOpt
                             ( Just info.value, info.status )
 
                         Nothing ->
-                            ( Maybe.map2 (|>) maybeData fieldParser.initialValue, Form.FieldStatus.NotVisited )
+                            ( Maybe.map2 (|>) maybeData fieldParser.initialValue, Form.FieldStatus.notVisited )
 
                 thing : Pages.Internal.Form.ViewField kind
                 thing =
@@ -626,7 +626,7 @@ hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form option
                             ( Just info.value, info.status )
 
                         Nothing ->
-                            ( Maybe.map2 (|>) maybeData fieldParser.initialValue, Form.FieldStatus.NotVisited )
+                            ( Maybe.map2 (|>) maybeData fieldParser.initialValue, Form.FieldStatus.notVisited )
 
                 thing : Pages.Internal.Form.ViewField Form.FieldView.Hidden
                 thing =
@@ -864,7 +864,7 @@ runServerSide rawFormData (Internal.Form.Form _ _ parser _) =
                             (Tuple.mapSecond
                                 (\value ->
                                     { value = value
-                                    , status = Form.FieldStatus.NotVisited
+                                    , status = Form.FieldStatus.notVisited
                                     }
                                 )
                             )
@@ -1119,7 +1119,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
                         maybeValue
                             |> Maybe.map
                                 (\value ->
-                                    ( key, { value = value, status = Form.FieldStatus.NotVisited } )
+                                    ( key, { value = value, status = Form.FieldStatus.notVisited } )
                                 )
                     )
                 |> Dict.fromList
@@ -1137,7 +1137,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
                             (\{ fields } ->
                                 { fields =
                                     fields
-                                        |> List.map (Tuple.mapSecond (\value -> { value = value, status = Form.FieldStatus.NotVisited }))
+                                        |> List.map (Tuple.mapSecond (\value -> { value = value, status = Form.FieldStatus.notVisited }))
                                         |> Dict.fromList
                                 , submitAttempted = True
                                 }
@@ -1205,7 +1205,7 @@ helperValues formId toHiddenInput accessResponse formState input (Internal.Form.
                             (\{ fields } ->
                                 { fields =
                                     fields
-                                        |> List.map (Tuple.mapSecond (\value -> { value = value, status = Form.FieldStatus.NotVisited }))
+                                        |> List.map (Tuple.mapSecond (\value -> { value = value, status = Form.FieldStatus.notVisited }))
                                         |> Dict.fromList
                                 , submitAttempted = True
                                 }
@@ -1416,17 +1416,17 @@ updateForm fieldEvent formState =
                             previousValue : Form.FieldState
                             previousValue =
                                 previousValue_
-                                    |> Maybe.withDefault { value = fieldEvent.value, status = Form.FieldStatus.NotVisited }
+                                    |> Maybe.withDefault { value = fieldEvent.value, status = Form.FieldStatus.notVisited }
                         in
                         (case fieldEvent.event of
                             InputEvent newValue ->
                                 { previousValue | value = newValue }
 
                             FocusEvent ->
-                                { previousValue | status = previousValue.status |> increaseStatusTo Form.FieldStatus.Focused }
+                                { previousValue | status = previousValue.status |> increaseStatusTo Form.FieldStatus.focused }
 
                             BlurEvent ->
-                                { previousValue | status = previousValue.status |> increaseStatusTo Form.FieldStatus.Blurred }
+                                { previousValue | status = previousValue.status |> increaseStatusTo Form.FieldStatus.blurred }
                         )
                             |> Just
                     )
@@ -1460,15 +1460,4 @@ increaseStatusTo increaseTo currentStatus =
 {-| -}
 statusRank : FieldStatus -> Int
 statusRank status =
-    case status of
-        Form.FieldStatus.NotVisited ->
-            0
-
-        Form.FieldStatus.Focused ->
-            1
-
-        Form.FieldStatus.Changed ->
-            2
-
-        Form.FieldStatus.Blurred ->
-            3
+    status

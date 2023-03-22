@@ -1,34 +1,29 @@
-module Form.FieldStatus exposing (FieldStatus(..), fieldStatusToString)
-
-{-|
-
-@docs FieldStatus, fieldStatusToString
-
--}
-
-
-{-| -}
-type FieldStatus
-    = NotVisited
-    | Focused
-    | Changed
-    | Blurred
+module Form.FieldStatus exposing
+    ( FieldStatus
+    , blurred
+    , changed
+    , focused
+    , notVisited
+    )
 
 
-{-| -}
+type alias FieldStatus =
+    Int
+
+
 fieldStatusToString : FieldStatus -> String
 fieldStatusToString fieldStatus =
     case fieldStatus of
-        NotVisited ->
+        0 ->
             "NotVisited"
 
-        Focused ->
+        1 ->
             "Focused"
 
-        Changed ->
+        2 ->
             "Changed"
 
-        Blurred ->
+        _ ->
             "Blurred"
 
 
@@ -45,15 +40,28 @@ increaseStatusTo increaseTo currentStatus =
 {-| -}
 statusRank : FieldStatus -> Int
 statusRank status =
-    case status of
-        NotVisited ->
-            0
+    status
 
-        Focused ->
-            1
 
-        Changed ->
-            2
+{-| -}
+notVisited : Int
+notVisited =
+    0
 
-        Blurred ->
-            3
+
+{-| -}
+focused : Int
+focused =
+    1
+
+
+{-| -}
+changed : Int
+changed =
+    2
+
+
+{-| -}
+blurred : Int
+blurred =
+    3

@@ -9,7 +9,6 @@
         "Form.Validation",
         "Form",
         "Form.FieldView",
-        "Form.FieldStatus",
         "Form.Handler"
     ],
     "elm-version": "0.19.0 <= v < 0.20.0",
