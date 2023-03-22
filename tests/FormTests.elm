@@ -3,10 +3,10 @@ module FormTests exposing (all)
 import Date exposing (Date)
 import Dict
 import Expect
-import Form exposing (Form, Validated(..))
+import Form exposing (Validated(..))
 import Form.Field as Field
 import Form.Handler
-import Form.Validation as Validation exposing (Combined)
+import Form.Validation as Validation
 import Test exposing (Test, describe, test)
 
 

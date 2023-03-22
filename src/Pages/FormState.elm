@@ -89,11 +89,6 @@ fieldDecoder =
 
 
 {-| -}
-type alias PageFormState =
-    Dict String FormState
-
-
-{-| -}
 type alias FormState =
     { fields : Dict String FieldState
     , submitAttempted : Bool

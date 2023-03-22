@@ -11,38 +11,6 @@ type alias FieldStatus =
     Int
 
 
-fieldStatusToString : FieldStatus -> String
-fieldStatusToString fieldStatus =
-    case fieldStatus of
-        0 ->
-            "NotVisited"
-
-        1 ->
-            "Focused"
-
-        2 ->
-            "Changed"
-
-        _ ->
-            "Blurred"
-
-
-{-| -}
-increaseStatusTo : FieldStatus -> FieldStatus -> FieldStatus
-increaseStatusTo increaseTo currentStatus =
-    if statusRank increaseTo > statusRank currentStatus then
-        increaseTo
-
-    else
-        currentStatus
-
-
-{-| -}
-statusRank : FieldStatus -> Int
-statusRank status =
-    status
-
-
 {-| -}
 notVisited : Int
 notVisited =

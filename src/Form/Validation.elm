@@ -160,11 +160,6 @@ succeed parsed =
     Pages.Internal.Form.Validation Nothing Nothing ( Just parsed, Dict.empty )
 
 
-succeed2 : parsed -> Validation error parsed kind constraints
-succeed2 parsed =
-    Pages.Internal.Form.Validation Nothing Nothing ( Just parsed, Dict.empty )
-
-
 {-| -}
 global : Field error () Never
 global =

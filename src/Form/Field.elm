@@ -290,7 +290,7 @@ paddedInt intValue =
 parseTimeOfDay : String -> Result () { hours : Int, minutes : Int }
 parseTimeOfDay rawTimeOfDay =
     case rawTimeOfDay |> String.split ":" |> List.map String.toInt of
-        [ Just hours, Just minutes, Just seconds ] ->
+        [ Just hours, Just minutes, Just _ ] ->
             Ok
                 { hours = hours
                 , minutes = minutes

@@ -286,7 +286,7 @@ import Html.Styled.Attributes as StyledAttr
 import Html.Styled.Lazy
 import Internal.Field
 import Internal.FieldEvent exposing (Event(..), FieldEvent)
-import Internal.Form exposing (Method)
+import Internal.Form
 import Internal.Input
 import Pages.FormState as Form exposing (FormState)
 import Pages.Internal.Form exposing (Validation(..))
@@ -986,7 +986,7 @@ renderHelper formId attrs formState input ((Internal.Form.Form options _ _ _) as
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
-        { hiddenInputs, children, isValid, parsed, fields, errors } =
+        { hiddenInputs, children, parsed, fields, errors } =
             helperValues formId toHiddenInput formState input form_
 
         toHiddenInput : List (Html.Attribute (Msg msg)) -> Html (Msg msg)
@@ -1052,7 +1052,7 @@ renderStyledHelper formId attrs formState input ((Internal.Form.Form options _ _
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
-        { hiddenInputs, children, isValid, parsed, fields, errors } =
+        { hiddenInputs, children, parsed, fields, errors } =
             helperValues formId toHiddenInput formState input form_
 
         toHiddenInput : List (Html.Attribute (Msg msg)) -> Html.Styled.Html (Msg msg)
@@ -1263,7 +1263,7 @@ helperValues formId toHiddenInput formState input (Internal.Form.Form _ fieldDef
         isValid : Bool
         isValid =
             case withoutServerErrors of
-                Validation _ _ ( Just parsedValue, errors ) ->
+                Validation _ _ ( Just _, errors ) ->
                     Dict.isEmpty errors
 
                 _ ->
