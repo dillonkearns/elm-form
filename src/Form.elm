@@ -1420,7 +1420,10 @@ updateForm fieldEvent formState =
                         in
                         (case fieldEvent.event of
                             InputEvent newValue ->
-                                { previousValue | value = newValue }
+                                { previousValue
+                                    | value = newValue
+                                    , status = previousValue.status |> increaseStatusTo Form.FieldStatus.changed
+                                }
 
                             FocusEvent ->
                                 { previousValue | status = previousValue.status |> increaseStatusTo Form.FieldStatus.focused }

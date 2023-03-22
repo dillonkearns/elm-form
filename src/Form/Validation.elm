@@ -2,7 +2,7 @@ module Form.Validation exposing
     ( Combined, Field, Validation
     , andMap, andThen, fail, fromMaybe, fromResult, map, map2, parseWithError, succeed, withError, withErrorIf, withFallback
     , value, fieldName
-    , FieldStatus(..), fieldStatus
+    , FieldStatus(..), fieldStatus, fieldStatusToString
     , statusAtLeast
     , map3, map4, map5, map6, map7, map8, map9
     , mapToCombined
@@ -23,7 +23,7 @@ module Form.Validation exposing
 
 @docs value, fieldName
 
-@docs FieldStatus, fieldStatus
+@docs FieldStatus, fieldStatus, fieldStatusToString
 
 @docs statusAtLeast
 
@@ -75,6 +75,22 @@ fieldStatus (Pages.Internal.Form.Validation viewField _ _) =
         |> expectViewField
         |> .status
         |> statusFromRank
+
+
+fieldStatusToString : FieldStatus -> String
+fieldStatusToString status =
+    case status of
+        NotVisited ->
+            "NotVisited"
+
+        Focused ->
+            "Focused"
+
+        Changed ->
+            "Changed"
+
+        Blurred ->
+            "Blurred"
 
 
 {-| -}
