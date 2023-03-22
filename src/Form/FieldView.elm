@@ -1,6 +1,6 @@
 module Form.FieldView exposing
     ( Input, Options, input, radio, Hidden, select, valueButton
-    , radioStyled, inputStyled, valueButtonStyled
+    , radioStyled, selectStyled, inputStyled, valueButtonStyled
     )
 
 {-|
@@ -10,7 +10,7 @@ module Form.FieldView exposing
 
 ## Html.Styled Helpers
 
-@docs radioStyled, inputStyled, valueButtonStyled
+@docs radioStyled, selectStyled, inputStyled, valueButtonStyled
 
 -}
 
@@ -277,6 +277,71 @@ select selectAttrs enumToOption (Validation viewField fieldName _) =
                                     Attr.value possibleValue :: optionAttrs
                                 )
                                 [ Html.text content ]
+                                |> Just
+
+                        Nothing ->
+                            Nothing
+                )
+        )
+
+
+{-| -}
+selectStyled :
+    List (Html.Styled.Attribute msg)
+    ->
+        (parsed
+         ->
+            ( List (Html.Styled.Attribute msg)
+            , String
+            )
+        )
+    -> Form.Validation.Field error parsed2 (Options parsed)
+    -> Html.Styled.Html msg
+selectStyled selectAttrs enumToOption (Validation viewField fieldName _) =
+    let
+        justViewField : ViewField (Options parsed)
+        justViewField =
+            viewField |> expectViewField
+
+        rawField : { name : String, value : Maybe String, kind : ( Options parsed, List ( String, Encode.Value ) ) }
+        rawField =
+            { name = fieldName |> Maybe.withDefault ""
+            , value = justViewField.value
+            , kind = justViewField.kind
+            }
+
+        (Internal.Input.Options parseValue possibleValues) =
+            rawField.kind |> Tuple.first
+    in
+    Html.Styled.select
+        (selectAttrs
+            ++ [ StyledAttr.value (rawField.value |> Maybe.withDefault "")
+               , StyledAttr.name rawField.name
+               ]
+        )
+        (possibleValues
+            |> List.filterMap
+                (\possibleValue ->
+                    let
+                        parsed : Maybe parsed
+                        parsed =
+                            possibleValue
+                                |> parseValue
+                    in
+                    case parsed of
+                        Just justParsed ->
+                            let
+                                ( optionAttrs, content ) =
+                                    enumToOption justParsed
+                            in
+                            Html.Styled.option
+                                (if rawField.value == Just possibleValue then
+                                    StyledAttr.selected True :: StyledAttr.value possibleValue :: optionAttrs
+
+                                 else
+                                    StyledAttr.value possibleValue :: optionAttrs
+                                )
+                                [ Html.Styled.text content ]
                                 |> Just
 
                         Nothing ->
