@@ -3,7 +3,7 @@ module FormTests exposing (all)
 import Date exposing (Date)
 import Dict
 import Expect
-import Form exposing (Form)
+import Form exposing (Form, Validated(..))
 import Form.Field as Field
 import Form.Handler
 import Form.Validation as Validation exposing (Combined)
@@ -53,9 +53,7 @@ all =
                     )
                     (passwordConfirmationParser |> Form.Handler.init identity)
                     |> Expect.equal
-                        ( Just { password = "mypassword" }
-                        , Dict.empty
-                        )
+                        (Valid { password = "mypassword" })
         , test "non-matching password" <|
             \() ->
                 Form.Handler.run
@@ -66,8 +64,8 @@ all =
                     )
                     (passwordConfirmationParser |> Form.Handler.init identity)
                     |> Expect.equal
-                        ( Just { password = "mypassword" }
-                        , Dict.fromList [ ( "password-confirmation", [ "Must match password" ] ) ]
+                        (Invalid (Just { password = "mypassword" })
+                            (Dict.fromList [ ( "password-confirmation", [ "Must match password" ] ) ])
                         )
         , describe "oneOf" <|
             let
@@ -107,9 +105,7 @@ all =
                         )
                         oneOfParsers
                         |> Expect.equal
-                            ( Just Signout
-                            , Dict.empty
-                            )
+                            (Valid Signout)
             , test "second branch" <|
                 \() ->
                     Form.Handler.run
@@ -121,9 +117,7 @@ all =
                         )
                         oneOfParsers
                         |> Expect.equal
-                            ( Just (SetQuantity ( Uuid "123", 1 ))
-                            , Dict.empty
-                            )
+                            (Valid (SetQuantity ( Uuid "123", 1 )))
             , test "3rd" <|
                 \() ->
                     Form.Handler.run
@@ -134,9 +128,7 @@ all =
                         )
                         todoForm
                         |> Expect.equal
-                            ( Just (CheckAll False)
-                            , Dict.empty
-                            )
+                            (Valid (CheckAll False))
 
             --, test "no match" <|
             --    \() ->
@@ -175,9 +167,7 @@ all =
                             )
                             (selectParser |> Form.Handler.init identity)
                             |> Expect.equal
-                                ( Just (Just Book)
-                                , Dict.empty
-                                )
+                                (Valid (Just Book))
                 ]
             , describe "dependent validations" <|
                 let
@@ -218,9 +208,7 @@ all =
                             )
                             (checkinFormParser |> Form.Handler.init identity)
                             |> Expect.equal
-                                ( Just ( Date.fromRataDie 738156, Date.fromRataDie 738158 )
-                                , Dict.empty
-                                )
+                                (Valid ( Date.fromRataDie 738156, Date.fromRataDie 738158 ))
                 , test "checkout is invalid because before checkin" <|
                     \() ->
                         Form.Handler.run
@@ -231,10 +219,11 @@ all =
                             )
                             (checkinFormParser |> Form.Handler.init identity)
                             |> Expect.equal
-                                ( Just ( Date.fromRataDie 738158, Date.fromRataDie 738156 )
-                                , Dict.fromList
-                                    [ ( "checkin", [ "Must be before checkout" ] )
-                                    ]
+                                (Invalid (Just ( Date.fromRataDie 738158, Date.fromRataDie 738156 ))
+                                    (Dict.fromList
+                                        [ ( "checkin", [ "Must be before checkout" ] )
+                                        ]
+                                    )
                                 )
                 , test "sub-form" <|
                     \() ->
@@ -278,10 +267,11 @@ all =
                                 |> Form.Handler.init identity
                             )
                             |> Expect.equal
-                                ( Nothing
-                                , Dict.fromList
-                                    [ ( "password-confirmation", [ "Must match password" ] )
-                                    ]
+                                (Invalid Nothing
+                                    (Dict.fromList
+                                        [ ( "password-confirmation", [ "Must match password" ] )
+                                        ]
+                                    )
                                 )
                 ]
             ]
@@ -362,9 +352,7 @@ all =
                         )
                         (dependentParser |> Form.Handler.init identity)
                         |> Expect.equal
-                            ( Just (ParsedLink "https://elm-radio.com/episode/wrap-early-unwrap-late")
-                            , Dict.empty
-                            )
+                            (Valid (ParsedLink "https://elm-radio.com/episode/wrap-early-unwrap-late"))
             ]
         ]
 
