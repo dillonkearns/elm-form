@@ -77,8 +77,8 @@ import Json.Encode as Encode
 
 
 {-| -}
-type alias Field error parsed input initial kind constraints =
-    Internal.Field.Field error parsed input initial kind constraints
+type alias Field error parsed input initial kind msg constraints =
+    Internal.Field.Field error parsed input initial kind msg constraints
 
 
 {-| -}
@@ -101,11 +101,12 @@ required :
             kind
             input
             initial
+            msg
             { constraints
                 | required : ()
                 , wasMapped : No
             }
-    -> Field error parsed kind input initial { constraints | wasMapped : No }
+    -> Field error parsed kind input initial msg { constraints | wasMapped : No }
 required missingError (Internal.Field.Field field kind) =
     Internal.Field.Field
         { initialValue = field.initialValue
@@ -129,6 +130,7 @@ required missingError (Internal.Field.Field field kind) =
                 )
         , properties = field.properties
         , compare = field.compare
+        , toMsg = field.toMsg
         }
         kind
 
@@ -141,6 +143,7 @@ text :
         input
         String
         Input
+        msg
         { required : ()
         , plainText : ()
         , wasMapped : No
@@ -162,6 +165,7 @@ text =
                 )
         , properties = []
         , compare = Basics.compare
+        , toMsg = Nothing
         }
         (Internal.Input.Input Internal.Input.Text)
 
@@ -176,6 +180,7 @@ date :
             input
             Date
             Input
+            msg
             { min : Date
             , max : Date
             , required : ()
@@ -210,6 +215,7 @@ date toError =
                     (Ok value)
                     (Date.fromIsoString raw)
                     |> Result.withDefault LT
+        , toMsg = Nothing
         }
         (Internal.Input.Input Internal.Input.Date)
 
@@ -232,6 +238,7 @@ time :
             input
             TimeOfDay
             Input
+            msg
             { min : TimeOfDay
             , max : TimeOfDay
             , required : ()
@@ -271,6 +278,7 @@ time toError =
                                 Basics.compare parsedRaw.hours value.hours
                         )
                     |> Result.withDefault LT
+        , toMsg = Nothing
         }
         (Internal.Input.Input Internal.Input.Time)
 
@@ -317,6 +325,7 @@ select :
             input
             option
             (Options option)
+            msg
             { required : ()
             , wasMapped : No
             }
@@ -364,6 +373,7 @@ select optionsMapping invalidError =
             \_ _ ->
                 -- min/max properties aren't allowed for this field type
                 EQ
+        , toMsg = Nothing
         }
         (Options fromString (optionsMapping |> List.map Tuple.first))
 
@@ -389,6 +399,7 @@ exactValue :
             input
             Never
             Input
+            msg
             { required : ()
             , plainText : ()
             , wasMapped : No
@@ -409,6 +420,7 @@ exactValue initialValue error =
             \_ _ ->
                 -- min/max properties aren't allowed for this field type
                 EQ
+        , toMsg = Nothing
         }
         (Internal.Input.Input Internal.Input.Text)
 
@@ -421,6 +433,7 @@ checkbox :
         input
         Bool
         Input
+        msg
         { required : ()
         }
 checkbox =
@@ -444,6 +457,7 @@ checkbox =
             \_ _ ->
                 -- min/max properties aren't allowed for this field type
                 EQ
+        , toMsg = Nothing
         }
         (Internal.Input.Input Internal.Input.Checkbox)
 
@@ -458,6 +472,7 @@ int :
             input
             Int
             Input
+            msg
             { min : Int
             , max : Int
             , required : ()
@@ -493,6 +508,7 @@ int toError =
 
                     _ ->
                         LT
+        , toMsg = Nothing
         }
         (Internal.Input.Input Internal.Input.Number)
 
@@ -507,6 +523,7 @@ float :
             input
             Float
             Input
+            msg
             { min : Float
             , max : Float
             , required : ()
@@ -541,14 +558,15 @@ float toError =
 
                     _ ->
                         LT
+        , toMsg = Nothing
         }
         (Internal.Input.Input Internal.Input.Number)
 
 
 {-| -}
 telephone :
-    Field error parsed input initial Input { constraints | plainText : () }
-    -> Field error parsed input initial Input constraints
+    Field error parsed input initial Input msg { constraints | plainText : () }
+    -> Field error parsed input initial Input msg constraints
 telephone (Internal.Field.Field field _) =
     Internal.Field.Field field
         (Internal.Input.Input Internal.Input.Tel)
@@ -556,8 +574,8 @@ telephone (Internal.Field.Field field _) =
 
 {-| -}
 search :
-    Field error parsed input initial Input { constraints | plainText : () }
-    -> Field error parsed input initial Input constraints
+    Field error parsed input initial Input msg { constraints | plainText : () }
+    -> Field error parsed input initial Input msg constraints
 search (Internal.Field.Field field _) =
     Internal.Field.Field field
         (Internal.Input.Input Internal.Input.Search)
@@ -565,8 +583,8 @@ search (Internal.Field.Field field _) =
 
 {-| -}
 password :
-    Field error parsed input initial Input { constraints | plainText : () }
-    -> Field error parsed input initial Input constraints
+    Field error parsed input initial Input msg { constraints | plainText : () }
+    -> Field error parsed input initial Input msg constraints
 password (Internal.Field.Field field _) =
     Internal.Field.Field field
         (Internal.Input.Input Internal.Input.Password)
@@ -574,8 +592,8 @@ password (Internal.Field.Field field _) =
 
 {-| -}
 email :
-    Field error parsed input initial Input { constraints | plainText : () }
-    -> Field error parsed input initial Input constraints
+    Field error parsed input initial Input msg { constraints | plainText : () }
+    -> Field error parsed input initial Input msg constraints
 email (Internal.Field.Field field _) =
     Internal.Field.Field field
         (Internal.Input.Input Internal.Input.Email)
@@ -583,8 +601,8 @@ email (Internal.Field.Field field _) =
 
 {-| -}
 url :
-    Field error parsed input initial Input { constraints | plainText : () }
-    -> Field error parsed input initial Input constraints
+    Field error parsed input initial Input msg { constraints | plainText : () }
+    -> Field error parsed input initial Input msg constraints
 url (Internal.Field.Field field _) =
     Internal.Field.Field field
         (Internal.Input.Input Internal.Input.Url)
@@ -593,8 +611,8 @@ url (Internal.Field.Field field _) =
 {-| -}
 textarea :
     { rows : Maybe Int, cols : Maybe Int }
-    -> Field error parsed input initial Input { constraints | plainText : () }
-    -> Field error parsed input initial Input constraints
+    -> Field error parsed input initial Input msg { constraints | plainText : () }
+    -> Field error parsed input initial Input msg constraints
 textarea options (Internal.Field.Field field _) =
     Internal.Field.Field field (Internal.Input.Input (Internal.Input.Textarea options))
 
@@ -619,6 +637,7 @@ range :
             input
             numberInitial
             kind
+            msg
             { constraints
                 | required : ()
                 , min : numberInitial
@@ -632,6 +651,7 @@ range :
             input
             numberInitial
             Input
+            msg
             { constraints | wasMapped : No }
 range info field =
     -- TODO set the default value (if not overridden) using this https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/range#value
@@ -643,7 +663,7 @@ range info field =
 
 
 {-| -}
-map : (parsed -> mapped) -> Field error parsed input initial kind constraints -> Field error mapped input initial kind { constraints | wasMapped : Yes }
+map : (parsed -> mapped) -> Field error parsed input initial kind msg constraints -> Field error mapped input initial kind msg { constraints | wasMapped : Yes }
 map mapFn field_ =
     withClientValidation
         (\value -> ( Just (mapFn value), [] ))
@@ -651,7 +671,7 @@ map mapFn field_ =
 
 
 {-| -}
-withClientValidation : (parsed -> ( Maybe mapped, List error )) -> Field error parsed input initial kind constraints -> Field error mapped input initial kind { constraints | wasMapped : Yes }
+withClientValidation : (parsed -> ( Maybe mapped, List error )) -> Field error parsed input initial kind msg constraints -> Field error mapped input initial kind msg { constraints | wasMapped : Yes }
 withClientValidation mapFn (Internal.Field.Field field kind) =
     Internal.Field.Field
         { initialValue = field.initialValue
@@ -672,12 +692,13 @@ withClientValidation mapFn (Internal.Field.Field field kind) =
                        )
         , properties = field.properties
         , compare = field.compare
+        , toMsg = field.toMsg
         }
         kind
 
 
 {-| -}
-withMin : initial -> error -> Field error parsed input initial kind { constraints | min : initial } -> Field error parsed input initial kind constraints
+withMin : initial -> error -> Field error parsed input initial kind msg { constraints | min : initial } -> Field error parsed input initial kind msg constraints
 withMin min error (Internal.Field.Field field kind) =
     Internal.Field.Field
         { initialValue = field.initialValue
@@ -705,12 +726,13 @@ withMin min error (Internal.Field.Field field kind) =
                        )
         , properties = ( "min", Encode.string (field.initialToString min) ) :: field.properties
         , compare = field.compare
+        , toMsg = field.toMsg
         }
         kind
 
 
 {-| -}
-withMinLength : Int -> error -> Field error parsed input initial kind { constraints | minlength : () } -> Field error parsed input initial kind constraints
+withMinLength : Int -> error -> Field error parsed input initial kind msg { constraints | minlength : () } -> Field error parsed input initial kind msg constraints
 withMinLength minLength error (Internal.Field.Field field kind) =
     Internal.Field.Field
         { initialValue = field.initialValue
@@ -733,12 +755,13 @@ withMinLength minLength error (Internal.Field.Field field kind) =
                        )
         , properties = ( "minlength", Encode.string (String.fromInt minLength) ) :: field.properties
         , compare = field.compare
+        , toMsg = field.toMsg
         }
         kind
 
 
 {-| -}
-withMaxLength : Int -> error -> Field error parsed input initial kind { constraints | maxlength : () } -> Field error parsed input initial kind constraints
+withMaxLength : Int -> error -> Field error parsed input initial kind msg { constraints | maxlength : () } -> Field error parsed input initial kind msg constraints
 withMaxLength maxLength error (Internal.Field.Field field kind) =
     Internal.Field.Field
         { initialValue = field.initialValue
@@ -761,6 +784,7 @@ withMaxLength maxLength error (Internal.Field.Field field kind) =
                        )
         , properties = ( "maxlength", Encode.string (String.fromInt maxLength) ) :: field.properties
         , compare = field.compare
+        , toMsg = field.toMsg
         }
         kind
 
@@ -771,7 +795,7 @@ isEmptyValue value =
 
 
 {-| -}
-withMax : initial -> error -> Field error parsed input initial kind { constraints | max : initial } -> Field error parsed input initial kind constraints
+withMax : initial -> error -> Field error parsed input initial kind msg { constraints | max : initial } -> Field error parsed input initial kind msg constraints
 withMax max error (Internal.Field.Field field kind) =
     Internal.Field.Field
         { initialValue = field.initialValue
@@ -799,23 +823,24 @@ withMax max error (Internal.Field.Field field kind) =
                        )
         , properties = ( "max", Encode.string (field.initialToString max) ) :: field.properties
         , compare = field.compare
+        , toMsg = field.toMsg
         }
         kind
 
 
 {-| -}
-withStep : Int -> Field error value input initial view { constraints | step : Int } -> Field error value input initial view constraints
+withStep : Int -> Field error value input initial view msg { constraints | step : Int } -> Field error value input initial view msg constraints
 withStep step (Internal.Field.Field info kind) =
     withStringProperty ( "step", String.fromInt step ) (Internal.Field.Field info kind)
 
 
 {-| -}
-withFloatStep : Float -> Field error value input initial view { constraints | step : Float } -> Field error value input initial view constraints
+withFloatStep : Float -> Field error value input initial view msg { constraints | step : Float } -> Field error value input initial view msg constraints
 withFloatStep step (Internal.Field.Field info kind) =
     withStringProperty ( "step", String.fromFloat step ) (Internal.Field.Field info kind)
 
 
-withStringProperty : ( String, String ) -> Field error parsed input initial kind constraints1 -> Field error parsed input initial kind constraints2
+withStringProperty : ( String, String ) -> Field error parsed input initial kind msg constraints1 -> Field error parsed input initial kind msg constraints2
 withStringProperty ( key, value ) (Internal.Field.Field field kind) =
     Internal.Field.Field
         { field | properties = ( key, Encode.string value ) :: field.properties }
@@ -823,7 +848,7 @@ withStringProperty ( key, value ) (Internal.Field.Field field kind) =
 
 
 {-| -}
-withInitialValue : (input -> initial) -> Field error value input initial kind constraints -> Field error value input initial kind constraints
+withInitialValue : (input -> initial) -> Field error value input initial kind msg constraints -> Field error value input initial kind msg constraints
 withInitialValue toInitialValue (Internal.Field.Field field kind) =
     Internal.Field.Field
         { field | initialValue = toInitialValue >> field.initialToString >> Just }
@@ -831,7 +856,7 @@ withInitialValue toInitialValue (Internal.Field.Field field kind) =
 
 
 {-| -}
-withOptionalInitialValue : (input -> Maybe initial) -> Field error value input initial kind constraints -> Field error value input initial kind constraints
+withOptionalInitialValue : (input -> Maybe initial) -> Field error value input initial kind msg constraints -> Field error value input initial kind msg constraints
 withOptionalInitialValue toInitialValue (Internal.Field.Field field kind) =
     Internal.Field.Field
         { field

@@ -518,7 +518,7 @@ Use [`Form.Field`](Form-Field) to define the field and its validations.
 -}
 field :
     String
-    -> Field error parsed input initial kind constraints
+    -> Field error parsed input initial kind msg constraints
     -> Form error (Form.Validation.Field error parsed kind -> combineAndView) parsedCombined input msg
     -> Form error combineAndView parsedCombined input msg
 field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form renderOptions definitions parseFn toInitialValues) =
@@ -616,7 +616,7 @@ You define the field's validations the same way as for `field`, with the
 -}
 hiddenField :
     String
-    -> Field error parsed input initial kind constraints
+    -> Field error parsed input initial kind msg constraints
     -> Form error (Form.Validation.Field error parsed Form.FieldView.Hidden -> combineAndView) parsedCombined input msg
     -> Form error combineAndView parsedCombined input msg
 hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form options definitions parseFn toInitialValues) =
