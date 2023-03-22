@@ -45,6 +45,9 @@ inputValueDecoder =
         |> Decode.andThen
             (\targetType ->
                 case targetType of
+                    "button" ->
+                        Decode.fail "Input and focus events don't run on buttons."
+
                     "checkbox" ->
                         Decode.map2
                             (\valueWhenChecked isChecked ->
