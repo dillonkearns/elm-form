@@ -13,6 +13,7 @@ import Username exposing (Username)
 type Msg
     = FormMsg (Form.Msg Msg)
     | OnSubmit { fields : List ( String, String ), parsed : Form.Validated String SignUpForm }
+    | OnChange (Result String Field.TimeOfDay)
 
 
 type alias Flags =
@@ -47,6 +48,13 @@ init flags =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        OnChange newTime ->
+            let
+                _ =
+                    Debug.log "New time!" newTime
+            in
+            ( model, Cmd.none )
+
         OnSubmit parsed ->
             let
                 _ =
@@ -82,7 +90,7 @@ view model =
     }
 
 
-signUpForm : Form.HtmlForm String SignUpForm input msg
+signUpForm : Form.HtmlForm String SignUpForm input Msg
 signUpForm =
     (\username password passwordConfirmation chaos time role ->
         { combine =
@@ -169,6 +177,8 @@ signUpForm =
                     , minutes = 0
                     }
                     "Must be before noon"
+                |> Field.required "Required"
+                |> Field.withOnChange OnChange
             )
         |> Form.field "role"
             (Field.select

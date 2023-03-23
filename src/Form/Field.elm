@@ -10,6 +10,7 @@ module Form.Field exposing
     , range, withMin, withMax
     , withMinLength, withMaxLength
     , withStep, withFloatStep
+    , withOnChange
     , No, Yes
     )
 
@@ -62,6 +63,11 @@ module Form.Field exposing
 @docs withStep, withFloatStep
 
 
+## Events
+
+@docs withOnChange
+
+
 ## Phantom Options
 
 @docs No, Yes
@@ -72,6 +78,7 @@ import Date exposing (Date)
 import Dict exposing (Dict)
 import Form.FieldView exposing (Input)
 import Internal.Field
+import Internal.FieldEvent exposing (Event(..))
 import Internal.Input exposing (Options(..))
 import Json.Encode as Encode
 
@@ -111,6 +118,7 @@ required missingError (Internal.Field.Field field kind) =
     Internal.Field.Field
         { initialValue = field.initialValue
         , initialToString = field.initialToString
+        , initialFromString = field.initialFromString
         , decode =
             \rawValue ->
                 let
@@ -154,6 +162,7 @@ text =
     Internal.Field.Field
         { initialValue = \_ -> Nothing
         , initialToString = identity
+        , initialFromString = \value -> Just value
         , decode =
             \rawValue ->
                 ( if rawValue == Just "" then
@@ -191,6 +200,11 @@ date toError =
     Internal.Field.Field
         { initialValue = \_ -> Nothing
         , initialToString = Date.toIsoString
+        , initialFromString =
+            \rawString ->
+                rawString
+                    |> Date.fromIsoString
+                    |> Result.toMaybe
         , decode =
             \rawString ->
                 if (rawString |> Maybe.withDefault "") == "" then
@@ -248,6 +262,11 @@ time toError =
     Internal.Field.Field
         { initialValue = \_ -> Nothing
         , initialToString = timeOfDayToString
+        , initialFromString =
+            \rawString ->
+                rawString
+                    |> parseTimeOfDay
+                    |> Result.toMaybe
         , decode =
             \rawString ->
                 if (rawString |> Maybe.withDefault "") == "" then
@@ -342,6 +361,7 @@ select optionsMapping invalidError =
     Internal.Field.Field
         { initialValue = \_ -> Nothing
         , initialToString = enumToString optionsMapping
+        , initialFromString = fromString
         , decode =
             \rawValue ->
                 case rawValue of
@@ -408,6 +428,7 @@ exactValue initialValue error =
     Internal.Field.Field
         { initialValue = \_ -> Nothing
         , initialToString = never
+        , initialFromString = \_ -> Nothing
         , decode =
             \rawValue ->
                 if rawValue == Just initialValue then
@@ -446,6 +467,9 @@ checkbox =
 
                 else
                     ""
+        , initialFromString =
+            \rawString ->
+                (rawString == "on") |> Just
         , decode =
             \rawString ->
                 ( (rawString == Just "on")
@@ -483,6 +507,7 @@ int toError =
     Internal.Field.Field
         { initialValue = \_ -> Nothing
         , initialToString = String.fromInt
+        , initialFromString = String.toInt
         , decode =
             \rawString ->
                 case rawString of
@@ -533,6 +558,7 @@ float toError =
     Internal.Field.Field
         { initialValue = \_ -> Nothing
         , initialToString = String.fromFloat
+        , initialFromString = String.toFloat
         , decode =
             \rawString ->
                 case rawString of
@@ -676,6 +702,7 @@ withClientValidation mapFn (Internal.Field.Field field kind) =
     Internal.Field.Field
         { initialValue = field.initialValue
         , initialToString = field.initialToString
+        , initialFromString = field.initialFromString
         , decode =
             \value ->
                 value
@@ -703,6 +730,7 @@ withMin min error (Internal.Field.Field field kind) =
     Internal.Field.Field
         { initialValue = field.initialValue
         , initialToString = field.initialToString
+        , initialFromString = field.initialFromString
         , decode =
             \value ->
                 value
@@ -737,6 +765,7 @@ withMinLength minLength error (Internal.Field.Field field kind) =
     Internal.Field.Field
         { initialValue = field.initialValue
         , initialToString = field.initialToString
+        , initialFromString = field.initialFromString
         , decode =
             \value ->
                 value
@@ -766,6 +795,7 @@ withMaxLength maxLength error (Internal.Field.Field field kind) =
     Internal.Field.Field
         { initialValue = field.initialValue
         , initialToString = field.initialToString
+        , initialFromString = field.initialFromString
         , decode =
             \value ->
                 value
@@ -800,6 +830,7 @@ withMax max error (Internal.Field.Field field kind) =
     Internal.Field.Field
         { initialValue = field.initialValue
         , initialToString = field.initialToString
+        , initialFromString = field.initialFromString
         , decode =
             \value ->
                 value
@@ -862,5 +893,36 @@ withOptionalInitialValue toInitialValue (Internal.Field.Field field kind) =
         { field
             | initialValue =
                 toInitialValue >> Maybe.map field.initialToString
+        }
+        kind
+
+
+{-| -}
+withOnChange : (Result String initial -> msg) -> Field error value input initial kind msg constraints -> Field error value input initial kind msg constraints
+withOnChange toMsg (Internal.Field.Field field kind) =
+    Internal.Field.Field
+        { field
+            | toMsg =
+                Just
+                    (\{ event, thisField } ->
+                        case event.event of
+                            InputEvent newValue ->
+                                if event.name == thisField then
+                                    let
+                                        foo : Maybe initial
+                                        foo =
+                                            field.initialFromString newValue
+                                    in
+                                    foo
+                                        |> Maybe.map (toMsg << Ok)
+                                        |> Maybe.withDefault
+                                            (toMsg (Err ""))
+
+                                else
+                                    toMsg (Err "")
+
+                            _ ->
+                                toMsg (Err "")
+                    )
         }
         kind

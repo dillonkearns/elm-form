@@ -528,6 +528,11 @@ field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form renderOpt
         )
         (\maybeData formState ->
             let
+                fooBar : { event : FieldEvent, thisField : String } -> Maybe (Internal.FieldEvent.Msg msg)
+                fooBar event =
+                    fieldParser.toMsg
+                        |> Maybe.map (\toMsg -> toMsg event |> Internal.FieldEvent.UserMsg)
+
                 ( maybeParsed, errors ) =
                     -- @@@@@@ use code from here
                     fieldParser.decode rawFieldValue

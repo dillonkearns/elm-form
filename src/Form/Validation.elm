@@ -42,7 +42,6 @@ module Form.Validation exposing
 -}
 
 import Dict exposing (Dict)
-import Form.FieldStatus exposing (FieldStatus)
 import Pages.Internal.Form exposing (ViewField)
 
 
