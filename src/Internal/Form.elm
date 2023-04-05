@@ -6,7 +6,7 @@ import Dict exposing (Dict)
 import Pages.FormState exposing (FormState)
 
 
-type Form error combineAndView parsed input userMsg
+type Form error combineAndView parsed input
     = Form
         RenderOptions
         (List ( String, FieldDefinition ))

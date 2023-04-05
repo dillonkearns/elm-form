@@ -325,7 +325,7 @@ type alias Context error input =
 
 
 {-| -}
-form : combineAndView -> Form String combineAndView parsed input msg
+form : combineAndView -> Form String combineAndView parsed input
 form combineAndView =
     Internal.Form.Form
         { method = Internal.Form.Post
@@ -351,7 +351,6 @@ dynamic :
             }
             parsed
             input
-            msg
     )
     ->
         Form
@@ -364,14 +363,12 @@ dynamic :
             )
             parsed
             input
-            msg
     ->
         Form
             error
             combineAndView
             parsed
             input
-            msg
 dynamic forms formBuilder =
     Internal.Form.Form
         { method = Internal.Form.Post
@@ -525,8 +522,8 @@ Use [`Form.Field`](Form-Field) to define the field and its validations.
 field :
     String
     -> Field error parsed input initial kind constraints
-    -> Form error (Form.Validation.Field error parsed kind -> combineAndView) parsedCombined input msg
-    -> Form error combineAndView parsedCombined input msg
+    -> Form error (Form.Validation.Field error parsed kind -> combineAndView) parsedCombined input
+    -> Form error combineAndView parsedCombined input
 field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form renderOptions definitions parseFn toInitialValues) =
     Internal.Form.Form renderOptions
         (( name, Internal.Form.RegularField )
@@ -623,8 +620,8 @@ You define the field's validations the same way as for `field`, with the
 hiddenField :
     String
     -> Field error parsed input initial kind constraints
-    -> Form error (Form.Validation.Field error parsed Form.FieldView.Hidden -> combineAndView) parsedCombined input msg
-    -> Form error combineAndView parsedCombined input msg
+    -> Form error (Form.Validation.Field error parsed Form.FieldView.Hidden -> combineAndView) parsedCombined input
+    -> Form error combineAndView parsedCombined input
 hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form options definitions parseFn toInitialValues) =
     Internal.Form.Form options
         (( name, Internal.Form.HiddenField )
@@ -697,8 +694,8 @@ hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form option
 hiddenKind :
     ( String, String )
     -> error
-    -> Form error combineAndView parsed input msg
-    -> Form error combineAndView parsed input msg
+    -> Form error combineAndView parsed input
+    -> Form error combineAndView parsed input
 hiddenKind ( name, value ) error_ (Internal.Form.Form options definitions parseFn toInitialValues) =
     let
         (Internal.Field.Field fieldParser _) =
@@ -817,7 +814,7 @@ parse :
     String
     -> Model
     -> input
-    -> Form error { info | combine : Form.Validation.Validation error parsed named constraints } parsed input msg
+    -> Form error { info | combine : Form.Validation.Validation error parsed named constraints } parsed input
     -> Validated error parsed
 parse formId state input (Internal.Form.Form _ _ parser _) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
@@ -893,7 +890,6 @@ renderHtml :
             }
             parsed
             input
-            mappedMsg
     -> Html mappedMsg
 renderHtml formId attrs app input form_ =
     Html.Lazy.lazy5 renderHelper
@@ -905,7 +901,7 @@ renderHtml formId attrs app input form_ =
 
 
 {-| -}
-withGetMethod : Form error combineAndView parsed input userMsg -> Form error combineAndView parsed input userMsg
+withGetMethod : Form error combineAndView parsed input -> Form error combineAndView parsed input
 withGetMethod (Internal.Form.Form options a b c) =
     Internal.Form.Form { options | method = Internal.Form.Get } a b c
 
@@ -930,7 +926,6 @@ renderStyledHtml :
             }
             parsed
             input
-            mappedMsg
     -> Html.Styled.Html mappedMsg
 renderStyledHtml formId attrs app input form_ =
     Html.Styled.Lazy.lazy5 renderStyledHelper formId attrs app input form_
@@ -967,7 +962,6 @@ renderHelper :
             }
             parsed
             input
-            mappedMsg
     -> Html mappedMsg
 renderHelper formId attrs formState input ((Internal.Form.Form options _ _ _) as form_) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
@@ -1045,7 +1039,6 @@ renderStyledHelper :
             }
             parsed
             input
-            mappedMsg
     -> Html.Styled.Html mappedMsg
 renderStyledHelper formId attrs formState input ((Internal.Form.Form options _ _ _) as form_) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
@@ -1127,7 +1120,6 @@ helperValues :
             }
             parsed
             input
-            mappedMsg
     -> { hiddenInputs : List view, children : List view, isValid : Bool, parsed : Maybe parsed, fields : List ( String, String ), errors : Dict String (List error) }
 helperValues formId toHiddenInput formState input (Internal.Form.Form _ fieldDefinitions parser toInitialValues) =
     let
@@ -1302,7 +1294,7 @@ initSingle =
 
 
 {-| -}
-type alias DoneForm error parsed input view msg =
+type alias DoneForm error parsed input view =
     Form
         error
         { combine : Combined error parsed
@@ -1310,7 +1302,6 @@ type alias DoneForm error parsed input view msg =
         }
         parsed
         input
-        msg
 
 
 {-| -}
@@ -1322,7 +1313,6 @@ type alias HtmlForm error parsed input msg =
         }
         parsed
         input
-        msg
 
 
 {-| -}
@@ -1334,12 +1324,11 @@ type alias StyledHtmlForm error parsed input msg =
         }
         parsed
         input
-        msg
 
 
 {-| -}
-type alias Form error combineAndView parsed input userMsg =
-    Internal.Form.Form error combineAndView parsed input userMsg
+type alias Form error combineAndView parsed input =
+    Internal.Form.Form error combineAndView parsed input
 
 
 {-| -}
