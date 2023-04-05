@@ -171,7 +171,7 @@ all =
                 ]
             , describe "dependent validations" <|
                 let
-                    checkinFormParser : Form.DoneForm String ( Date, Date ) input MyView msg
+                    checkinFormParser : Form.DoneForm String ( Date, Date ) input MyView
                     checkinFormParser =
                         Form.form
                             (\checkin checkout ->
@@ -277,7 +277,7 @@ all =
             ]
         , describe "dependent parsing" <|
             let
-                linkForm : Form.DoneForm String PostAction input MyView msg
+                linkForm : Form.DoneForm String PostAction input MyView
                 linkForm =
                     Form.form
                         (\url ->
