@@ -6,13 +6,13 @@ module Form exposing
     , Errors, errorsForField
     , renderHtml, renderStyledHtml
     , parse
-    , withOnSubmit
     , hiddenField, hiddenKind
     , withGetMethod
     , dynamic
     , Msg, Model, init, update
     , Validated(..)
     , ServerResponse
+    , mapMsg, toResult
     -- subGroup
     )
 
@@ -232,11 +232,6 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
 @docs parse
 
 
-## Submission
-
-@docs withOnSubmit
-
-
 ## Progressively Enhanced Form Techniques (elm-pages)
 
 
@@ -271,6 +266,8 @@ in the user's workflow to show validation errors.
 
 @docs ServerResponse
 
+@docs mapMsg, toResult
+
 -}
 
 import Dict exposing (Dict)
@@ -300,6 +297,17 @@ type Validated error value
 
 
 {-| -}
+toResult : Validated error value -> Result ( Maybe value, Dict String (List error) ) value
+toResult validated =
+    case validated of
+        Valid value ->
+            Ok value
+
+        Invalid maybeParsed errors ->
+            Err ( maybeParsed, errors )
+
+
+{-| -}
 initFormState : FormState
 initFormState =
     { fields = Dict.empty
@@ -321,7 +329,6 @@ form : combineAndView -> Form String combineAndView parsed input msg
 form combineAndView =
     Internal.Form.Form
         { method = Internal.Form.Post
-        , onSubmit = Nothing
         }
         []
         (\_ _ ->
@@ -368,7 +375,6 @@ dynamic :
 dynamic forms formBuilder =
     Internal.Form.Form
         { method = Internal.Form.Post
-        , onSubmit = Nothing
         }
         []
         (\maybeData formState ->
@@ -739,13 +745,8 @@ hiddenKind ( name, value ) error_ (Internal.Form.Form options definitions parseF
                 |> myFn
         )
         (\input ->
-            case fieldParser.initialValue input of
-                Just initialValue ->
-                    ( name, Just initialValue )
-                        :: toInitialValues input
-
-                Nothing ->
-                    toInitialValues input
+            ( name, Just value )
+                :: toInitialValues input
         )
 
 
@@ -763,7 +764,7 @@ errorsForField field_ (Errors errorsDict) =
 
 
 {-| -}
-type alias AppContext error =
+type alias AppContext parsed msg mappedMsg error =
     { --, sharedData : Shared.Data
       --, routeParams : routeParams
       --path : List String
@@ -776,6 +777,8 @@ type alias AppContext error =
       submitting : Bool
     , serverResponse : Maybe (ServerResponse error)
     , state : Model
+    , toMsg : Msg msg -> mappedMsg
+    , onSubmit : Maybe ({ fields : List ( String, String ), action : String, parsed : Validated error parsed } -> mappedMsg)
     }
 
 
@@ -869,25 +872,36 @@ unwrapValidation (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors )) =
 {-| -}
 renderHtml :
     String
-    -> List (Html.Attribute (Msg msg))
+    -> List (Html.Attribute mappedMsg)
     ->
         { submitting : Bool
         , serverResponse : Maybe (ServerResponse error)
         , state : Model
+        , toMsg : Msg mappedMsg -> mappedMsg
+        , onSubmit :
+            Maybe
+                ({ fields : List ( String, String ), action : String, parsed : Validated error parsed }
+                 -> mappedMsg
+                )
         }
     -> input
     ->
         Form
             error
             { combine : Form.Validation.Validation error parsed named constraints
-            , view : Context error input -> List (Html (Msg msg))
+            , view : Context error input -> List (Html mappedMsg)
             }
             parsed
             input
-            msg
-    -> Html (Msg msg)
+            mappedMsg
+    -> Html mappedMsg
 renderHtml formId attrs app input form_ =
-    Html.Lazy.lazy5 renderHelper formId attrs app input form_
+    Html.Lazy.lazy5 renderHelper
+        formId
+        attrs
+        app
+        input
+        form_
 
 
 {-| -}
@@ -897,54 +911,27 @@ withGetMethod (Internal.Form.Form options a b c) =
 
 
 {-| -}
-withOnSubmit : ({ fields : List ( String, String ), parsed : Validated error parsed } -> userMsg) -> Form error combineAndView parsed input oldMsg -> Form error combineAndView parsed input userMsg
-withOnSubmit onSubmit (Internal.Form.Form options a b c) =
-    Internal.Form.Form
-        { onSubmit =
-            Just
-                (\{ fields, parsed } ->
-                    onSubmit
-                        { parsed =
-                            case parsed of
-                                ( Just justParsed, errors ) ->
-                                    if Dict.isEmpty errors then
-                                        Valid justParsed
-
-                                    else
-                                        Invalid (Just justParsed) errors
-
-                                ( Nothing, errors ) ->
-                                    Invalid Nothing errors
-                        , fields = fields
-                        }
-                )
-        , method = options.method
-        }
-        a
-        b
-        c
-
-
-{-| -}
 renderStyledHtml :
     String
-    -> List (Html.Styled.Attribute (Msg msg))
+    -> List (Html.Styled.Attribute mappedMsg)
     ->
         { submitting : Bool
         , serverResponse : Maybe (ServerResponse error)
         , state : Model
+        , toMsg : Msg mappedMsg -> mappedMsg
+        , onSubmit : Maybe ({ fields : List ( String, String ), action : String, parsed : Validated error parsed } -> mappedMsg)
         }
     -> input
     ->
         Form
             error
             { combine : Form.Validation.Validation error parsed field constraints
-            , view : Context error input -> List (Html.Styled.Html (Msg msg))
+            , view : Context error input -> List (Html.Styled.Html mappedMsg)
             }
             parsed
             input
-            msg
-    -> Html.Styled.Html (Msg msg)
+            mappedMsg
+    -> Html.Styled.Html mappedMsg
 renderStyledHtml formId attrs app input form_ =
     Html.Styled.Lazy.lazy5 renderStyledHelper formId attrs app input form_
 
@@ -968,20 +955,20 @@ type alias ServerResponse error =
 
 renderHelper :
     String
-    -> List (Html.Attribute (Msg msg))
+    -> List (Html.Attribute mappedMsg)
     ---> (actionData -> Maybe (ServerResponse error))
-    -> AppContext error
+    -> AppContext parsed mappedMsg mappedMsg error
     -> input
     ->
         Form
             error
             { combine : Form.Validation.Validation error parsed named constraints
-            , view : Context error input -> List (Html (Msg msg))
+            , view : Context error input -> List (Html mappedMsg)
             }
             parsed
             input
-            msg
-    -> Html (Msg msg)
+            mappedMsg
+    -> Html mappedMsg
 renderHelper formId attrs formState input ((Internal.Form.Form options _ _ _) as form_) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
@@ -989,13 +976,13 @@ renderHelper formId attrs formState input ((Internal.Form.Form options _ _ _) as
         { hiddenInputs, children, parsed, fields, errors } =
             helperValues formId toHiddenInput formState input form_
 
-        toHiddenInput : List (Html.Attribute (Msg msg)) -> Html (Msg msg)
+        toHiddenInput : List (Html.Attribute mappedMsg) -> Html mappedMsg
         toHiddenInput hiddenAttrs =
             Html.input hiddenAttrs []
     in
     Html.form
         ((Form.listeners formId
-            |> List.map (Attr.map Internal.FieldEvent.FormFieldEvent)
+            |> List.map (Attr.map (Internal.FieldEvent.FormFieldEvent >> formState.toMsg))
          )
             ++ [ Attr.method (Internal.Form.methodToString options.method)
                , Attr.novalidate True
@@ -1014,18 +1001,30 @@ renderHelper formId attrs formState input ((Internal.Form.Form options _ _ _) as
                     |> Attr.map
                         (\formDataThing ->
                             let
-                                msgThing : Maybe msg
-                                msgThing =
-                                    options.onSubmit
+                                maybeFormMsg : Maybe mappedMsg
+                                maybeFormMsg =
+                                    formState.onSubmit
                                         |> Maybe.map
                                             (\onSubmit ->
                                                 onSubmit
                                                     { fields = formDataThing.fields |> Maybe.withDefault fields
-                                                    , parsed = ( parsed, errors )
+                                                    , action = formDataThing.action
+                                                    , parsed =
+                                                        case parsed of
+                                                            Just justParsed ->
+                                                                if Dict.isEmpty errors then
+                                                                    Valid justParsed
+
+                                                                else
+                                                                    Invalid (Just justParsed) errors
+
+                                                            Nothing ->
+                                                                Invalid Nothing errors
                                                     }
                                             )
                             in
-                            Internal.FieldEvent.Submit formDataThing msgThing
+                            Internal.FieldEvent.Submit formDataThing maybeFormMsg
+                                |> formState.toMsg
                         )
                ]
             ++ attrs
@@ -1035,19 +1034,19 @@ renderHelper formId attrs formState input ((Internal.Form.Form options _ _ _) as
 
 renderStyledHelper :
     String
-    -> List (Html.Styled.Attribute (Msg msg))
-    -> AppContext error
+    -> List (Html.Styled.Attribute mappedMsg)
+    -> AppContext parsed mappedMsg mappedMsg error
     -> input
     ->
         Form
             error
             { combine : Form.Validation.Validation error parsed field constraints
-            , view : Context error input -> List (Html.Styled.Html (Msg msg))
+            , view : Context error input -> List (Html.Styled.Html mappedMsg)
             }
             parsed
             input
-            msg
-    -> Html.Styled.Html (Msg msg)
+            mappedMsg
+    -> Html.Styled.Html mappedMsg
 renderStyledHelper formId attrs formState input ((Internal.Form.Form options _ _ _) as form_) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
@@ -1055,13 +1054,13 @@ renderStyledHelper formId attrs formState input ((Internal.Form.Form options _ _
         { hiddenInputs, children, parsed, fields, errors } =
             helperValues formId toHiddenInput formState input form_
 
-        toHiddenInput : List (Html.Attribute (Msg msg)) -> Html.Styled.Html (Msg msg)
+        toHiddenInput : List (Html.Attribute msg) -> Html.Styled.Html msg
         toHiddenInput hiddenAttrs =
             Html.Styled.input (hiddenAttrs |> List.map StyledAttr.fromUnstyled) []
     in
     Html.Styled.form
         ((Form.listeners formId
-            |> List.map (Attr.map Internal.FieldEvent.FormFieldEvent)
+            |> List.map (Attr.map (Internal.FieldEvent.FormFieldEvent >> formState.toMsg))
             |> List.map StyledAttr.fromUnstyled
          )
             ++ [ StyledAttr.method (Internal.Form.methodToString options.method)
@@ -1083,30 +1082,42 @@ renderStyledHelper formId attrs formState input ((Internal.Form.Form options _ _
                     |> Attr.map
                         (\formDataThing ->
                             let
-                                msgThing : Maybe msg
-                                msgThing =
-                                    options.onSubmit
+                                maybeFormMsg : Maybe mappedMsg
+                                maybeFormMsg =
+                                    formState.onSubmit
                                         |> Maybe.map
                                             (\onSubmit ->
                                                 onSubmit
                                                     { fields = formDataThing.fields |> Maybe.withDefault fields
-                                                    , parsed = ( parsed, errors )
+                                                    , action = formDataThing.action
+                                                    , parsed =
+                                                        case parsed of
+                                                            Just justParsed ->
+                                                                if Dict.isEmpty errors then
+                                                                    Valid justParsed
+
+                                                                else
+                                                                    Invalid (Just justParsed) errors
+
+                                                            Nothing ->
+                                                                Invalid Nothing errors
                                                     }
                                             )
                             in
-                            Internal.FieldEvent.Submit formDataThing msgThing
+                            Internal.FieldEvent.Submit formDataThing maybeFormMsg
+                                |> formState.toMsg
                         )
                     |> StyledAttr.fromUnstyled
                ]
             ++ attrs
         )
-        (hiddenInputs ++ children)
+        ((hiddenInputs ++ children) |> List.map (Html.Styled.map (Internal.FieldEvent.UserMsg >> formState.toMsg)))
 
 
 helperValues :
     String
-    -> (List (Html.Attribute (Msg msg)) -> view)
-    -> AppContext error
+    -> (List (Html.Attribute mappedMsg) -> view)
+    -> AppContext parsed mappedMsg mappedMsg error
     -> input
     ->
         Form
@@ -1116,7 +1127,7 @@ helperValues :
             }
             parsed
             input
-            msg
+            mappedMsg
     -> { hiddenInputs : List view, children : List view, isValid : Bool, parsed : Maybe parsed, fields : List ( String, String ), errors : Dict String (List error) }
 helperValues formId toHiddenInput formState input (Internal.Form.Form _ fieldDefinitions parser toInitialValues) =
     let
@@ -1307,7 +1318,7 @@ type alias HtmlForm error parsed input msg =
     Form
         error
         { combine : Combined error parsed
-        , view : Context error input -> List (Html (Msg msg))
+        , view : Context error input -> List (Html msg)
         }
         parsed
         input
@@ -1319,7 +1330,7 @@ type alias StyledHtmlForm error parsed input msg =
     Form
         error
         { combine : Combined error parsed
-        , view : Context error input -> List (Html.Styled.Html (Msg msg))
+        , view : Context error input -> List (Html.Styled.Html msg)
         }
         parsed
         input
@@ -1344,6 +1355,20 @@ addErrorsInternal name newErrors allErrors =
 {-| -}
 type alias Msg msg =
     Internal.FieldEvent.Msg msg
+
+
+{-| -}
+mapMsg : (msg -> msgMapped) -> Msg msg -> Msg msgMapped
+mapMsg mapFn msg =
+    case msg of
+        Internal.FieldEvent.UserMsg userMsg ->
+            Internal.FieldEvent.UserMsg (mapFn userMsg)
+
+        Internal.FieldEvent.FormFieldEvent fieldEvent ->
+            Internal.FieldEvent.FormFieldEvent fieldEvent
+
+        Internal.FieldEvent.Submit formData maybeMsg ->
+            Internal.FieldEvent.Submit formData (maybeMsg |> Maybe.map mapFn)
 
 
 {-| -}

@@ -12,7 +12,7 @@ import Username exposing (Username)
 
 type Msg
     = FormMsg (Form.Msg Msg)
-    | OnSubmit { fields : List ( String, String ), parsed : Form.Validated String SignUpForm }
+    | OnSubmit { fields : List ( String, String ), action : String, parsed : Form.Validated String SignUpForm }
 
 
 type alias Flags =
@@ -68,15 +68,15 @@ view model =
     , body =
         [ div []
             [ signUpForm
-                |> Form.withOnSubmit OnSubmit
                 |> Form.renderHtml "form"
                     []
                     { submitting = model.submitting
                     , serverResponse = Nothing
                     , state = model.formState
+                    , onSubmit = Just OnSubmit
+                    , toMsg = FormMsg
                     }
                     ()
-                |> Html.map FormMsg
             ]
         ]
     }
