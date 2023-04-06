@@ -22,8 +22,7 @@ type Form error combineAndView parsed input
 
 
 type alias RenderOptions =
-    { method : Method
-    }
+    {}
 
 
 {-| -}

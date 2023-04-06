@@ -15,6 +15,7 @@ module Form exposing
     , Validated(..)
     , ServerResponse
     , mapMsg, toResult
+    , Method(..), methodToString
     -- subGroup
     )
 
@@ -274,6 +275,8 @@ in the user's workflow to show validation errors.
 
 @docs mapMsg, toResult
 
+@docs Method, methodToString
+
 -}
 
 import Dict exposing (Dict)
@@ -334,8 +337,7 @@ type alias Context error input =
 form : combineAndView -> Form String combineAndView parsed input
 form combineAndView =
     Internal.Form.Form
-        { method = Internal.Form.Post
-        }
+        {}
         []
         (\_ _ ->
             { result = Dict.empty
@@ -377,8 +379,7 @@ dynamic :
             input
 dynamic forms formBuilder =
     Internal.Form.Form
-        { method = Internal.Form.Post
-        }
+        {}
         []
         (\maybeData formState ->
             let
@@ -875,12 +876,6 @@ renderHtml state options_ attrs form_ =
 
 
 {-| -}
-withGetMethod : Form error combineAndView parsed input -> Form error combineAndView parsed input
-withGetMethod (Internal.Form.Form options_ a b c) =
-    Internal.Form.Form { options_ | method = Internal.Form.Get } a b c
-
-
-{-| -}
 renderStyledHtml :
     { submitting : Bool
     , state : Model
@@ -949,7 +944,7 @@ renderHelper formState options_ attrs ((Internal.Form.Form options___ _ _ _) as 
         ((Form.listeners options_.id
             |> List.map (Attr.map (Internal.FieldEvent.FormFieldEvent >> formState.toMsg))
          )
-            ++ [ Attr.method (Internal.Form.methodToString options___.method)
+            ++ [ Attr.method (methodToString options_.method)
                , Attr.novalidate True
 
                -- TODO get Path from options (make it configurable, `withPath`)
@@ -1022,7 +1017,7 @@ renderStyledHelper formState options_ attrs ((Internal.Form.Form options___ _ _ 
             |> List.map (Attr.map (Internal.FieldEvent.FormFieldEvent >> formState.toMsg))
             |> List.map StyledAttr.fromUnstyled
          )
-            ++ [ StyledAttr.method (Internal.Form.methodToString options___.method)
+            ++ [ StyledAttr.method (methodToString options_.method)
                , StyledAttr.novalidate True
 
                -- TODO
@@ -1446,6 +1441,7 @@ type alias Options error parsed input msg =
     -- TODO move method from Form options to here
     --path : Path
     { id : String
+    , method : Method
     , input : input
     , parallel : Bool
     , onSubmit :
@@ -1461,6 +1457,7 @@ type alias Options error parsed input msg =
 options : String -> Options error parsed () msg
 options id =
     { id = id
+    , method = Post
     , input = ()
     , parallel = False
     , onSubmit = Nothing
@@ -1482,6 +1479,7 @@ withInput input options_ =
     , parallel = options_.parallel
     , onSubmit = options_.onSubmit
     , serverResponse = options_.serverResponse
+    , method = options_.method
     }
 
 
@@ -1493,4 +1491,30 @@ withOnSubmit onSubmit options_ =
     , parallel = options_.parallel
     , onSubmit = Just onSubmit
     , serverResponse = options_.serverResponse
+    , method = options_.method
     }
+
+
+{-| -}
+type Method
+    = Get
+    | Post
+
+
+{-| The default Method from `options` is `Post` since that is the most common. The `Get` Method for form submissions will add the form fields as a query string and navigate to that route using a GET.
+You will need to progressively enhance your onSubmit to simulate this browser behavior if you want something similar, or use a framework that has this simulation built in like `elm-pages`.
+-}
+withGetMethod : Options error parsed input msg -> Options error parsed input msg
+withGetMethod options_ =
+    { options_ | method = Get }
+
+
+{-| -}
+methodToString : Method -> String
+methodToString method =
+    case method of
+        Get ->
+            "GET"
+
+        Post ->
+            "POST"

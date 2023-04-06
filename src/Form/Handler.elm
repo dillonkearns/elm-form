@@ -110,10 +110,9 @@ normalizeServerForm :
     (parsed -> combined)
     -> Form error { combineAndView | combine : Validation error parsed kind constraints } parsed input
     -> Form error (Combined error combined) Never Never
-normalizeServerForm mapFn (Internal.Form.Form options _ parseFn _) =
+normalizeServerForm mapFn (Internal.Form.Form _ _ parseFn _) =
     Internal.Form.Form
-        { method = options.method
-        }
+        {}
         []
         (\_ formState ->
             let
