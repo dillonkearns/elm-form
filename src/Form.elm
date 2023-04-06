@@ -1498,7 +1498,7 @@ withInput input options_ =
 
 
 {-| -}
-withOnSubmit : ({ fields : List ( String, String ), method : Method, action : String, parsed : Validated error parsed } -> msg) -> Options error parsed input previousMsg -> Options error parsed input msg
+withOnSubmit : ({ fields : List ( String, String ), method : Method, action : String, parsed : Validated error parsed } -> msg) -> Options error parsed input oldMsg -> Options error parsed input msg
 withOnSubmit onSubmit options_ =
     { id = options_.id
     , input = options_.input
