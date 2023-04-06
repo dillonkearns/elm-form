@@ -68,15 +68,15 @@ view model =
     , body =
         [ div []
             [ signUpForm
-                |> Form.renderHtml "form"
-                    []
+                |> Form.renderHtml
                     { submitting = model.submitting
-                    , serverResponse = Nothing
                     , state = model.formState
-                    , onSubmit = Just OnSubmit
                     , toMsg = FormMsg
                     }
-                    ()
+                    (Form.options "form"
+                        |> Form.withOnSubmit OnSubmit
+                    )
+                    []
             ]
         ]
     }
