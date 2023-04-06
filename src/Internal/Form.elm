@@ -1,4 +1,4 @@
-module Internal.Form exposing (FieldDefinition(..), Form(..), Method(..), RenderOptions, methodToString)
+module Internal.Form exposing (FieldDefinition(..), Form(..))
 
 {-| -}
 
@@ -8,7 +8,6 @@ import Pages.FormState exposing (FormState)
 
 type Form error combineAndView parsed input
     = Form
-        RenderOptions
         (List ( String, FieldDefinition ))
         (Maybe input
          -> FormState
@@ -21,27 +20,7 @@ type Form error combineAndView parsed input
         (input -> List ( String, Maybe String ))
 
 
-type alias RenderOptions =
-    {}
-
-
-{-| -}
-type Method
-    = Post
-    | Get
-
-
 {-| -}
 type FieldDefinition
     = RegularField
     | HiddenField
-
-
-methodToString : Method -> String
-methodToString method =
-    case method of
-        Post ->
-            "POST"
-
-        Get ->
-            "GET"

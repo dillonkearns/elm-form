@@ -110,9 +110,8 @@ normalizeServerForm :
     (parsed -> combined)
     -> Form error { combineAndView | combine : Validation error parsed kind constraints } parsed input
     -> Form error (Combined error combined) Never Never
-normalizeServerForm mapFn (Internal.Form.Form _ _ parseFn _) =
+normalizeServerForm mapFn (Internal.Form.Form _ parseFn _) =
     Internal.Form.Form
-        {}
         []
         (\_ formState ->
             let
@@ -198,7 +197,7 @@ runServerSide :
     List ( String, String )
     -> Form error (Validation error parsed kind constraints) Never input
     -> ( Bool, ( Maybe parsed, Dict String (List error) ) )
-runServerSide rawFormData (Internal.Form.Form _ _ parser _) =
+runServerSide rawFormData (Internal.Form.Form _ parser _) =
     let
         parsed :
             { result : Dict String (List error)

@@ -12,7 +12,12 @@ import Username exposing (Username)
 
 type Msg
     = FormMsg (Form.Msg Msg)
-    | OnSubmit { fields : List ( String, String ), action : String, parsed : Form.Validated String SignUpForm }
+    | OnSubmit
+        { fields : List ( String, String )
+        , method : Form.Method
+        , action : String
+        , parsed : Form.Validated String SignUpForm
+        }
 
 
 type alias Flags =

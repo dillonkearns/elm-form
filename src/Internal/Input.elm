@@ -12,7 +12,6 @@ type InputType
     | Number
       -- TODO should range have arguments for initial, min, and max?
     | Range
-    | Radio
       -- TODO should submit be a special type, or an Input type?
       -- TODO have an option for a submit with a name/value?
     | Date
@@ -40,9 +39,6 @@ inputTypeToString inputType =
 
         Range ->
             "range"
-
-        Radio ->
-            "radio"
 
         Date ->
             "date"

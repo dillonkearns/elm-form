@@ -337,7 +337,6 @@ type alias Context error input =
 form : combineAndView -> Form String combineAndView parsed input
 form combineAndView =
     Internal.Form.Form
-        {}
         []
         (\_ _ ->
             { result = Dict.empty
@@ -379,7 +378,6 @@ dynamic :
             input
 dynamic forms formBuilder =
     Internal.Form.Form
-        {}
         []
         (\maybeData formState ->
             let
@@ -392,7 +390,7 @@ dynamic forms formBuilder =
                         }
                 toParser decider =
                     case forms decider of
-                        Internal.Form.Form _ _ parseFn _ ->
+                        Internal.Form.Form _ parseFn _ ->
                             -- TODO need to include hidden form fields from `definitions` (should they be automatically rendered? Does that mean the view type needs to be hardcoded?)
                             parseFn maybeData formState
 
@@ -410,7 +408,7 @@ dynamic forms formBuilder =
                             }
                         newThing =
                             case formBuilder of
-                                Internal.Form.Form _ _ parseFn _ ->
+                                Internal.Form.Form _ parseFn _ ->
                                     parseFn maybeData formState
 
                         arg : { combine : decider -> Validation error parsed named constraints1, view : decider -> subView }
@@ -531,8 +529,8 @@ field :
     -> Field error parsed input initial kind constraints
     -> Form error (Form.Validation.Field error parsed kind -> combineAndView) parsedCombined input
     -> Form error combineAndView parsedCombined input
-field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form renderOptions definitions parseFn toInitialValues) =
-    Internal.Form.Form renderOptions
+field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form definitions parseFn toInitialValues) =
+    Internal.Form.Form
         (( name, Internal.Form.RegularField )
             :: definitions
         )
@@ -629,8 +627,8 @@ hiddenField :
     -> Field error parsed input initial kind constraints
     -> Form error (Form.Validation.Field error parsed Form.FieldView.Hidden -> combineAndView) parsedCombined input
     -> Form error combineAndView parsedCombined input
-hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form _ definitions parseFn toInitialValues) =
-    Internal.Form.Form {}
+hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form definitions parseFn toInitialValues) =
+    Internal.Form.Form
         (( name, Internal.Form.HiddenField )
             :: definitions
         )
@@ -703,12 +701,12 @@ hiddenKind :
     -> error
     -> Form error combineAndView parsed input
     -> Form error combineAndView parsed input
-hiddenKind ( name, value ) error_ (Internal.Form.Form options___ definitions parseFn toInitialValues) =
+hiddenKind ( name, value ) error_ (Internal.Form.Form definitions parseFn toInitialValues) =
     let
         (Internal.Field.Field fieldParser _) =
             Field.exactValue value error_
     in
-    Internal.Form.Form options___
+    Internal.Form.Form
         (( name, Internal.Form.HiddenField )
             :: definitions
         )
@@ -804,7 +802,7 @@ parse :
     -> input
     -> Form error { info | combine : Form.Validation.Validation error parsed named constraints } parsed input
     -> Validated error parsed
-parse formId state input (Internal.Form.Form _ _ parser _) =
+parse formId state input (Internal.Form.Form _ parser _) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
@@ -929,7 +927,7 @@ renderHelper :
             parsed
             input
     -> Html mappedMsg
-renderHelper formState options_ attrs ((Internal.Form.Form options___ _ _ _) as form_) =
+renderHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
@@ -1008,7 +1006,7 @@ renderStyledHelper :
             parsed
             input
     -> Html.Styled.Html mappedMsg
-renderStyledHelper formState options_ attrs ((Internal.Form.Form _ _ _ _) as form_) =
+renderStyledHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
@@ -1090,7 +1088,7 @@ helperValues :
             parsed
             input
     -> { hiddenInputs : List view, children : List view, isValid : Bool, parsed : Maybe parsed, fields : List ( String, String ), errors : Dict String (List error) }
-helperValues options_ toHiddenInput formState (Internal.Form.Form _ fieldDefinitions parser toInitialValues) =
+helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitions parser toInitialValues) =
     let
         initialValues : Dict String Form.FieldState
         initialValues =
