@@ -629,8 +629,8 @@ hiddenField :
     -> Field error parsed input initial kind constraints
     -> Form error (Form.Validation.Field error parsed Form.FieldView.Hidden -> combineAndView) parsedCombined input
     -> Form error combineAndView parsedCombined input
-hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form options___ definitions parseFn toInitialValues) =
-    Internal.Form.Form options___
+hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form _ definitions parseFn toInitialValues) =
+    Internal.Form.Form {}
         (( name, Internal.Form.HiddenField )
             :: definitions
         )
@@ -962,6 +962,13 @@ renderHelper formState options_ attrs ((Internal.Form.Form options___ _ _ _) as 
                                                 onSubmit
                                                     { fields = formDataThing.fields |> Maybe.withDefault fields
                                                     , action = formDataThing.action
+                                                    , method =
+                                                        case formDataThing.method of
+                                                            Internal.FieldEvent.Get ->
+                                                                Get
+
+                                                            Internal.FieldEvent.Post ->
+                                                                Post
                                                     , parsed =
                                                         case parsed of
                                                             Just justParsed ->
@@ -1001,7 +1008,7 @@ renderStyledHelper :
             parsed
             input
     -> Html.Styled.Html mappedMsg
-renderStyledHelper formState options_ attrs ((Internal.Form.Form options___ _ _ _) as form_) =
+renderStyledHelper formState options_ attrs ((Internal.Form.Form _ _ _ _) as form_) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
@@ -1035,6 +1042,13 @@ renderStyledHelper formState options_ attrs ((Internal.Form.Form options___ _ _ 
                                                 onSubmit
                                                     { fields = formDataThing.fields |> Maybe.withDefault fields
                                                     , action = formDataThing.action
+                                                    , method =
+                                                        case formDataThing.method of
+                                                            Internal.FieldEvent.Get ->
+                                                                Get
+
+                                                            Internal.FieldEvent.Post ->
+                                                                Post
                                                     , parsed =
                                                         case parsed of
                                                             Just justParsed ->
@@ -1446,7 +1460,7 @@ type alias Options error parsed input msg =
     , parallel : Bool
     , onSubmit :
         Maybe
-            ({ fields : List ( String, String ), action : String, parsed : Validated error parsed }
+            ({ fields : List ( String, String ), method : Method, action : String, parsed : Validated error parsed }
              -> msg
             )
     , serverResponse : Maybe (ServerResponse error)
@@ -1484,7 +1498,7 @@ withInput input options_ =
 
 
 {-| -}
-withOnSubmit : ({ fields : List ( String, String ), action : String, parsed : Validated error parsed } -> msg) -> Options error parsed input previousMsg -> Options error parsed input msg
+withOnSubmit : ({ fields : List ( String, String ), method : Method, action : String, parsed : Validated error parsed } -> msg) -> Options error parsed input previousMsg -> Options error parsed input msg
 withOnSubmit onSubmit options_ =
     { id = options_.id
     , input = options_.input
