@@ -120,14 +120,15 @@ update msg model =
 formView : Model -> Html Msg
 formView model =
     signUpForm
-        |> Form.withOnSubmit OnSubmit
-        |> Form.renderHtml "unique-form-id"
-            []
-            { submitting = model.submitting
-            , state = model.formModel
-            }
-            ()
-        |> Html.map FormMsg
+        |> Form.renderHtml
+        { submitting = model.submitting
+        , state = model.formModel
+        , toMsg = FormMsg
+        }
+        (Form.options "form"
+            |> Form.withOnSubmit OnSubmit
+        )
+        []
 
 -- this is our parsed/validated type, but it can be anything we want,
 -- including Json.Encode.Value, etc.
@@ -135,7 +136,7 @@ type alias SignUpForm =
     { username : String, password : String }
 
 
-signUpForm : Form.HtmlForm String SignUpForm input msg
+signUpForm : Form.HtmlForm String SignUpForm input
 signUpForm =
     (\username password passwordConfirmation ->
         { combine =
@@ -184,3 +185,6 @@ signUpForm =
         |> Form.field "password" (Field.text |> Field.password |> Field.required "Required")
         |> Form.field "password-confirmation" (Field.text |> Field.password |> Field.required "Required")
 ```
+
+This package is designed to be hooked into frameworks, whether it's a published framework like elm-pages (which has a built-in integration),
+or your own internal framework. See the elm-pages docs for more details on how to render and submit your form using elm-pages.

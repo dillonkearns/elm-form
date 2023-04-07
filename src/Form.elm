@@ -40,7 +40,8 @@ Below the `Form.form` call you will find all of the form's fields declared with
 These are the form's field declarations.
 
 These fields each have individual validations. For example, `|> Field.required ...` means we'll get a validation
-error if that field is empty (similar for checking the minimum password length).
+error if that field is empty (similar for checking the minimum password length). This field definition defines
+some information that will be used when render the field using [`Form.FieldView`](Form-FieldView) (whether it is a date input, password input, etc.).
 
 There will be a corresponding parameter in the function we pass in to `Form.form` for every
 field declaration (in this example, `\email password passwordConfirmation -> ...`).
@@ -55,10 +56,9 @@ them into a type and/or errors.
 
 **The `view`**
 
-Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of the fields declared.
+In your view you can lay out your fields however you want. While you will be using [`Form.FieldView`](Form-FieldView)
+to render the fields themselves, the rendering for everything besides the fields (including `label`'s, `div`s, etc.) is completely up to you.
 
-    import BackendTask exposing (BackendTask)
-    import ErrorPage exposing (ErrorPage)
     import Form
     import Form.Field as Field
     import Form.FieldView as FieldView
@@ -69,23 +69,23 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
     import Server.Request as Request
     import Server.Response exposing (Response)
 
-    type alias NewUser =
+    type alias SignupForm =
         { email : String
         , password : String
         }
 
-    signupForm : Form.HtmlForm String NewUser () Msg
+    signupForm : Form.HtmlForm String SignupForm () Msg
     signupForm =
         Form.form
             (\email password passwordConfirmation ->
                 { combine =
-                    Validation.succeed Login
+                    Validation.succeed SignupForm
                         |> Validation.andMap email
                         |> Validation.andMap
                             (Validation.map2
-                                (\pass confirmation ->
-                                    if pass == confirmation then
-                                        Validation.succeed pass
+                                (\passwordValue confirmationValue ->
+                                    if passwordValue == confirmationValue then
+                                        Validation.succeed passwordValue
 
                                     else
                                         passwordConfirmation
@@ -161,46 +161,6 @@ Totally customizable. Uses [`Form.FieldView`](Form-FieldView) to render all of t
               )
                 |> Html.ul [ Attr.style "color" "red" ]
             ]
-
-
-### Step 2 - Render the Form's View
-
-    view maybeUrl sharedModel app =
-        { title = "Sign Up"
-        , body =
-            [ form
-                |> Form.renderHtml "login" [] Nothing app ()
-            ]
-        }
-
-
-### Step 3 - Handle Server-Side Form Submissions
-
-    action : RouteParams -> Request.Parser (BackendTask (Response ActionData ErrorPage))
-    action routeParams =
-        Request.formData [ signupForm ]
-            |> Request.map
-                (\signupResult ->
-                    case signupResult of
-                        Ok newUser ->
-                            newUser
-                                |> myCreateUserBackendTask
-                                |> BackendTask.map
-                                    (\() ->
-                                        -- redirect to the home page
-                                        -- after successful sign-up
-                                        Route.redirectTo Route.Index
-                                    )
-
-                        Err _ ->
-                            Route.redirectTo Route.Login
-                                |> BackendTask.succeed
-                )
-
-    myCreateUserBackendTask : BackendTask ()
-    myCreateUserBackendTask =
-        BackendTask.fail
-            "TODO - make a database call to create a new user"
 
 
 ## Building a Form Parser
@@ -515,7 +475,7 @@ Use [`Form.Field`](Form-Field) to define the field and its validations.
         Form.form
             (\email ->
                 { combine =
-                    Validation.succeed NewUser
+                    Validation.succeed SignupForm
                         |> Validation.andMap email
                 , view = \info -> [{- render fields -}]
                 }
