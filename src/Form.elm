@@ -769,13 +769,15 @@ mergeResults :
     { a | result : ( Validation error parsed named constraints1, Dict String (List error) ) }
     -> Validation error parsed unnamed constraints2
 mergeResults parsed =
-    case parsed.result of
-        ( Pages.Internal.Form.Validation _ name ( parsedThing, combineErrors ), individualFieldErrors ) ->
-            Pages.Internal.Form.Validation Nothing
-                name
-                ( parsedThing
-                , mergeErrors combineErrors individualFieldErrors
-                )
+    let
+        ( Pages.Internal.Form.Validation _ name ( parsedThing, combineErrors ), individualFieldErrors ) =
+            parsed.result
+    in
+    Pages.Internal.Form.Validation Nothing
+        name
+        ( parsedThing
+        , mergeErrors combineErrors individualFieldErrors
+        )
 
 
 mergeErrors : Dict comparable (List value) -> Dict comparable (List value) -> Dict comparable (List value)

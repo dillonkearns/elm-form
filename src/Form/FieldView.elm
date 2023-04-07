@@ -60,17 +60,18 @@ valueButton exactValue attrs children (Validation viewField fieldName _) =
             , value = Just exactValue --justViewField.value
             , kind = justViewField.kind
             }
+
+        ( _, properties ) =
+            rawField.kind
     in
-    case rawField.kind of
-        ( _, properties ) ->
-            Html.button
-                (attrs
-                    ++ toHtmlProperties properties
-                    ++ [ Attr.value (rawField.value |> Maybe.withDefault "")
-                       , Attr.name rawField.name
-                       ]
-                )
-                children
+    Html.button
+        (attrs
+            ++ toHtmlProperties properties
+            ++ [ Attr.value (rawField.value |> Maybe.withDefault "")
+               , Attr.name rawField.name
+               ]
+        )
+        children
 
 
 {-| Gives you a submit button that will submit the form with a specific value for the given Field.
@@ -93,19 +94,20 @@ valueButtonStyled exactValue attrs children (Validation viewField fieldName _) =
             , value = Just exactValue
             , kind = justViewField.kind
             }
+
+        ( _, properties ) =
+            rawField.kind
     in
-    case rawField.kind of
-        ( _, properties ) ->
-            Html.Styled.button
-                (attrs
-                    ++ (toHtmlProperties properties |> List.map StyledAttr.fromUnstyled)
-                    ++ ([ Attr.value (rawField.value |> Maybe.withDefault "")
-                        , Attr.name rawField.name
-                        ]
-                            |> List.map StyledAttr.fromUnstyled
-                       )
-                )
-                children
+    Html.Styled.button
+        (attrs
+            ++ (toHtmlProperties properties |> List.map StyledAttr.fromUnstyled)
+            ++ ([ Attr.value (rawField.value |> Maybe.withDefault "")
+                , Attr.name rawField.name
+                ]
+                    |> List.map StyledAttr.fromUnstyled
+               )
+        )
+        children
 
 
 {-| -}
