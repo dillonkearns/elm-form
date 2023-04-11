@@ -101,10 +101,10 @@ update msg model =
     case msg of
         OnSubmit { parsed } ->
             case parsed of
-                Ok signUpData ->
+                Form.Valid signUpData ->
                     ( { model | submitting = True }
                     , sendSignUpData signUpData )
-                Err _ ->
+                Form.Invalid _ _ ->
                     -- validation errors are displayed already so
                     -- we don't need to do anything else here
                     ( model, Cmd.none )
