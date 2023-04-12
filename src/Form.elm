@@ -1397,7 +1397,21 @@ addErrorsInternal name newErrors allErrors =
             )
 
 
-{-| -}
+{-| When you render a `Form` using [`Form.renderHtml`](#renderHtml) or [`Form.renderStyledHtml`](#renderStyledHtml),
+you will pass in a `toMsg` to turn a `Form.Msg` into your application's `Msg`. That means you'll often have a `Msg` type like
+
+    import Form
+
+    type Msg
+        = FormMsg Form.Msg
+
+    -- | ... other Msg's
+
+In an `elm-pages` application, you will render your `Form` using `Pages.Form.renderHtml` (or renderStyledHtml) and the msg type
+is a `PagesMsg.PagesMsg`, which is a framework-provided Msg with all of the glue handled at the framework-level. You can also
+use a similar pattern in your own applications to reduce the wiring for each new page in your app.
+
+-}
 type alias Msg msg =
     Internal.FieldEvent.Msg msg
 
