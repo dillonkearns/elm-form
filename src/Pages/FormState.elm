@@ -1,7 +1,6 @@
 module Pages.FormState exposing (FieldState, FormState, listeners)
 
 import Dict exposing (Dict)
-import Form.FieldStatus exposing (FieldStatus)
 import Html exposing (Attribute)
 import Html.Attributes as Attr
 import Html.Events
@@ -98,5 +97,5 @@ type alias FormState =
 {-| -}
 type alias FieldState =
     { value : String
-    , status : FieldStatus
+    , status : Int
     }

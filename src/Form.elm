@@ -12,6 +12,7 @@ module Form exposing
     , withGetMethod
     , dynamic
     , Msg, Model, init, update
+    , FormState, FieldState
     , Validated(..)
     , ServerResponse
     , mapMsg, toResult
@@ -229,6 +230,8 @@ in the user's workflow to show validation errors.
 
 @docs Msg, Model, init, update
 
+@docs FormState, FieldState
+
 @docs Validated
 
 @docs ServerResponse
@@ -254,7 +257,7 @@ import Internal.Field
 import Internal.FieldEvent exposing (Event(..), FieldEvent)
 import Internal.Form
 import Internal.Input
-import Pages.FormState as Form exposing (FormState)
+import Pages.FormState as Form
 import Pages.Internal.Form exposing (Validation(..))
 import Task
 
@@ -776,11 +779,12 @@ parse formId state input (Internal.Form.Form _ parser _) =
         parsed =
             parser (Just input) thisFormState
 
-        thisFormState : FormState
+        thisFormState : Form.FormState
         thisFormState =
             state
                 |> Dict.get formId
                 |> Maybe.withDefault initFormState
+                |> convert
     in
     case
         { result = ( parsed.combineAndView.combine, parsed.result )
@@ -797,6 +801,20 @@ parse formId state input (Internal.Form.Form _ parser _) =
 
         ( Nothing, errors ) ->
             Invalid Nothing errors
+
+
+convert : FormState -> Form.FormState
+convert formState =
+    { submitAttempted = formState.submitAttempted
+    , fields =
+        formState.fields
+            |> Dict.map
+                (\_ value ->
+                    { value = value.value
+                    , status = statusRank value.status
+                    }
+                )
+    }
 
 
 insertIfNonempty : comparable -> List value -> Dict comparable (List value) -> Dict comparable (List value)
@@ -1052,7 +1070,7 @@ helperValues :
     -> { hiddenInputs : List view, children : List view, isValid : Bool, parsed : Maybe parsed, fields : List ( String, String ), errors : Dict String (List error) }
 helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitions parser toInitialValues) =
     let
-        initialValues : Dict String Form.FieldState
+        initialValues : Dict String FieldState
         initialValues =
             toInitialValues options_.input
                 |> List.filterMap
@@ -1060,12 +1078,12 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
                         maybeValue
                             |> Maybe.map
                                 (\value ->
-                                    ( key, { value = value, status = Form.FieldStatus.notVisited } )
+                                    ( key, { value = value, status = Form.Validation.NotVisited } )
                                 )
                     )
                 |> Dict.fromList
 
-        part2 : Dict String Form.FieldState
+        part2 : Dict String FieldState
         part2 =
             formState.state
                 |> Dict.get options_.id
@@ -1076,7 +1094,7 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
                             (\fields ->
                                 { fields =
                                     fields
-                                        |> List.map (Tuple.mapSecond (\value -> { value = value, status = Form.FieldStatus.notVisited }))
+                                        |> List.map (Tuple.mapSecond (\value -> { value = value, status = Form.Validation.NotVisited }))
                                         |> Dict.fromList
                                 , submitAttempted = True
                                 }
@@ -1085,7 +1103,7 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
                     )
                 |> .fields
 
-        fullFormState : Dict String Form.FieldState
+        fullFormState : Dict String FieldState
         fullFormState =
             initialValues
                 |> Dict.union part2
@@ -1107,7 +1125,7 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
             , combineAndView : { combine : Form.Validation.Validation error parsed field constraints, view : Context error input -> List view }
             }
         parsed1 =
-            parser (Just options_.input) thisFormState
+            parser (Just options_.input) (convert thisFormState)
 
         withoutServerErrors : Form.Validation.Validation error parsed named constraints
         withoutServerErrors =
@@ -1140,7 +1158,14 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
                             (\fields ->
                                 { fields =
                                     fields
-                                        |> List.map (Tuple.mapSecond (\value -> { value = value, status = Form.FieldStatus.notVisited }))
+                                        |> List.map
+                                            (Tuple.mapSecond
+                                                (\value ->
+                                                    { value = value
+                                                    , status = Form.Validation.NotVisited
+                                                    }
+                                                )
+                                            )
                                         |> Dict.fromList
                                 , submitAttempted = True
                                 }
@@ -1356,23 +1381,27 @@ updateForm fieldEvent formState =
                 |> Dict.update fieldEvent.name
                     (\previousValue_ ->
                         let
-                            previousValue : Form.FieldState
+                            previousValue : FieldState
                             previousValue =
                                 previousValue_
-                                    |> Maybe.withDefault { value = fieldEvent.value, status = Form.FieldStatus.notVisited }
+                                    |> Maybe.withDefault { value = fieldEvent.value, status = Form.Validation.NotVisited }
                         in
                         (case fieldEvent.event of
                             InputEvent newValue ->
                                 { previousValue
                                     | value = newValue
-                                    , status = previousValue.status |> increaseStatusTo Form.FieldStatus.changed
+                                    , status = previousValue.status |> increaseStatusTo Form.Validation.Changed
                                 }
 
                             FocusEvent ->
-                                { previousValue | status = previousValue.status |> increaseStatusTo Form.FieldStatus.focused }
+                                { previousValue
+                                    | status =
+                                        previousValue.status
+                                            |> increaseStatusTo Form.Validation.Focused
+                                }
 
                             BlurEvent ->
-                                { previousValue | status = previousValue.status |> increaseStatusTo Form.FieldStatus.blurred }
+                                { previousValue | status = previousValue.status |> increaseStatusTo Form.Validation.Blurred }
                         )
                             |> Just
                     )
@@ -1394,7 +1423,7 @@ setSubmitAttempted fieldId pageFormState =
 
 
 {-| -}
-increaseStatusTo : FieldStatus -> FieldStatus -> FieldStatus
+increaseStatusTo : Form.Validation.FieldStatus -> Form.Validation.FieldStatus -> Form.Validation.FieldStatus
 increaseStatusTo increaseTo currentStatus =
     if statusRank increaseTo > statusRank currentStatus then
         increaseTo
@@ -1404,9 +1433,20 @@ increaseStatusTo increaseTo currentStatus =
 
 
 {-| -}
-statusRank : FieldStatus -> Int
+statusRank : Form.Validation.FieldStatus -> Int
 statusRank status =
-    status
+    case status of
+        Form.Validation.NotVisited ->
+            0
+
+        Form.Validation.Focused ->
+            1
+
+        Form.Validation.Changed ->
+            2
+
+        Form.Validation.Blurred ->
+            3
 
 
 {-| -}
@@ -1492,3 +1532,17 @@ methodToString method =
 
         Post ->
             "POST"
+
+
+{-| -}
+type alias FieldState =
+    { value : String
+    , status : Form.Validation.FieldStatus
+    }
+
+
+{-| -}
+type alias FormState =
+    { fields : Dict String FieldState
+    , submitAttempted : Bool
+    }
