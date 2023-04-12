@@ -1416,7 +1416,8 @@ type alias Msg msg =
     Internal.FieldEvent.Msg msg
 
 
-{-| -}
+{-| Lets you map a user msg within a `Form.Msg`.
+-}
 mapMsg : (msg -> msgMapped) -> Msg msg -> Msg msgMapped
 mapMsg mapFn msg =
     case msg of
