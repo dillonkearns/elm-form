@@ -1457,7 +1457,18 @@ options id =
     }
 
 
-{-| -}
+{-| You can render your `Form` with an initial set of values and errors that semantically represent a server response.
+
+Conceptually, this is like sending a traditional form submission to a backend. When this happens in a `<form>` with no
+JavaScript event handlers, the server responds with a new page load, and that newly rendered page needs to contain any
+field errors and persist any field values that were submitted so the user can continue filling out their form.
+
+In an `elm-pages` app, you can submit your forms with JavaScript turned off and see this exact behavior, but you need to
+be sure to wire in a `ServerResponse` so that the form state is persisted in the freshly rendered page.
+
+You can also use this `ServerResponse` to send down server-side errors, especially if you are using full-stack Elm.
+
+-}
 withServerResponse : Maybe (ServerResponse error) -> Options error parsed input msg -> Options error parsed input msg
 withServerResponse serverResponse options_ =
     { options_ | serverResponse = serverResponse }
