@@ -6,7 +6,7 @@ module Form exposing
     , Errors, errorsForField
     , renderHtml, renderStyledHtml
     , Options, options
-    , withInput, withOnSubmit, withServerResponse
+    , withInput, withAction, withOnSubmit, withServerResponse
     , withGetMethod
     , Method(..), methodToString
     , parse
@@ -189,7 +189,7 @@ to render the fields themselves, the rendering for everything besides the fields
 
 @docs Options, options
 
-@docs withInput, withOnSubmit, withServerResponse
+@docs withInput, withAction, withOnSubmit, withServerResponse
 
 @docs withGetMethod
 
@@ -918,10 +918,8 @@ renderHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_) =
          )
             ++ [ Attr.method (methodToString options_.method)
                , Attr.novalidate True
-
-               -- TODO get Path from options (make it configurable, `withPath`)
-               --, Attr.action ("/" ++ String.join "/" formState.path)
                ]
+            ++ ([ options_.action |> Maybe.map Attr.action ] |> List.filterMap identity)
             ++ [ Internal.FieldEvent.formDataOnSubmit
                     |> Attr.map
                         (\formDataThing ->
@@ -998,10 +996,8 @@ renderStyledHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_
          )
             ++ [ StyledAttr.method (methodToString options_.method)
                , StyledAttr.novalidate True
-
-               -- TODO
-               --, StyledAttr.action ("/" ++ String.join "/" formState.path)
                ]
+            ++ ([ options_.action |> Maybe.map StyledAttr.action ] |> List.filterMap identity)
             ++ [ Internal.FieldEvent.formDataOnSubmit
                     |> Attr.map
                         (\formDataThing ->
@@ -1449,6 +1445,7 @@ type alias Options error parsed input msg =
     -- TODO move method from Form options to here
     --path : Path
     { id : String
+    , action : Maybe String
     , method : Method
     , input : input
     , onSubmit :
@@ -1464,6 +1461,7 @@ type alias Options error parsed input msg =
 options : String -> Options error parsed () msg
 options id =
     { id = id
+    , action = Nothing
     , method = Post
     , input = ()
     , onSubmit = Nothing
@@ -1556,6 +1554,7 @@ One example where you would use an `input` value is if you have an existing User
 withInput : input -> Options error parsed () msg -> Options error parsed input msg
 withInput input options_ =
     { id = options_.id
+    , action = options_.action
     , input = input
     , onSubmit = options_.onSubmit
     , serverResponse = options_.serverResponse
@@ -1567,11 +1566,18 @@ withInput input options_ =
 withOnSubmit : ({ fields : List ( String, String ), method : Method, action : String, parsed : Validated error parsed } -> msg) -> Options error parsed input oldMsg -> Options error parsed input msg
 withOnSubmit onSubmit options_ =
     { id = options_.id
+    , action = options_.action
     , input = options_.input
     , onSubmit = Just onSubmit
     , serverResponse = options_.serverResponse
     , method = options_.method
     }
+
+
+{-| -}
+withAction : String -> Options error parsed input msg -> Options error parsed input msg
+withAction action options_ =
+    { options_ | action = Just action }
 
 
 {-| -}
