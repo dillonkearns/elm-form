@@ -1303,7 +1303,33 @@ type alias StyledHtmlForm error parsed input msg =
     DoneForm error parsed input (List (Html.Styled.Html msg))
 
 
-{-| -}
+{-| A `Form` definition represents
+
+  - The fields of the form
+  - How to render a form's fields into a `view`, and
+  - How to `combine` the fields into a parsed value
+
+A `Form` can be used to:
+
+
+### Render
+
+  - Render a `<form>` tag (using [`renderHtml`](#renderHtml) or [`renderStyledHtml`](#renderStyledHtml))
+
+
+### Parse
+
+  - [`parse`](#parse) into a [`Validated`](#Validated) value
+  - You can attempt to parse one of multiple `Form` definitions using [`Form.Handler`](Form-Handler).
+
+While you almost always will want to render your `Form` in your `view` function, you may also want to parse your form in a few more advanced use cases.
+
+In a full-stack Elm application, you can try parsing with your Form definition since you can use code sharing to share the same `Form` definition between your frontend and backend.
+`elm-pages` has several built-in functions to help with this.
+
+You may also want to parse your form data in your frontend to take in-flight form submissions and parse them into your parsed values.
+
+-}
 type alias Form error combineAndView parsed input =
     Internal.Form.Form error combineAndView parsed input
 
