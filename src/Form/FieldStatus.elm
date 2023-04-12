@@ -1,8 +1,5 @@
 module Form.FieldStatus exposing
     ( FieldStatus
-    , blurred
-    , changed
-    , focused
     , notVisited
     )
 

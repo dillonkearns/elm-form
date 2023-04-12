@@ -29,7 +29,7 @@ Some of these underlying ideas were discussed in [the Elm Radio episode Explorin
 ## Opinions
 
 - Forms are always rendered within a `<form>` element for accessibility, and to enable progressive enhancement
-- Fields are always rendered within a form field element of some kind (<input> or <textarea>). Rendering the view for Fields with the appropriate attributes is done by the [`Form.FieldView` module](Form-FieldView). It can be rendered as [`elm/html`](https://package.elm-lang.org/packages/elm/html/latest/) or [`elm-css`](https://package.elm-lang.org/packages/rtfeldman/elm-css/latest/) elements (since those are the two basic ways to render semantic HTML field tags, `<input>` and `<textarea>`). `elm-ui` doesn't currently have a way to render semantic HTML tags for forms (`<form>` tag), so there aren't any `elm-ui` helpers at the moment, though you can always render to `elm/html`.
+- Fields are always rendered within a form field element of some kind (<input> or <textarea>). Rendering the view for Fields with the appropriate attributes is done by the [`Form.FieldView` module](https://package.elm-lang.org/packages/dillonkearns/elm-form/1.0.0/Form-FieldView). It can be rendered as [`elm/html`](https://package.elm-lang.org/packages/elm/html/latest/) or [`elm-css`](https://package.elm-lang.org/packages/rtfeldman/elm-css/latest/) elements (since those are the two basic ways to render semantic HTML field tags, `<input>` and `<textarea>`). `elm-ui` doesn't currently have a way to render semantic HTML tags for forms (`<form>` tag), so there aren't any `elm-ui` helpers at the moment, though you can always render to `elm/html`.
 
 ## Wiring
 
