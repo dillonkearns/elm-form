@@ -7,16 +7,16 @@ module Form exposing
     , renderHtml, renderStyledHtml
     , Options, options
     , withInput, withOnSubmit, withServerResponse
+    , withGetMethod
+    , Method(..), methodToString
     , parse
     , hiddenField, hiddenKind
-    , withGetMethod
     , dynamic
     , Msg, Model, init, update
     , FormState, FieldState
     , Validated(..)
     , ServerResponse
     , mapMsg, toResult
-    , Method(..), methodToString
     -- subGroup
     )
 
@@ -26,9 +26,6 @@ module Form exposing
 ## Example
 
 Let's look at a sign-up form example.
-
-
-### Step 1 - Define the Form
 
 What to look for:
 
@@ -194,6 +191,10 @@ to render the fields themselves, the rendering for everything besides the fields
 
 @docs withInput, withOnSubmit, withServerResponse
 
+@docs withGetMethod
+
+@docs Method, methodToString
+
 
 ## Running Parsers
 
@@ -211,11 +212,6 @@ and never submit the forms directly, then you will likely include additional con
 through hidden fields.
 
 @docs hiddenField, hiddenKind
-
-
-### GET Forms
-
-@docs withGetMethod
 
 
 ## Dynamic Fields
@@ -237,8 +233,6 @@ in the user's workflow to show validation errors.
 @docs ServerResponse
 
 @docs mapMsg, toResult
-
-@docs Method, methodToString
 
 -}
 
@@ -1457,7 +1451,6 @@ type alias Options error parsed input msg =
     { id : String
     , method : Method
     , input : input
-    , parallel : Bool
     , onSubmit :
         Maybe
             ({ fields : List ( String, String ), method : Method, action : String, parsed : Validated error parsed }
@@ -1473,7 +1466,6 @@ options id =
     { id = id
     , method = Post
     , input = ()
-    , parallel = False
     , onSubmit = Nothing
     , serverResponse = Nothing
     }
@@ -1485,12 +1477,86 @@ withServerResponse serverResponse options_ =
     { options_ | serverResponse = serverResponse }
 
 
-{-| -}
+{-| You can pass in an `input` value to the `Options` that are passed in to [`renderHtml`](#renderHtml) or [`renderStyledHtml`](#renderStyledHtml).
+
+You can use whichever data type you want as your `input` value. You will then have access to that value in two places:
+
+1.  The Form's `view` through the [`Context`](Context) argument's `input` field.
+2.  [`Form.Field.withInitialValue`](Form-Field#withInitialValue)
+
+One example where you would use an `input` value is if you have an existing UserProfile from the server that you want to use to pre-populate the form fields.
+
+    import Form
+    import Form.Field as Field
+    import Form.Validation as Validation
+
+    type alias UserProfile =
+        { name : String
+        , email : String
+        }
+
+    userProfileForm : Form.HtmlForm String UserProfile UserProfile msg
+    userProfileForm =
+        (\name email ->
+            { combine =
+                Validation.succeed UserProfile
+                    |> Validation.andMap name
+                    |> Validation.andMap email
+            , view =
+                \context ->
+                    [ Html.h2
+                        []
+                        [ Html.text
+                            --  use the input to display Model data
+                            (context.input
+                                ++ "'s Profile"
+                            )
+                        ]
+                    , fieldView "Name" name
+                    , fieldView "Email" email
+                    , if context.submitting then
+                        Html.button [ Html.Attributes.disabled True ] [ Html.text "Updating..." ]
+
+                      else
+                        Html.button [] [ Html.text "Update" ]
+                    ]
+            }
+        )
+            |> Form.form
+            |> Form.field "name"
+                (Field.text
+                    |> Field.required "Required"
+                    |> Field.withInitialValue .name
+                )
+            |> Form.field "email"
+                (Field.text
+                    |> Field.required "Required"
+                    |> Field.withInitialValue .email
+                )
+
+    view model =
+        [ model.userProfile
+            |> Maybe.map
+                (\userProfile ->
+                    userProfileForm
+                        |> Form.renderHtml
+                            { submitting = model.submitting
+                            , state = model.formState
+                            , toMsg = FormMsg
+                            }
+                            (Form.options "userProfile"
+                                |> Form.withInput userProfile
+                            )
+                            []
+                )
+            |> Maybe.withDefault "Loading Profile..."
+        ]
+
+-}
 withInput : input -> Options error parsed () msg -> Options error parsed input msg
 withInput input options_ =
     { id = options_.id
     , input = input
-    , parallel = options_.parallel
     , onSubmit = options_.onSubmit
     , serverResponse = options_.serverResponse
     , method = options_.method
@@ -1502,7 +1568,6 @@ withOnSubmit : ({ fields : List ( String, String ), method : Method, action : St
 withOnSubmit onSubmit options_ =
     { id = options_.id
     , input = options_.input
-    , parallel = options_.parallel
     , onSubmit = Just onSubmit
     , serverResponse = options_.serverResponse
     , method = options_.method
