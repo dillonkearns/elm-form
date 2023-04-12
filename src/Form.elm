@@ -1562,7 +1562,61 @@ withInput input options_ =
     }
 
 
-{-| -}
+{-| You can add an onSubmit handler to the Form's `Options`. If you are using a framework that is integrated with `elm-form` (such as `elm-pages`), then you can
+rely on the framework's onSubmit behavior. Otherwise, you will need to do something with the form when there is a valid form submission.
+
+There are a few different approaches you can use.
+
+1.  Progressively enhance the raw FormData submission. Since `withOnSubmit` gives you access to `{ fields : List ( String, String ) {- ... -} }`, you can propagate the raw key-value pairs (`fields`) and send those to your API. If you are doing full-stack Elm with `elm-pages` or Lamdera, then this can be a great fit because you can do code sharing and re-use your `Form` definition on the backend to parse the raw FormData. However, you may not want to use this approach with frontend-only Elm because you may prefer to communicate with your backend using more structured data like JSON rather than FormData (which is just key-value strings).
+2.  Parse into your preferred type, then with an on-submit Msg, check if the data is `Valid`, and if it is, use the parsed data to make a request to your API (by JSON-encoding the value, building a GraphQL request, etc.).
+3.  In your Form's `combine`, directly parse into a representation of your request, such as a `Json.Encode.Value`, a `Cmd Msg`, a `Task error Msg`, or an intermediary data type that represents an API request.
+
+Let's look at an example of approach (3). In this example, we define a `Request` record alias which represents an API request. Note, there is nothing special about this `Request` type, this is just
+an example ot illustrate this general pattern, but consider the best types for your use case when you adapt this example for your app.
+
+    import Form
+    import Form.Field as Field
+    import Form.Validation as Validation
+
+    type alias Request =
+        { path : String
+        , body : Encode.Value
+        , expect : Http.Expect Msg
+        }
+
+    sendRequest : Request -> Cmd Msg
+    sendRequest request =
+        Http.post
+            { url = "https://myservice.com/api" ++ request.path
+            , body = Http.jsonBody request.body
+            , expect = request.expect
+            }
+
+    userProfileForm : Form.HtmlForm String Request input msg
+    userProfileForm =
+        (\name email ->
+            { combine =
+                Validation.succeed
+                    (\nameValue emailValue ->
+                        { path = "/api/user"
+                        , body =
+                            Encode.object
+                                [ ( "name", Encode.string nameValue )
+                                , ( "email", Encode.string emailValue )
+                                ]
+                        }
+                    , expect = Http.expectJson GotUpdatedProfile profileDecoder
+                    )
+                    |> Validation.andMap name
+                    |> Validation.andMap email
+            , view = \context -> [{- ... view here -}]
+            }
+        )
+            |> Form.form
+            |> Form.field "name" (Field.text |> Field.required "Required")
+            |> Form.field "email" (Field.text |> Field.required "Required")
+
+-}
 withOnSubmit : ({ fields : List ( String, String ), method : Method, action : String, parsed : Validated error parsed } -> msg) -> Options error parsed input oldMsg -> Options error parsed input msg
 withOnSubmit onSubmit options_ =
     { id = options_.id
