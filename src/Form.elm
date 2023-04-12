@@ -1300,13 +1300,25 @@ type alias DoneForm error parsed input view =
 {-| A `Form` that renders to `elm/html`. Can be rendered with [`renderHtml`](#renderHtml).
 -}
 type alias HtmlForm error parsed input msg =
-    DoneForm error parsed input (List (Html msg))
+    Form
+        error
+        { combine : Combined error parsed
+        , view : Context error input -> List (Html msg)
+        }
+        parsed
+        input
 
 
 {-| A `Form` that renders to [`rtfeldman/elm-css`](https://package.elm-lang.org/packages/rtfeldman/elm-css/latest/). Can be rendered with [`renderStyledHtml`](#renderStyledHtml).
 -}
 type alias StyledHtmlForm error parsed input msg =
-    DoneForm error parsed input (List (Html.Styled.Html msg))
+    Form
+        error
+        { combine : Combined error parsed
+        , view : Context error input -> List (Html.Styled.Html msg)
+        }
+        parsed
+        input
 
 
 {-| A `Form` definition represents
