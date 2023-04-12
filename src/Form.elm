@@ -244,7 +244,7 @@ in the user's workflow to show validation errors.
 
 import Dict exposing (Dict)
 import Form.Field as Field exposing (Field)
-import Form.FieldStatus exposing (FieldStatus)
+import Form.FieldStatus
 import Form.FieldView
 import Form.Validation exposing (Combined)
 import Html exposing (Html)
