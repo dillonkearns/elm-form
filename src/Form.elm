@@ -1628,7 +1628,15 @@ withOnSubmit onSubmit options_ =
     }
 
 
-{-| -}
+{-| Set the `action` attribute of the rendered `<form>` element. Note that the `action` attribute in the `withOnSubmit` is preprocessed in the browser, so the String will point to the same URL but
+won't necessarily be the exact same String that was passed in. For example, if you set `options |> Form.withAction "/login"`, your onSubmit will receive an absolute URL such as `{ action = "https://mysite.com/login" {- , ... -} }`.
+
+Setting the `action` can be useful if you are progressively enhancing form behavior. The default browser form submission behavior is to submit to the current URL if no `action` attribute is set, and an `action` is present
+then the form submission will go to the given URL. If you are attempting to use progressive enhancement then you can simulate this behavior through your `withOnSubmit` handler, or you may be using a framework that has this simulation built in like `elm-pages`.
+
+See also <https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#action>.
+
+-}
 withAction : String -> Options error parsed input msg -> Options error parsed input msg
 withAction action options_ =
     { options_ | action = Just action }
