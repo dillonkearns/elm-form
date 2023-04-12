@@ -1337,12 +1337,40 @@ mapMsg mapFn msg =
             Internal.FieldEvent.Submit formData (maybeMsg |> Maybe.map mapFn)
 
 
-{-| -}
+{-| The state for all forms. This is a single value that can be used to manage your form state, so when you render your
+`Form`s you will get client-side validations based on the state managed through this value. The state that is
+included here for each Form is:
+
+  - Whether submit has been attempted on the form
+  - The current value of each field in the form
+  - The current [`Form.Validation.FieldStatus`](Form.Validation#FieldStatus) for each field in the form
+
+Since this manages the state of multiple Forms, you can even maintain this in your application-wide `Model` rather than
+in a page-specific `Model`. In an `elm-pages` application, this is managed through the framework, but you can achieve
+a similar wiring by managing the `Form.Model` globally.
+
+In more advanced cases, you can manually modify the state of a form. However, it's often enough to just let this package
+manage the state for you through the [`Form.update`](Form#update) function. Since this is a `Dict String FormState`, you can use `Dict` operations to clear or update
+the state of forms if you need to manually manage form state.
+
+-}
 type alias Model =
     Dict String FormState
 
 
-{-| -}
+{-| Initialize the [`Form.Model`](Form#Model).
+
+    import Form
+
+    init : Flags -> ( Model, Cmd Msg )
+    init flags =
+        ( { formModel = Form.init
+          , submitting = False
+          }
+        , Cmd.none
+        )
+
+-}
 init : Model
 init =
     Dict.empty
