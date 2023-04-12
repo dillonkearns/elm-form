@@ -256,7 +256,37 @@ import Pages.Internal.Form exposing (Validation(..))
 import Task
 
 
-{-| -}
+{-| Parsing a `Form` will either give you a `Valid` type with the parsed value (nothing went wrong), or else
+an `Invalid` type if it encountered any validation errors. The `Invalid` type contains a Dict of errors (the keys are the field names).
+
+The `Invalid` data also contains the parsed value if it is able to parse it. For example, if you have a Field defined with
+
+    Form.form
+        (\checkin ->
+            { combine =
+                Validation.succeed Checkin
+                    |> Validation.andMap checkin
+            , view = [{- ... view here -}]
+            }
+        )
+        |> Form.field "checkin"
+            (Field.time { invalid = \_ -> "Invalid time value" }
+                |> Field.withMin
+                    { hours = 10
+                    , minutes = 0
+                    }
+                    "Check-in must be after 10"
+                |> Field.withMax
+                    { hours = 12
+                    , minutes = 0
+                    }
+                    "Check-in must be before noon"
+            )
+
+A time of `7:23` would be parsed as `Invalid (Just { hours = 7, minutes = 23 }) (Dict.fromList [ ( "checkin", [ "Check-in must be after 10" ] ) ])`.
+Because the `Field.withMin` validation is recoverable, it is able to add a validation error while still successfully parsing to a `Time` value.
+
+-}
 type Validated error value
     = Valid value
     | Invalid (Maybe value) (Dict String (List error))
