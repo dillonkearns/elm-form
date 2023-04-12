@@ -10,11 +10,11 @@ module Form exposing
     , withGetMethod
     , Method(..), methodToString
     , parse
+    , Validated(..)
     , hiddenField, hiddenKind
     , dynamic
-    , Msg, Model, init, update
-    , FormState, FieldState
-    , Validated(..)
+    , Msg, init, update
+    , Model, FormState, FieldState
     , ServerResponse
     , mapMsg, toResult
     -- subGroup
@@ -200,6 +200,8 @@ to render the fields themselves, the rendering for everything besides the fields
 
 @docs parse
 
+@docs Validated
+
 
 ## Progressively Enhanced Form Techniques (elm-pages)
 
@@ -224,11 +226,12 @@ through hidden fields.
 `elm-form` manages the client-side state of fields, including FieldStatus which you can use to determine when
 in the user's workflow to show validation errors.
 
-@docs Msg, Model, init, update
+@docs Msg, init, update
 
-@docs FormState, FieldState
 
-@docs Validated
+### Model
+
+@docs Model, FormState, FieldState
 
 @docs ServerResponse
 
