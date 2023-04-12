@@ -1490,7 +1490,27 @@ type alias Options error parsed input msg =
     }
 
 
-{-| -}
+{-| Initialize a set of default options with a unique `id` for your Form. Note that even if you are rendering the same form
+multiple times this ID needs to be unique in order to manage the state of each form independently.
+
+For example,
+
+    cartView model items =
+        items
+            |> List.map
+                (\item ->
+                    itemForm
+                        |> Form.renderHtml
+                            { submitting = model.submitting
+                            , state = model.formState
+                            , toMsg = FormMsg
+                            }
+                            (Form.options ("cart-item-" ++ item.id))
+                            []
+                )
+            |> Html.div []
+
+-}
 options : String -> Options error parsed () msg
 options id =
     { id = id
