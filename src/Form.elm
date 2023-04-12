@@ -281,7 +281,8 @@ initFormState =
     }
 
 
-{-| -}
+{-| The data available as the first parameter in a Form's `view` function.
+-}
 type alias Context error input =
     { errors : Errors error
     , submitting : Bool
@@ -290,7 +291,23 @@ type alias Context error input =
     }
 
 
-{-| -}
+{-| Initialize the builder for a `Form`. Typically an anonymous function is passed in to this function, with one
+parameter for each field that comes after.
+
+    form =
+        Form.form
+            (\name email ->
+                { combine =
+                    Validation.succeed User
+                        |> Validation.andMap name
+                        |> Validation.andMap email
+                , view = \info -> [{- render fields -}]
+                }
+            )
+            |> Form.field "name" (Field.text |> Field.required "Required")
+            |> Form.field "email" (Field.text |> Field.required "Required")
+
+-}
 form : combineAndView -> Form String combineAndView parsed input
 form combineAndView =
     Internal.Form.Form
@@ -826,7 +843,21 @@ unwrapValidation (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors )) =
     ( maybeParsed, errors )
 
 
-{-| -}
+{-| Render the form to `elm/html`.
+
+    view model =
+        signUpForm
+            |> Form.renderHtml
+                { submitting = model.submitting
+                , state = model.formState
+                , toMsg = FormMsg
+                }
+                (Form.options "signUpForm")
+                []
+
+Note: In `elm-pages`, you'll want to use the `Pages.Form.renderHtml` function instead.
+
+-}
 renderHtml :
     { submitting : Bool
     , state : Model
@@ -847,7 +878,21 @@ renderHtml state options_ attrs form_ =
     Html.Lazy.lazy4 renderHelper state options_ attrs form_
 
 
-{-| -}
+{-| Render the form to [`rtfeldman/elm-css`](https://package.elm-lang.org/packages/rtfeldman/elm-css/latest/).
+
+    view model =
+        signUpForm
+            |> Form.renderStyledHtml
+                { submitting = model.submitting
+                , state = model.formState
+                , toMsg = FormMsg
+                }
+                (Form.options "signUpForm")
+                []
+
+Note: In `elm-pages`, you'll want to use the `Pages.Form.renderStyledHtml` function instead.
+
+-}
 renderStyledHtml :
     { submitting : Bool
     , state : Model
