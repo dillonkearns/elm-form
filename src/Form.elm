@@ -262,7 +262,9 @@ type Validated error value
     | Invalid (Maybe value) (Dict String (List error))
 
 
-{-| -}
+{-| Parsing a `Form` gives you a [`Validated`](#Validated) type. This helper turns it into a `Result`
+that is semantically the same. This can be useful for using a parsed `Form` value in a pipeline.
+-}
 toResult : Validated error value -> Result ( Maybe value, Dict String (List error) ) value
 toResult validated =
     case validated of
