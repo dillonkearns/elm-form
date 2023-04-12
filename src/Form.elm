@@ -1250,24 +1250,12 @@ type alias DoneForm error parsed input view =
 
 {-| -}
 type alias HtmlForm error parsed input msg =
-    Form
-        error
-        { combine : Combined error parsed
-        , view : Context error input -> List (Html msg)
-        }
-        parsed
-        input
+    DoneForm error parsed input (List (Html msg))
 
 
 {-| -}
 type alias StyledHtmlForm error parsed input msg =
-    Form
-        error
-        { combine : Combined error parsed
-        , view : Context error input -> List (Html.Styled.Html msg)
-        }
-        parsed
-        input
+    DoneForm error parsed input (List (Html.Styled.Html msg))
 
 
 {-| -}
