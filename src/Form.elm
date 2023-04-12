@@ -1330,12 +1330,12 @@ type alias StyledHtmlForm error parsed input msg =
 A `Form` can be used to:
 
 
-### Render
+### Render Form
 
   - Render a `<form>` tag (using [`renderHtml`](#renderHtml) or [`renderStyledHtml`](#renderStyledHtml))
 
 
-### Parse
+### Parse Form
 
   - [`parse`](#parse) into a [`Validated`](#Validated) value
   - You can attempt to parse one of multiple `Form` definitions using [`Form.Handler`](Form-Handler).
@@ -1387,7 +1387,7 @@ included here for each Form is:
 
   - Whether submit has been attempted on the form
   - The current value of each field in the form
-  - The current [`Form.Validation.FieldStatus`](Form.Validation#FieldStatus) for each field in the form
+  - The current [`Form.Validation.FieldStatus`](Form-Validation#FieldStatus) for each field in the form
 
 Since this manages the state of multiple Forms, you can even maintain this in your application-wide `Model` rather than
 in a page-specific `Model`. In an `elm-pages` application, this is managed through the framework, but you can achieve
@@ -1615,7 +1615,7 @@ withServerResponse serverResponse options_ =
 
 You can use whichever data type you want as your `input` value. You will then have access to that value in two places:
 
-1.  The Form's `view` through the [`Context`](Context) argument's `input` field.
+1.  The Form's `view` through the [`Context`](#Context) argument's `input` field.
 2.  [`Form.Field.withInitialValue`](Form-Field#withInitialValue)
 
 One example where you would use an `input` value is if you have an existing UserProfile from the server that you want to use to pre-populate the form fields.
