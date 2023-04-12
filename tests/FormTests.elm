@@ -19,6 +19,16 @@ type Action
     | SetQuantity ( Uuid, Int )
 
 
+type alias DoneForm error parsed input view =
+    Form.Form
+        error
+        { combine : Validation.Combined error parsed
+        , view : Form.Context error input -> view
+        }
+        parsed
+        input
+
+
 all : Test
 all =
     describe "Form Parser" <|
@@ -171,7 +181,7 @@ all =
                 ]
             , describe "dependent validations" <|
                 let
-                    checkinFormParser : Form.DoneForm String ( Date, Date ) input MyView
+                    checkinFormParser : DoneForm String ( Date, Date ) input MyView
                     checkinFormParser =
                         Form.form
                             (\checkin checkout ->
@@ -277,7 +287,7 @@ all =
             ]
         , describe "dependent parsing" <|
             let
-                linkForm : Form.DoneForm String PostAction input MyView
+                linkForm : DoneForm String PostAction input MyView
                 linkForm =
                     Form.form
                         (\url ->

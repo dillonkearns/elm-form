@@ -1,5 +1,5 @@
 module Form exposing
-    ( Form, HtmlForm, StyledHtmlForm, DoneForm
+    ( Form, HtmlForm, StyledHtmlForm
     , form
     , field
     , Context
@@ -163,7 +163,7 @@ to render the fields themselves, the rendering for everything besides the fields
 
 ## Building a Form Parser
 
-@docs Form, HtmlForm, StyledHtmlForm, DoneForm
+@docs Form, HtmlForm, StyledHtmlForm
 
 @docs form
 
@@ -1282,7 +1282,11 @@ initSingle =
     }
 
 
-{-| -}
+{-| Usually it's easier to annotate your Form definitions with [`HtmlForm`](#HtmlForm) or [`StyledHtmlForm`](#StyledHtmlForm).
+
+This lower-level type alias is provided as well in case it's helpful. It locks in the type for `combine : ..., view ... }`.
+
+-}
 type alias DoneForm error parsed input view =
     Form
         error
@@ -1293,12 +1297,14 @@ type alias DoneForm error parsed input view =
         input
 
 
-{-| -}
+{-| A `Form` that renders to `elm/html`. Can be rendered with [`renderHtml`](#renderHtml).
+-}
 type alias HtmlForm error parsed input msg =
     DoneForm error parsed input (List (Html msg))
 
 
-{-| -}
+{-| A `Form` that renders to [`rtfeldman/elm-css`](https://package.elm-lang.org/packages/rtfeldman/elm-css/latest/). Can be rendered with [`renderStyledHtml`](#renderStyledHtml).
+-}
 type alias StyledHtmlForm error parsed input msg =
     DoneForm error parsed input (List (Html.Styled.Html msg))
 
