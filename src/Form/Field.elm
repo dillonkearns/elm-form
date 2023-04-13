@@ -127,7 +127,8 @@ required missingError (Internal.Field.Field field kind) =
                   else
                     allErrors
                 )
-        , properties = field.properties
+        , properties =
+            ( "required", Encode.bool True ) :: field.properties
         , compare = field.compare
         }
         kind
