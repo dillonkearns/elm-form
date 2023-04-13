@@ -1,7 +1,6 @@
 module FormTests exposing (all)
 
 import Date exposing (Date)
-import Dict
 import Expect
 import Form exposing (Validated(..))
 import Form.Field as Field
@@ -75,7 +74,7 @@ all =
                     (passwordConfirmationParser |> Form.Handler.init identity)
                     |> Expect.equal
                         (Invalid (Just { password = "mypassword" })
-                            (Dict.fromList [ ( "password-confirmation", [ "Must match password" ] ) ])
+                            [ ( "password-confirmation", [ "Must match password" ] ) ]
                         )
         , describe "oneOf" <|
             let
@@ -230,10 +229,8 @@ all =
                             (checkinFormParser |> Form.Handler.init identity)
                             |> Expect.equal
                                 (Invalid (Just ( Date.fromRataDie 738158, Date.fromRataDie 738156 ))
-                                    (Dict.fromList
-                                        [ ( "checkin", [ "Must be before checkout" ] )
-                                        ]
-                                    )
+                                    [ ( "checkin", [ "Must be before checkout" ] )
+                                    ]
                                 )
                 , test "sub-form" <|
                     \() ->
@@ -278,10 +275,8 @@ all =
                             )
                             |> Expect.equal
                                 (Invalid Nothing
-                                    (Dict.fromList
-                                        [ ( "password-confirmation", [ "Must match password" ] )
-                                        ]
-                                    )
+                                    [ ( "password-confirmation", [ "Must match password" ] )
+                                    ]
                                 )
                 ]
             ]

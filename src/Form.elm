@@ -292,13 +292,13 @@ Because the `Field.withMin` validation is recoverable, it is able to add a valid
 -}
 type Validated error value
     = Valid value
-    | Invalid (Maybe value) (Dict String (List error))
+    | Invalid (Maybe value) (List ( String, List error ))
 
 
 {-| Parsing a `Form` gives you a [`Validated`](#Validated) type. This helper turns it into a `Result`
 that is semantically the same. This can be useful for using a parsed `Form` value in a pipeline.
 -}
-toResult : Validated error value -> Result ( Maybe value, Dict String (List error) ) value
+toResult : Validated error value -> Result ( Maybe value, List ( String, List error ) ) value
 toResult validated =
     case validated of
         Valid value ->
@@ -348,7 +348,7 @@ form combineAndView =
     Internal.Form.Form
         []
         (\_ _ ->
-            { result = Dict.empty
+            { result = []
             , combineAndView = combineAndView
             , isMatchCandidate = True
             }
@@ -393,7 +393,7 @@ dynamic forms formBuilder =
                 toParser :
                     decider
                     ->
-                        { result : Dict String (List error)
+                        { result : List ( String, List error )
                         , isMatchCandidate : Bool
                         , combineAndView : { combine : Validation error parsed named constraints1, view : subView }
                         }
@@ -404,14 +404,14 @@ dynamic forms formBuilder =
                             parseFn maybeData formState
 
                 myFn :
-                    { result : Dict String (List error)
+                    { result : List ( String, List error )
                     , isMatchCandidate : Bool
                     , combineAndView : combineAndView
                     }
                 myFn =
                     let
                         newThing :
-                            { result : Dict String (List error)
+                            { result : List ( String, List error )
                             , isMatchCandidate : Bool
                             , combineAndView : { combine : decider -> Validation error parsed named constraints1, view : decider -> subView } -> combineAndView
                             }
@@ -566,15 +566,15 @@ field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form definitio
 
                 parsedField : Form.Validation.Field error parsed kind
                 parsedField =
-                    Pages.Internal.Form.Validation (Just thing) (Just name) ( maybeParsed, Dict.empty )
+                    Pages.Internal.Form.Validation (Just thing) (Just name) ( maybeParsed, [] )
 
                 myFn :
-                    { result : Dict String (List error)
+                    { result : List ( String, List error )
                     , combineAndView : Form.Validation.Field error parsed kind -> combineAndView
                     , isMatchCandidate : Bool
                     }
                     ->
-                        { result : Dict String (List error)
+                        { result : List ( String, List error )
                         , combineAndView : combineAndView
                         , isMatchCandidate : Bool
                         }
@@ -663,15 +663,15 @@ hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form defini
 
                 parsedField : Form.Validation.Field error parsed Form.FieldView.Hidden
                 parsedField =
-                    Pages.Internal.Form.Validation (Just thing) (Just name) ( maybeParsed, Dict.empty )
+                    Pages.Internal.Form.Validation (Just thing) (Just name) ( maybeParsed, [] )
 
                 myFn :
-                    { result : Dict String (List error)
+                    { result : List ( String, List error )
                     , combineAndView : Form.Validation.Field error parsed Form.FieldView.Hidden -> combineAndView
                     , isMatchCandidate : Bool
                     }
                     ->
-                        { result : Dict String (List error)
+                        { result : List ( String, List error )
                         , combineAndView : combineAndView
                         , isMatchCandidate : Bool
                         }
@@ -734,12 +734,12 @@ hiddenKind ( name, value ) error_ (Internal.Form.Form definitions parseFn toInit
                             maybeData |> Maybe.andThen (\data -> fieldParser.initialValue data)
 
                 myFn :
-                    { result : Dict String (List error)
+                    { result : List ( String, List error )
                     , isMatchCandidate : Bool
                     , combineAndView : combineAndView
                     }
                     ->
-                        { result : Dict String (List error)
+                        { result : List ( String, List error )
                         , isMatchCandidate : Bool
                         , combineAndView : combineAndView
                         }
@@ -763,19 +763,22 @@ hiddenKind ( name, value ) error_ (Internal.Form.Form definitions parseFn toInit
 
 {-| -}
 type Errors error
-    = Errors (Dict String (List error))
+    = Errors (List ( String, List error ))
 
 
 {-| -}
 errorsForField : Form.Validation.Field error parsed kind -> Errors error -> List error
 errorsForField field_ (Errors errorsDict) =
+    -- TODO use short-circuit version (form extra, or vendor from extra)
     errorsDict
-        |> Dict.get (Form.Validation.fieldName field_)
+        |> List.filter (\( fieldName, _ ) -> fieldName == Form.Validation.fieldName field_)
+        |> List.head
+        |> Maybe.map Tuple.second
         |> Maybe.withDefault []
 
 
 mergeResults :
-    { a | result : ( Validation error parsed named constraints1, Dict String (List error) ) }
+    { a | result : ( Validation error parsed named constraints1, List ( String, List error ) ) }
     -> Validation error parsed unnamed constraints2
 mergeResults parsed =
     let
@@ -789,21 +792,28 @@ mergeResults parsed =
         )
 
 
-mergeErrors : Dict comparable (List value) -> Dict comparable (List value) -> Dict comparable (List value)
+mergeErrors : List ( String, List error ) -> List ( String, List error ) -> List ( String, List error )
 mergeErrors errors1 errors2 =
-    Dict.merge
-        (\key entries soFar ->
-            soFar |> insertIfNonempty key entries
-        )
-        (\key entries1 entries2 soFar ->
-            soFar |> insertIfNonempty key (entries1 ++ entries2)
-        )
-        (\key entries soFar ->
-            soFar |> insertIfNonempty key entries
-        )
-        errors1
-        errors2
-        Dict.empty
+    -- TODO fix this
+    errors1 ++ errors2
+
+
+
+--mergeErrors : Dict comparable (List value) -> Dict comparable (List value) -> Dict comparable (List value)
+--mergeErrors errors1 errors2 =
+--Dict.merge
+--    (\key entries soFar ->
+--        soFar |> insertIfNonempty key entries
+--    )
+--    (\key entries1 entries2 soFar ->
+--        soFar |> insertIfNonempty key (entries1 ++ entries2)
+--    )
+--    (\key entries soFar ->
+--        soFar |> insertIfNonempty key entries
+--    )
+--    errors1
+--    errors2
+--    Dict.empty
 
 
 {-| -}
@@ -818,7 +828,7 @@ parse formId state input (Internal.Form.Form _ parser _) =
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
         parsed :
-            { result : Dict String (List error)
+            { result : List ( String, List error )
             , isMatchCandidate : Bool
             , combineAndView : { info | combine : Validation error parsed named constraints }
             }
@@ -839,11 +849,11 @@ parse formId state input (Internal.Form.Form _ parser _) =
             |> unwrapValidation
     of
         ( Just justParsed, errors ) ->
-            if Dict.isEmpty errors then
+            if List.isEmpty errors then
                 Valid justParsed
 
             else
-                Invalid (Just justParsed) errors
+                Invalid (Just justParsed) (List.reverse errors)
 
         ( Nothing, errors ) ->
             Invalid Nothing errors
@@ -873,7 +883,7 @@ insertIfNonempty key values dict =
             |> Dict.insert key values
 
 
-unwrapValidation : Validation error parsed named constraints -> ( Maybe parsed, Dict String (List error) )
+unwrapValidation : Validation error parsed named constraints -> ( Maybe parsed, List ( String, List error ) )
 unwrapValidation (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors )) =
     ( maybeParsed, errors )
 
@@ -959,9 +969,9 @@ server to re-validate that input.
 type alias ServerResponse error =
     { persisted :
         { fields : Maybe (List ( String, String ))
-        , clientSideErrors : Maybe (Dict String (List error))
+        , clientSideErrors : Maybe (List ( String, List error ))
         }
-    , serverSideErrors : Dict String (List error)
+    , serverSideErrors : List ( String, List error )
     }
 
 
@@ -1022,14 +1032,14 @@ renderHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_) =
                                                     , parsed =
                                                         case parsed of
                                                             Just justParsed ->
-                                                                if Dict.isEmpty errors then
+                                                                if List.isEmpty errors then
                                                                     Valid justParsed
 
                                                                 else
-                                                                    Invalid (Just justParsed) errors
+                                                                    Invalid (Just justParsed) (List.reverse errors)
 
                                                             Nothing ->
-                                                                Invalid Nothing errors
+                                                                Invalid Nothing (List.reverse errors)
                                                     }
                                             )
                             in
@@ -1100,14 +1110,14 @@ renderStyledHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_
                                                     , parsed =
                                                         case parsed of
                                                             Just justParsed ->
-                                                                if Dict.isEmpty errors then
+                                                                if List.isEmpty errors then
                                                                     Valid justParsed
 
                                                                 else
-                                                                    Invalid (Just justParsed) errors
+                                                                    Invalid (Just justParsed) (List.reverse errors)
 
                                                             Nothing ->
-                                                                Invalid Nothing errors
+                                                                Invalid Nothing (List.reverse errors)
                                                     }
                                             )
                             in
@@ -1137,7 +1147,7 @@ helperValues :
             }
             parsed
             input
-    -> { hiddenInputs : List view, children : List view, isValid : Bool, parsed : Maybe parsed, fields : List ( String, String ), errors : Dict String (List error) }
+    -> { hiddenInputs : List view, children : List view, isValid : Bool, parsed : Maybe parsed, fields : List ( String, String ), errors : List ( String, List error ) }
 helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitions parser toInitialValues) =
     let
         initialValues : Dict String FieldState
@@ -1179,7 +1189,7 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
                 |> Dict.union part2
 
         parsed :
-            { result : ( Form.Validation.Validation error parsed field constraints, Dict String (List error) )
+            { result : ( Form.Validation.Validation error parsed field constraints, List ( String, List error ) )
             , isMatchCandidate : Bool
             , view : Context error input -> List view
             }
@@ -1190,7 +1200,7 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
             }
 
         parsed1 :
-            { result : Dict String (List error)
+            { result : List ( String, List error )
             , isMatchCandidate : Bool
             , combineAndView : { combine : Form.Validation.Validation error parsed field constraints, view : Context error input -> List view }
             }
@@ -1212,7 +1222,7 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
                                     mergeErrors errors1
                                         (options_.serverResponse
                                             |> Maybe.andThen (.persisted >> .clientSideErrors)
-                                            |> Maybe.withDefault Dict.empty
+                                            |> Maybe.withDefault []
                                         )
                                 )
                 }
@@ -1291,7 +1301,7 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
         isValid =
             case withoutServerErrors of
                 Validation _ _ ( Just _, errors ) ->
-                    Dict.isEmpty errors
+                    List.isEmpty errors
 
                 _ ->
                     False
@@ -1388,13 +1398,14 @@ type alias Form error combineAndView parsed input =
 
 
 {-| -}
-addErrorsInternal : String -> List error -> Dict String (List error) -> Dict String (List error)
+addErrorsInternal : String -> List error -> List ( String, List error ) -> List ( String, List error )
 addErrorsInternal name newErrors allErrors =
-    allErrors
-        |> Dict.update name
-            (\errors ->
-                Just (newErrors ++ (errors |> Maybe.withDefault []))
-            )
+    if newErrors == [] then
+        allErrors
+
+    else
+        ( name, newErrors )
+            :: allErrors
 
 
 {-| When you render a `Form` using [`Form.renderHtml`](#renderHtml) or [`Form.renderStyledHtml`](#renderStyledHtml),

@@ -41,7 +41,6 @@ module Form.Validation exposing
 
 -}
 
-import Dict exposing (Dict)
 import Pages.Internal.Form exposing (ViewField)
 
 
@@ -156,7 +155,7 @@ expectViewField viewField =
 {-| -}
 succeed : parsed -> Combined error parsed
 succeed parsed =
-    Pages.Internal.Form.Validation Nothing Nothing ( Just parsed, Dict.empty )
+    Pages.Internal.Form.Validation Nothing Nothing ( Just parsed, [] )
 
 
 {-| -}
@@ -165,7 +164,7 @@ global =
     Pages.Internal.Form.Validation Nothing
         (Just "$$global$$")
         ( Just ()
-        , Dict.empty
+        , []
         )
 
 
@@ -190,13 +189,13 @@ value (Pages.Internal.Form.Validation _ _ ( maybeParsed, _ )) =
 {-| -}
 parseWithError : parsed -> ( String, error ) -> Combined error parsed
 parseWithError parsed ( key, error ) =
-    Pages.Internal.Form.Validation Nothing Nothing ( Just parsed, Dict.singleton key [ error ] )
+    Pages.Internal.Form.Validation Nothing Nothing ( Just parsed, [ ( key, [ error ] ) ] )
 
 
 {-| -}
 fail : error -> Field error parsed1 field -> Combined error parsed
 fail parsed (Pages.Internal.Form.Validation _ key _) =
-    Pages.Internal.Form.Validation Nothing Nothing ( Nothing, Dict.singleton (key |> Maybe.withDefault "") [ parsed ] )
+    Pages.Internal.Form.Validation Nothing Nothing ( Nothing, [ ( key |> Maybe.withDefault "", [ parsed ] ) ] )
 
 
 {-| -}
@@ -423,33 +422,42 @@ map9 f validation1 validation2 validation3 validation4 validation5 validation6 v
 {-| -}
 fromMaybe : Maybe parsed -> Combined error parsed
 fromMaybe maybe =
-    Pages.Internal.Form.Validation Nothing Nothing ( maybe, Dict.empty )
+    Pages.Internal.Form.Validation Nothing Nothing ( maybe, [] )
 
 
 {-| -}
-mergeErrors : Dict comparable (List value) -> Dict comparable (List value) -> Dict comparable (List value)
+mergeErrors : List ( String, List error ) -> List ( String, List error ) -> List ( String, List error )
 mergeErrors errors1 errors2 =
-    Dict.merge
-        (\key entries soFar ->
-            soFar |> insertIfNonempty key entries
-        )
-        (\key entries1 entries2 soFar ->
-            soFar |> insertIfNonempty key (entries1 ++ entries2)
-        )
-        (\key entries soFar ->
-            soFar |> insertIfNonempty key entries
-        )
-        errors1
-        errors2
-        Dict.empty
+    -- TODO fix implementation
+    errors1 ++ errors2
+
+
+
+--Dict.merge
+--    (\key entries soFar ->
+--        soFar |> insertIfNonempty key entries
+--    )
+--    (\key entries1 entries2 soFar ->
+--        soFar |> insertIfNonempty key (entries1 ++ entries2)
+--    )
+--    (\key entries soFar ->
+--        soFar |> insertIfNonempty key entries
+--    )
+--    errors1
+--    errors2
+--    Dict.empty
 
 
 {-| -}
-insertIfNonempty : comparable -> List value -> Dict comparable (List value) -> Dict comparable (List value)
+insertIfNonempty : String -> List error -> List ( String, List error ) -> List ( String, List error )
 insertIfNonempty key values dict =
     if values |> List.isEmpty then
         dict
 
     else
-        dict
-            |> Dict.insert key values
+        -- TODO look for key first and add if present
+        ( key, values ) :: dict
+
+
+
+--|> Dict.insert key values

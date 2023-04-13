@@ -116,7 +116,7 @@ normalizeServerForm mapFn (Internal.Form.Form _ parseFn _) =
         (\_ formState ->
             let
                 parsed :
-                    { result : Dict String (List error)
+                    { result : List ( String, List error )
                     , isMatchCandidate : Bool
                     , combineAndView : { combineAndView | combine : Validation error parsed kind constraints }
                     }
@@ -139,14 +139,14 @@ run :
 run rawFormData forms =
     case runOneOfServerSideHelp rawFormData Nothing forms of
         ( Just parsed, errors ) ->
-            if Dict.isEmpty errors then
+            if List.isEmpty errors then
                 Form.Valid parsed
 
             else
-                Form.Invalid (Just parsed) errors
+                Form.Invalid (Just parsed) (List.reverse errors)
 
         ( Nothing, errors ) ->
-            Form.Invalid Nothing errors
+            Form.Invalid Nothing (List.reverse errors)
 
 
 {-| -}
@@ -154,7 +154,7 @@ runOneOfServerSideHelp :
     List ( String, String )
     -> Maybe (List ( String, List error ))
     -> Handler error parsed
-    -> ( Maybe parsed, Dict String (List error) )
+    -> ( Maybe parsed, List ( String, List error ) )
 runOneOfServerSideHelp rawFormData firstFoundErrors (Handler parsers) =
     case parsers of
         firstParser :: remainingParsers ->
@@ -168,13 +168,12 @@ runOneOfServerSideHelp rawFormData firstFoundErrors (Handler parsers) =
                         |> Tuple.mapSecond
                             (\errors ->
                                 errors
-                                    |> Dict.toList
                                     |> List.filter (Tuple.second >> List.isEmpty >> not)
                             )
             in
             case ( isMatchCandidate, thing ) of
                 ( True, ( Just parsed, errors ) ) ->
-                    ( Just parsed, errors |> Dict.fromList )
+                    ( Just parsed, errors )
 
                 ( _, ( _, errors ) ) ->
                     runOneOfServerSideHelp rawFormData
@@ -189,18 +188,18 @@ runOneOfServerSideHelp rawFormData firstFoundErrors (Handler parsers) =
 
         [] ->
             -- TODO need to pass errors
-            ( Nothing, firstFoundErrors |> Maybe.withDefault [] |> Dict.fromList )
+            ( Nothing, firstFoundErrors |> Maybe.withDefault [] )
 
 
 {-| -}
 runServerSide :
     List ( String, String )
     -> Form error (Validation error parsed kind constraints) Never input
-    -> ( Bool, ( Maybe parsed, Dict String (List error) ) )
+    -> ( Bool, ( Maybe parsed, List ( String, List error ) ) )
 runServerSide rawFormData (Internal.Form.Form _ parser _) =
     let
         parsed :
-            { result : Dict String (List error)
+            { result : List ( String, List error )
             , isMatchCandidate : Bool
             , combineAndView : Validation error parsed kind constraints
             }
@@ -232,7 +231,7 @@ runServerSide rawFormData (Internal.Form.Form _ parser _) =
 
 
 mergeResults :
-    { a | result : ( Validation error parsed named constraints1, Dict String (List error) ) }
+    { a | result : ( Validation error parsed named constraints1, List ( String, List error ) ) }
     -> Validation error parsed unnamed constraints2
 mergeResults parsed =
     let
@@ -246,26 +245,28 @@ mergeResults parsed =
         )
 
 
-unwrapValidation : Validation error parsed named constraints -> ( Maybe parsed, Dict String (List error) )
+unwrapValidation : Validation error parsed named constraints -> ( Maybe parsed, List ( String, List error ) )
 unwrapValidation (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors )) =
     ( maybeParsed, errors )
 
 
-mergeErrors : Dict comparable (List value) -> Dict comparable (List value) -> Dict comparable (List value)
+mergeErrors : List ( String, List error ) -> List ( String, List error ) -> List ( String, List error )
 mergeErrors errors1 errors2 =
-    Dict.merge
-        (\key entries soFar ->
-            soFar |> insertIfNonempty key entries
-        )
-        (\key entries1 entries2 soFar ->
-            soFar |> insertIfNonempty key (entries1 ++ entries2)
-        )
-        (\key entries soFar ->
-            soFar |> insertIfNonempty key entries
-        )
-        errors1
-        errors2
-        Dict.empty
+    --Dict.merge
+    --    (\key entries soFar ->
+    --        soFar |> insertIfNonempty key entries
+    --    )
+    --    (\key entries1 entries2 soFar ->
+    --        soFar |> insertIfNonempty key (entries1 ++ entries2)
+    --    )
+    --    (\key entries soFar ->
+    --        soFar |> insertIfNonempty key entries
+    --    )
+    --    errors1
+    --    errors2
+    --    Dict.empty
+    -- TODO fix
+    errors1 ++ errors2
 
 
 insertIfNonempty : comparable -> List value -> Dict comparable (List value) -> Dict comparable (List value)

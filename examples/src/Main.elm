@@ -1,4 +1,4 @@
-module Main exposing (main)
+port module Main exposing (main)
 
 import Browser
 import Form
@@ -12,6 +12,7 @@ import Username exposing (Username)
 
 type Msg
     = FormMsg (Form.Msg Msg)
+    | NoOp
     | OnSubmit
         { fields : List ( String, String )
         , method : Form.Method
@@ -52,12 +53,25 @@ init flags =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        NoOp ->
+            ( model, Cmd.none )
+
         OnSubmit parsed ->
             let
                 _ =
                     Debug.log "OnSubmit!" parsed
             in
-            ( model, Cmd.none )
+            case parsed.parsed of
+                Form.Valid data ->
+                    ( model, Cmd.none )
+
+                Form.Invalid maybeValue errors ->
+                    ( model
+                    , focusField
+                        { id = "form"
+                        , name = errors |> List.head |> Maybe.map Tuple.first |> Maybe.withDefault ""
+                        }
+                    )
 
         FormMsg formMsg ->
             let
@@ -65,6 +79,9 @@ update msg model =
                     Form.update formMsg model.formState
             in
             ( { model | formState = updatedFormModel }, cmd )
+
+
+port focusField : { id : String, name : String } -> Cmd msg
 
 
 view : Model -> Browser.Document Msg

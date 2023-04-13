@@ -22,3 +22,7 @@ Object.defineProperty(SubmitEvent.prototype, "fields", {
 const root = document.querySelector("#app div");
 
 const app = Elm.Main.init({ node: root });
+
+app.ports.focusField.subscribe(({ id, name }) => {
+  document.forms[id].querySelector(`[name="${name}"]`)?.focus();
+});

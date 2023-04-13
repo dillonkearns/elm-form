@@ -12,7 +12,7 @@ type Form error combineAndView parsed input
         (Maybe input
          -> FormState
          ->
-            { result : Dict String (List error)
+            { result : List ( String, List error )
             , isMatchCandidate : Bool
             , combineAndView : combineAndView
             }
