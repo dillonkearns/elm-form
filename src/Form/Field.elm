@@ -365,6 +365,7 @@ date toError =
 type alias TimeOfDay =
     { hours : Int
     , minutes : Int
+    , seconds : Maybe Int
     }
 
 
@@ -383,6 +384,7 @@ time :
             , max : TimeOfDay
             , required : ()
             , wasMapped : No
+            , step : Int
             }
 time toError =
     Internal.Field.Field
@@ -412,7 +414,13 @@ time toError =
                     |> Result.map
                         (\parsedRaw ->
                             if parsedRaw.hours == value.hours then
-                                Basics.compare parsedRaw.minutes value.minutes
+                                if parsedRaw.minutes == value.minutes then
+                                    Basics.compare
+                                        (parsedRaw.seconds |> Maybe.withDefault 0)
+                                        (value.seconds |> Maybe.withDefault 0)
+
+                                else
+                                    Basics.compare parsedRaw.minutes value.minutes
 
                             else
                                 Basics.compare parsedRaw.hours value.hours
@@ -423,8 +431,18 @@ time toError =
 
 
 timeOfDayToString : TimeOfDay -> String
-timeOfDayToString { hours, minutes } =
-    paddedInt hours ++ ":" ++ paddedInt minutes
+timeOfDayToString { hours, minutes, seconds } =
+    let
+        secondsPart : String
+        secondsPart =
+            case seconds of
+                Just justSeconds ->
+                    ":" ++ paddedInt justSeconds
+
+                Nothing ->
+                    ""
+    in
+    paddedInt hours ++ ":" ++ paddedInt minutes ++ secondsPart
 
 
 paddedInt : Int -> String
@@ -434,19 +452,21 @@ paddedInt intValue =
         |> String.padLeft 2 '0'
 
 
-parseTimeOfDay : String -> Result () { hours : Int, minutes : Int }
+parseTimeOfDay : String -> Result () TimeOfDay
 parseTimeOfDay rawTimeOfDay =
     case rawTimeOfDay |> String.split ":" |> List.map String.toInt of
-        [ Just hours, Just minutes, Just _ ] ->
+        [ Just hours, Just minutes, Just seconds ] ->
             Ok
                 { hours = hours
                 , minutes = minutes
+                , seconds = Just seconds
                 }
 
         [ Just hours, Just minutes ] ->
             Ok
                 { hours = hours
                 , minutes = minutes
+                , seconds = Nothing
                 }
 
         _ ->
