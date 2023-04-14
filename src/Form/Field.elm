@@ -560,7 +560,14 @@ exactValue initialValue error =
         (Internal.Input.Input Internal.Input.Text)
 
 
-{-| -}
+{-| Renders a checkbox input (`<input type="checkbox">`), see <https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/checkbox>.
+
+    import Form.Field as Field
+
+    example =
+        Field.checkbox
+
+-}
 checkbox :
     Field
         error
@@ -595,7 +602,19 @@ checkbox =
         (Internal.Input.Input Internal.Input.Checkbox)
 
 
-{-| -}
+{-| Renders a number input (`<input type="number">`), see <https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/number>.
+
+Floating point numbers will give a validation error, using the error value passed in through the `invalid` function.
+
+    import Form.Field as Field
+
+    example =
+        Field.number
+            { invalid =
+                \value -> "Must be an integer"
+            }
+
+-}
 int :
     { invalid : String -> error }
     ->
@@ -644,7 +663,20 @@ int toError =
         (Internal.Input.Input Internal.Input.Number)
 
 
-{-| -}
+{-| A number input (`<input type="number">`), see <https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/number>.
+
+Unlike [`int`](#int), this field allows floating point numbers.
+It will give a validation error if the input is not a number, using the error value passed in through the `invalid` function.
+
+    import Form.Field as Field
+
+    example =
+        Field.number
+            { invalid =
+                \value -> "Must be a number"
+            }
+
+-}
 float :
     { invalid : String -> error }
     ->
