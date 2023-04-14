@@ -771,7 +771,7 @@ withMin min error (Internal.Field.Field field kind) =
 
                                     else
                                         case field.compare (value |> Maybe.withDefault "") min of
-                                            LT ->
+                                            GT ->
                                                 ( Just okValue, error :: errors )
 
                                             _ ->
@@ -865,7 +865,7 @@ withMax max error (Internal.Field.Field field kind) =
 
                                     else
                                         case field.compare (value |> Maybe.withDefault "") max of
-                                            GT ->
+                                            LT ->
                                                 ( Just okValue, error :: errors )
 
                                             _ ->
