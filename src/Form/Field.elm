@@ -78,7 +78,7 @@ import Json.Encode as Encode
 
 {-| A `Field` represents the base information of how to turn a raw input into a parsed value, and how to display that value
 as an HTML form field element. Note that you can also perform more advanced validations and mapping using the
-[`Form.Validation`](#Form-Validation) API in your `combine` function.
+[`Form.Validation`](Form-Validation) API in your `combine` function.
 
 For example, if you want to display a check-in and check-out date field, you would use `date` Fields. Using [`date`](#date)
 does two things:
