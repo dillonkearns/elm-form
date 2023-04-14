@@ -89,10 +89,15 @@ view model =
 
 type alias Stay =
     { name : String
-    , checkIn : Date
-    , checkInTime : TimeOfDay
-    , nights : Int
+    , checkIn : Checkin
     , emailUpdates : Bool
+    }
+
+
+type alias Checkin =
+    { date : Date
+    , nights : Int
+    , time : TimeOfDay
     }
 
 
@@ -100,32 +105,23 @@ example : Form.HtmlForm String Stay input Msg
 example =
     (\name checkIn checkOut checkInTime emailUpdates ->
         { combine =
-            Validation.succeed
-                (\vName ( vCheckIn, vCheckOut ) vCheckInTime vEmailUpdates ->
-                    { name = vName
-                    , checkIn = vCheckIn
-                    , checkInTime = vCheckInTime
-                    , nights = Date.toRataDie vCheckOut - Date.toRataDie vCheckIn
-                    , emailUpdates = vEmailUpdates
-                    }
-                )
+            Validation.succeed Stay
                 |> Validation.andMap name
                 |> Validation.andMap
                     (Validation.succeed
-                        (\checkinValue checkoutValue ->
-                            Validation.succeed ( checkinValue, checkoutValue )
-                                |> (if Date.toRataDie checkinValue >= Date.toRataDie checkoutValue then
-                                        Validation.withError checkIn "Must be before checkout"
-
-                                    else
-                                        identity
-                                   )
+                        (\checkinValue checkoutValue checkInTimeValue ->
+                            Validation.succeed
+                                { date = checkinValue
+                                , nights = Date.toRataDie checkoutValue - Date.toRataDie checkinValue
+                                , time = checkInTimeValue
+                                }
+                                |> Validation.withErrorIf (Date.toRataDie checkinValue >= Date.toRataDie checkoutValue) checkIn "Must be before checkout"
                         )
                         |> Validation.andMap checkIn
                         |> Validation.andMap checkOut
+                        |> Validation.andMap checkInTime
                         |> Validation.andThen identity
                     )
-                |> Validation.andMap checkInTime
                 |> Validation.andMap emailUpdates
         , view =
             \formState ->
@@ -157,6 +153,7 @@ example =
             (Field.date
                 { invalid = \_ -> "Invalid" }
                 |> Field.required "Required"
+                |> Field.withMin today ("Must be after " ++ Date.toIsoString today)
             )
         |> Form.field "checkout"
             (Field.date
@@ -167,10 +164,15 @@ example =
             (Field.time
                 { invalid = \_ -> "Invalid" }
                 |> Field.required "Required"
-                |> Field.withMin { hours = 10, minutes = 0 } "Must be after 10"
+                |> Field.withMin { hours = 10, minutes = 0 } "Must be after today"
             )
         |> Form.field "emailUpdates"
             Field.checkbox
+
+
+today : Date
+today =
+    Date.fromRataDie 738624
 
 
 errorsView :

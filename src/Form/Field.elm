@@ -76,7 +76,130 @@ import Internal.Input exposing (Options(..))
 import Json.Encode as Encode
 
 
-{-| -}
+{-| A `Field` represents the base information of how to turn a raw input into a parsed value, and how to display that value
+as an HTML form field element. Note that you can also perform more advanced validations and mapping using the
+[`Form.Validation`](#Form-Validation) API in your `combine` function.
+
+For example, if you want to display a check-in and check-out date field, you would use `date` Fields. Using [`date`](#date)
+does two things:
+
+1.  Sets display options for the browser to display the field with [`<input type="date">`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/date).
+
+2.  Parses into an Elm value of type [`Date`](https://package.elm-lang.org/packages/justinmimbs/date/latest/Date#Date) (or a validation error if the format isn't invalid).
+
+Why would the date format be invalid if it is managed by the Browser's date picker element? In the happy path on the Browser this will never happen.
+
+However, you can't make any assumptions about the client (non-standard clients could be used), or about the data format that is sent to servers.
+Often validation logic is duplicated to guard against this on both the client (display useful validation feedback for the user) and the server (validate untrusted input).
+If you use full-stack Elm, you can use your Form definition on your server to run the same code that
+you use to present validation errors on the client, allowing you to keep the validations in sync.
+
+Here is an example that showcases different types of Fields (`text`, `date`, `time`, and `checkbox`), as well as how to use the `combine` function to
+transform the parsed values and perform additional validations between the parsed fields.
+
+    import Date exposing (Date)
+    import Form
+    import Form.Field as Field
+    import Form.Validation as Validation
+
+    type alias Stay =
+        { name : String
+        , checkIn : Checkin
+        , emailUpdates : Bool
+        }
+
+    type alias Checkin =
+        { date : Date
+        , nights : Int
+        , time : TimeOfDay
+        }
+
+    example : Form.HtmlForm String Stay input Msg
+    example =
+        (\name checkIn checkOut checkInTime emailUpdates ->
+            { combine =
+                Validation.succeed Stay
+                    |> Validation.andMap name
+                    |> Validation.andMap
+                        (Validation.succeed
+                            (\checkinValue checkoutValue checkInTimeValue ->
+                                Validation.succeed
+                                    { date = checkinValue
+                                    , nights = Date.toRataDie checkoutValue - Date.toRataDie checkinValue
+                                    , time = checkInTimeValue
+                                    }
+                                    |> Validation.withErrorIf (Date.toRataDie checkinValue >= Date.toRataDie checkoutValue) checkIn "Must be before checkout"
+                            )
+                            |> Validation.andMap checkIn
+                            |> Validation.andMap checkOut
+                            |> Validation.andMap checkInTime
+                            |> Validation.andThen identity
+                        )
+                    |> Validation.andMap emailUpdates
+            , view =
+                \formState ->
+                    let
+                        fieldView label field =
+                            Html.div []
+                                [ Html.label []
+                                    [ Html.text (label ++ " ")
+                                    , FieldView.input [] field
+                                    , errorsView formState field
+                                    ]
+                                ]
+                    in
+                    [ fieldView "Name" name
+                    , fieldView "Check-In" checkIn
+                    , fieldView "Check-Out" checkOut
+                    , fieldView "Check-In Time" checkInTime
+                    , fieldView "Sign Up For Email Updates" emailUpdates
+                    , Html.button [] [ Html.text "Submit" ]
+                    ]
+            }
+        )
+            |> Form.form
+            |> Form.field "name"
+                (Field.text
+                    |> Field.required "Required"
+                )
+            |> Form.field "checkin"
+                (Field.date
+                    { invalid = \_ -> "Invalid" }
+                    |> Field.required "Required"
+                    |> Field.withMin today ("Must be after " ++ Date.toIsoString today)
+                )
+            |> Form.field "checkout"
+                (Field.date
+                    { invalid = \_ -> "Invalid" }
+                    |> Field.required "Required"
+                )
+            |> Form.field "checkinTime"
+                (Field.time
+                    { invalid = \_ -> "Invalid" }
+                    |> Field.required "Required"
+                    |> Field.withMin { hours = 10, minutes = 0 } "Must be after today"
+                )
+            |> Form.field "emailUpdates"
+                Field.checkbox
+
+    today : Date
+    today =
+        Date.fromRataDie 738624
+
+The key concepts to understand here are where the view and validation logic for fields lives.
+
+The `Form`'s `view` function is responsible for combining the rendered Fields, but the `Field` contains the information for how to display
+the form field itself (details like like `<input type="date">`, `<input type="checkbox">`, `<textarea>` etc.). Since form fields contain both
+display logic that changes how we parse/validate the field, all of the parsing and validation logic related to displaying the
+Field is also defined with `Field` type. For example, `Field.withMin` contains information that is used both for displaying the form field and for
+validating it. When we set `Field.withMin`, it gives the Browser information on how to restrict the date picker UI from showing
+invalid dates, but setting that minimum value also runs that validation when we run the Form parser, even if we run it
+on a server through code sharing.
+
+Note that the validations in a `Field`s definition (such as `Field.withMin`, or `Field.date`, etc.) are run
+regardless of whether you use that field in the Form's `combine` function.
+
+-}
 type alias Field error parsed input initial kind constraints =
     Internal.Field.Field error parsed input initial kind constraints
 
@@ -134,7 +257,30 @@ required missingError (Internal.Field.Field field kind) =
         kind
 
 
-{-| -}
+{-| The base for a text field. You can add display modifiers to text fields, including displaying them as a `textarea`.
+See [Text Field Display Options](#text-field-display-options).
+
+By default, text fields are not required. If the field is not touched or has been deleted, the value will be `Nothing`
+(_not_ empty string `Just ""`). See [`required`](#required).
+
+    import Form.Field as Field
+
+    type alias Profile =
+        { status : Maybe String
+        }
+
+    example =
+        (\username ->
+            { combine =
+                Validation.succeed Status
+                    |> Validation.andMap username
+            , view = []
+            }
+        )
+            |> Form.form
+            |> Form.field "status" Field.text
+
+-}
 text :
     Field
         error
