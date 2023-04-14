@@ -546,7 +546,17 @@ float toError =
         (Internal.Input.Input Internal.Input.Number)
 
 
-{-| -}
+{-| Modifier for [`text`](#text) Field. This is only a display hint to the browser (`<input type="tel">`).
+
+This is especially important on mobile devices for ensuring that the correct keyboard is displayed for inputting a phone number.
+
+See <https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/tel>.
+
+    example =
+        Field.text
+            |> Field.telephone
+
+-}
 telephone :
     Field error parsed input initial Input { constraints | plainText : () }
     -> Field error parsed input initial Input constraints
@@ -555,7 +565,16 @@ telephone (Internal.Field.Field field _) =
         (Internal.Input.Input Internal.Input.Tel)
 
 
-{-| -}
+{-| Modifier for [`text`](#text) Field. This changes the display of the Field to a password input (`<input type="search">`).
+On mobile devices, this will display a keyboard with a search button.
+
+See <https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/search>.
+
+    example =
+        Field.text
+            |> Field.search
+
+-}
 search :
     Field error parsed input initial Input { constraints | plainText : () }
     -> Field error parsed input initial Input constraints
@@ -564,7 +583,16 @@ search (Internal.Field.Field field _) =
         (Internal.Input.Input Internal.Input.Search)
 
 
-{-| -}
+{-| Modifier for [`text`](#text) Field. This is only a display hint to the browser that the Field should be displayed as a password input (`<input type="password">`).
+
+See <https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/password>.
+
+    example =
+        Field.text
+            |> Field.password
+            |> Field.required "Password is required"
+
+-}
 password :
     Field error parsed input initial Input { constraints | plainText : () }
     -> Field error parsed input initial Input constraints
@@ -573,7 +601,18 @@ password (Internal.Field.Field field _) =
         (Internal.Input.Input Internal.Input.Password)
 
 
-{-| -}
+{-| Modifier for [`text`](#text) Field. This does not perform any additional validations on the Field, it only provides a hint to the browser
+that the Field should be displayed as an email input (`<input type="email">`). This is especially useful for mobile devices to make sure
+the correct keyboard is displayed.
+
+See <https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/email>.
+
+    example =
+        Field.text
+            |> Field.email
+            |> Field.required "Email is required"
+
+-}
 email :
     Field error parsed input initial Input { constraints | plainText : () }
     -> Field error parsed input initial Input constraints
@@ -591,7 +630,41 @@ url (Internal.Field.Field field _) =
         (Internal.Input.Input Internal.Input.Url)
 
 
-{-| -}
+{-| Modifier for [`text`](#text) Field to display it as a [`textarea`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/textarea).
+
+`textarea` are for multi-line text input. For example, you might use a regular `text` Field for a username, and a `textarea` Field for a biography.
+
+    import Form.Field as Field
+
+    type alias Profile =
+        { username : String
+        , bio : String
+        }
+
+    example =
+        (\username bio ->
+            { combine =
+                Validation.succeed Profile
+                    |> Validation.andMap username
+                    |> Validation.andMap bio
+            , view = []
+            }
+        )
+            |> Form.form
+            |> Form.field "username"
+                (Field.text
+                    |> Field.required "Required"
+                )
+            |> Form.field "bio"
+                (Field.text
+                    |> Field.textarea
+                        { rows = Just 20
+                        , cols = Just 50
+                        }
+                    |> Field.required "Required"
+                )
+
+-}
 textarea :
     { rows : Maybe Int, cols : Maybe Int }
     -> Field error parsed input initial Input { constraints | plainText : () }
