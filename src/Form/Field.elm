@@ -5,7 +5,7 @@ module Form.Field exposing
     , date, time, TimeOfDay
     , withInitialValue, withOptionalInitialValue
     , exactValue
-    , required, withClientValidation, map
+    , required, validateMap, map
     , email, password, search, telephone, url, textarea
     , range, withMin, withMax
     , withMinLength, withMaxLength
@@ -45,7 +45,7 @@ module Form.Field exposing
 
 ## Field Configuration
 
-@docs required, withClientValidation, map
+@docs required, validateMap, map
 
 
 ## Text Field Display Options
@@ -505,7 +505,65 @@ parseTimeOfDay rawTimeOfDay =
             Err ()
 
 
-{-| -}
+{-| An input for a set of possible options. Can be rendered in two ways
+
+  - As a dropdown (`<select>`)[`Form.FieldView.select`](Form-FieldView#select)
+  - As a set of radio buttons (`<input type="radio">`)[`Form.FieldView.radio`](Form-FieldView#radio).
+
+```elm
+import Form
+import Form.Field as Field
+import Form.FieldView as FieldView
+import Form.Validation as Validation
+
+sizeForm : Form.HtmlForm String Size input msg
+sizeForm =
+    (\size ->
+        { combine =
+            Validation.succeed identity
+                |> Validation.andMap size
+        , view =
+            \formState ->
+                [ Html.div []
+                    [ FieldView.select []
+                        (\entry -> ( [], sizeToString entry ))
+                        size
+                    ]
+                , Html.button [] [ Html.text "Submit" ]
+                ]
+        }
+    )
+        |> Form.form
+        |> Form.field "size"
+            (Field.select
+                [ ( "small", Small )
+                , ( "medium", Medium )
+                , ( "large", Large )
+                ]
+                (\_ -> "Invalid")
+                |> Field.required "Required"
+                |> Field.withInitialValue (\_ -> Small)
+            )
+
+sizeToString : Size -> String
+sizeToString size =
+    case size of
+        Small ->
+            "Small"
+
+        Medium ->
+            "Medium"
+
+        Large ->
+            "Large"
+
+type Size
+    = Small
+    | Medium
+    | Large
+```
+
+-}
 select :
     List ( String, option )
     -> (String -> error)
@@ -577,7 +635,8 @@ enumToString optionsMapping a =
             "Missing enum"
 
 
-{-| -}
+{-| Render a field with a hardcoded value.
+-}
 exactValue :
     String
     -> error
@@ -1005,14 +1064,46 @@ range info field =
 -}
 map : (parsed -> mapped) -> Field error parsed input initial kind constraints -> Field error mapped input initial kind { constraints | wasMapped : Yes }
 map mapFn field_ =
-    withClientValidation
-        (\value -> ( Just (mapFn value), [] ))
+    validateMap
+        (\value -> Ok (mapFn value))
         field_
 
 
-{-| -}
-withClientValidation : (parsed -> ( Maybe mapped, List error )) -> Field error parsed input initial kind constraints -> Field error mapped input initial kind { constraints | wasMapped : Yes }
-withClientValidation mapFn (Internal.Field.Field field kind) =
+{-| Add a custom validation and/or transformation of the value to the field.
+
+    import Form.Field as Field
+
+    example =
+        Field.text
+            |> Field.required "Required"
+            |> Field.validateMap Username.fromString
+
+      -- in Username.elm
+      fromString : String -> Result String Username
+      fromString string =
+          if string |> String.contains "@" then
+              Err "Must not contain @"
+
+          else
+              Username string |> Ok
+
+-}
+validateMap : (parsed -> Result error mapped) -> Field error parsed input initial kind constraints -> Field error mapped input initial kind { constraints | wasMapped : Yes }
+validateMap mapFn (Internal.Field.Field field kind) =
+    validateMap_
+        (\parsed ->
+            case mapFn parsed of
+                Ok mapped ->
+                    ( Just mapped, [] )
+
+                Err error ->
+                    ( Nothing, [ error ] )
+        )
+        (Internal.Field.Field field kind)
+
+
+validateMap_ : (parsed -> ( Maybe mapped, List error )) -> Field error parsed input initial kind constraints -> Field error mapped input initial kind { constraints | wasMapped : Yes }
+validateMap_ mapFn (Internal.Field.Field field kind) =
     Internal.Field.Field
         { initialValue = field.initialValue
         , initialToString = field.initialToString
