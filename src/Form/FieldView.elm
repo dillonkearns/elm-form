@@ -24,7 +24,8 @@ import Json.Encode as Encode
 import Pages.Internal.Form exposing (Validation(..), ViewField)
 
 
-{-| -}
+{-| The type for a Field that can be rendered using [`input`](#input) or [`inputStyled`](#inputStyled).
+-}
 type alias Input =
     Internal.Input.Input
 
@@ -35,7 +36,19 @@ type alias Hidden =
     Internal.Input.Hidden
 
 
-{-| -}
+{-| The type for a Field that represents a set of options.
+
+Can be rendered as a dropdown:
+
+  - [`select`](#select)
+  - [`selectStyled`](#selectStyled)
+
+Or as a set of radio buttons:
+
+  - [`radio`](#radio)
+  - [`radioStyled`](#radioStyled)
+
+-}
 type alias Options a =
     Internal.Input.Options a
 
@@ -110,7 +123,45 @@ valueButtonStyled exactValue attrs children (Validation viewField fieldName _) =
         children
 
 
-{-| -}
+{-| Renders the [`Field`](Form-Field#Field) to [`Html`](https://package.elm-lang.org/packages/elm/html/latest/Html).
+
+These Fields are defined using [`Form.Field`](Form-Field) using functions like [`Form.Field.text`](Form-Field#text),
+[`Form.Field.textarea`](Form-Field#textarea), [`Form.Field.int`](Form-Field#int), and [`Form.Field.date`](Form-Field#date).
+
+This will render a form field HTML element with all of the appropriate attributes.
+
+Often it's convenient to create a helper function that adds labels and renders the field's error messages with any
+styles and layout conventions in your application.
+
+    fieldView :
+        Form.Context String input
+        -> String
+        -> Validation.Field String parsed FieldView.Input
+        -> Html msg
+    fieldView context label field =
+        Html.div []
+            [ Html.label []
+                [ Html.text (label ++ " ")
+                , FieldView.input [] field
+                , errorsView context field
+                ]
+            ]
+
+    errorsView :
+        Form.Context String input
+        -> Validation.Field String parsed kind
+        -> Html msg
+    errorsView { submitAttempted, errors } field =
+        if submitAttempted || Validation.statusAtLeast Validation.Blurred field then
+            errors
+                |> Form.errorsForField field
+                |> List.map (\error -> Html.li [ Html.Attributes.style "color" "red" ] [ Html.text error ])
+                |> Html.ul []
+
+        else
+            Html.ul [] []
+
+-}
 input :
     List (Html.Attribute msg)
     -> Form.Validation.Field error parsed Input
@@ -164,7 +215,8 @@ input attrs (Validation viewField fieldName _) =
                 []
 
 
-{-| -}
+{-| Same as [`input`](#input), but renders to [`Html.Styled`](https://package.elm-lang.org/packages/rtfeldman/elm-css/latest/Html-Styled).
+-}
 inputStyled :
     List (Html.Styled.Attribute msg)
     -> Form.Validation.Field error parsed Input
