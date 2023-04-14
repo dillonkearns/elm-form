@@ -167,11 +167,13 @@ signUpForm =
                 |> Field.withMin
                     { hours = 10
                     , minutes = 0
+                    , seconds = Nothing
                     }
                     "Must be after 10"
                 |> Field.withMax
                     { hours = 12
                     , minutes = 0
+                    , seconds = Nothing
                     }
                     "Must be before noon"
             )
