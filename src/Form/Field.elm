@@ -9,7 +9,7 @@ module Form.Field exposing
     , email, password, search, telephone, url, textarea
     , range, withMin, withMax
     , withMinLength, withMaxLength
-    , withStep, withFloatStep
+    , withStep
     , No, Yes
     )
 
@@ -59,7 +59,7 @@ module Form.Field exposing
 
 @docs withMinLength, withMaxLength
 
-@docs withStep, withFloatStep
+@docs withStep
 
 
 ## Phantom Options
@@ -1001,7 +1001,8 @@ withMin min error (Internal.Field.Field field kind) =
         kind
 
 
-{-| -}
+{-| Set a minimum length for the string. See <https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/minlength>.
+-}
 withMinLength : Int -> error -> Field error parsed input initial kind { constraints | minlength : () } -> Field error parsed input initial kind constraints
 withMinLength minLength error (Internal.Field.Field field kind) =
     Internal.Field.Field
@@ -1029,7 +1030,8 @@ withMinLength minLength error (Internal.Field.Field field kind) =
         kind
 
 
-{-| -}
+{-| Set a maximum length for the string. See <https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/maxlength>.
+-}
 withMaxLength : Int -> error -> Field error parsed input initial kind { constraints | maxlength : () } -> Field error parsed input initial kind constraints
 withMaxLength maxLength error (Internal.Field.Field field kind) =
     Internal.Field.Field
@@ -1123,17 +1125,15 @@ For `int` fields, the step will change the up/down buttons in the field's UI to 
   - [`date`](#date) - number of days
   - [`time`](#time) - time in seconds
 
-Use [`withFloatStep`](#withFloatStep) for Field's that use `Float` steps.
-
 -}
 withStep : Int -> Field error value input initial view { constraints | step : Int } -> Field error value input initial view constraints
 withStep step (Internal.Field.Field info kind) =
     withStringProperty ( "step", String.fromInt step ) (Internal.Field.Field info kind)
 
 
-{-| -}
 withFloatStep : Float -> Field error value input initial view { constraints | step : Float } -> Field error value input initial view constraints
 withFloatStep step (Internal.Field.Field info kind) =
+    -- TODO is this safe to expose? Can't safely check this validation, so maybe not?
     withStringProperty ( "step", String.fromFloat step ) (Internal.Field.Field info kind)
 
 
