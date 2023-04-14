@@ -204,12 +204,18 @@ type alias Field error parsed input initial kind constraints =
     Internal.Field.Field error parsed input initial kind constraints
 
 
-{-| -}
+{-| Used in the constraints for a Field. These can't be built or used outside of the API, they are only used as guardrails
+to ensure sure that Fields are configured correctly.
+-}
 type Yes
     = Yes Never
 
 
-{-| -}
+{-| Used in the constraints for a Field. These can't be built or used outside of the API, they are only used as guardrails
+
+to ensure sure that Fields are configured correctly.
+
+-}
 type No
     = No Never
 
@@ -907,13 +913,50 @@ textarea options (Internal.Field.Field field _) =
     Internal.Field.Field field (Internal.Input.Input (Internal.Input.Textarea options))
 
 
-{-| -}
+{-| Used for errors from a [`range`](#range) Field.
+-}
 type OutsideRange
     = AboveRange
     | BelowRange
 
 
-{-| -}
+{-| Display a range input (`<input type="range">`). See <https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/range>.
+
+    import Form.Field as Field
+
+    type alias Settings =
+        { brightness : Int
+        }
+
+    example =
+        (\brightness ->
+            { combine =
+                Validation.succeed Settings
+                    |> Validation.andMap brightness
+            , view = []
+            }
+        )
+            |> Form.form
+            |> Form.field "brightness"
+                (Field.range
+                    { min = 0
+                    , max = 100
+                    , missing = "Required"
+                    , invalid =
+                        \outsideRange ->
+                            case outsideRange of
+                                Field.AboveRange ->
+                                    "Must be below 100"
+
+                                Field.BelowRange ->
+                                    "Must be above 0"
+                    }
+                    (Field.int { invalid = \_ -> "Invalid" })
+                )
+
+Can be used with either [`int`](#int) or [`float`](#float).
+
+-}
 range :
     { min : numberInitial
     , max : numberInitial
@@ -950,7 +993,16 @@ range info field =
         |> (\(Internal.Field.Field innerField _) -> Internal.Field.Field innerField (Internal.Input.Input Internal.Input.Range))
 
 
-{-| -}
+{-| Map the parsed value of a Field without adding or modifying its validations or rendering.
+
+    import Form.Field as Field
+
+    example =
+        Field.text
+            |> Field.required "Required"
+            |> Field.map String.toUpper
+
+-}
 map : (parsed -> mapped) -> Field error parsed input initial kind constraints -> Field error mapped input initial kind { constraints | wasMapped : Yes }
 map mapFn field_ =
     withClientValidation
