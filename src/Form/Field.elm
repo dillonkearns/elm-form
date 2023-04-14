@@ -214,7 +214,15 @@ type No
     = No Never
 
 
-{-| -}
+{-| Gives a validation error for fields that haven't been set, and removes the `Maybe` around the parsed value.
+
+    example =
+        Field.int { invalid = \_ -> "Invalid" }
+            -- parses into `Maybe Int` before we call `required`
+            -- after `required`, it parses into an `Int`
+            |> Field.required "Required"
+
+-}
 required :
     error
     ->
@@ -313,7 +321,17 @@ text =
         (Internal.Input.Input Internal.Input.Text)
 
 
-{-| -}
+{-| A date field. Parses into a value of type [`Date`](https://package.elm-lang.org/packages/justinmimbs/date/latest/Date#Date).
+
+    example =
+        Field.date
+            { invalid = \_ -> "Invalid date" }
+            |> Field.required "Required"
+            |> Field.withMin (Date.fromRataDie 738624) "Must be after today"
+            -- date picker will show dates on the same day of the week starting from the start date
+            |> Field.withStep 7
+
+-}
 date :
     { invalid : String -> error }
     ->
@@ -361,7 +379,15 @@ date toError =
         (Internal.Input.Input Internal.Input.Date)
 
 
-{-| -}
+{-| A time of day in 24-hour time.
+
+The hours must be between 0 and 23, and the minutes must be between 0 and 59.
+
+This is the type that a `time` field parses into, and is also used to set initial values and minimum/maximum values for `time`.
+
+See <https://developer.mozilla.org/en-US/docs/Web/HTML/Date_and_time_formats#time_strings>
+
+-}
 type alias TimeOfDay =
     { hours : Int
     , minutes : Int
@@ -819,7 +845,17 @@ email (Internal.Field.Field field _) =
         (Internal.Input.Input Internal.Input.Email)
 
 
-{-| -}
+{-| Modifier for [`text`](#text) Field. This does not perform any additional validations on the Field, it only provides a hint to the browser
+that the Field should be displayed as a URL input (`<input type="url">`).
+
+See <https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/url>.
+
+    example =
+        Field.text
+            |> Field.url
+            |> Field.required "URL is required"
+
+-}
 url :
     Field error parsed input initial Input { constraints | plainText : () }
     -> Field error parsed input initial Input constraints
