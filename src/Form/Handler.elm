@@ -4,7 +4,81 @@ module Form.Handler exposing
     , run
     )
 
-{-|
+{-| This API allows you to try parsing one of several forms.
+
+This is useful if you want to
+
+1.  Parse a form on the backend using code sharing to keep your backend and frontend validations in sync, and
+2.  Parse in-flight form submissions to derive pending or optimistic UI state
+
+`elm-pages` has some abstractions built around these ideas to help you receive form submissions on the backend, and
+automatically manage in-flight form submissions. However, you can manually wire this in or build similar abstractions
+in your own framework or application.
+
+Example:
+
+    import Form
+    import Form.Field as Field
+    import Form.Handler exposing (Handler)
+    import Form.Validation as Validation
+
+    type Action =
+        UpdateProfile ( String, String )
+        | SendMessage ( String, String )
+
+
+    updateProfile : Form.HtmlForm String ( String, String ) input msg
+    updateProfile =
+        Form.form
+            (\first last ->
+                { combine =
+                    Validation.succeed Tuple.pair
+                        |> Validation.andMap first
+                        |> Validation.andMap last
+                , view = \_ -> []
+                }
+            )
+            |> Form.field "first" (Field.text |> Field.required "Required")
+            |> Form.field "last" (Field.text |> Field.required "Required")
+            |> Form.hiddenKind ( "kind", "update-profile" ) "Expected kind"
+
+    sendMessage : Form.HtmlForm String ( String, String ) input msg
+    sendMessage =
+        Form.form
+            (\to last ->
+                { combine =
+                    Validation.succeed Tuple.pair
+                        |> Validation.andMap to
+                        |> Validation.andMap last
+                , view = \_ -> []
+                }
+            )
+            |> Form.field "to" (Field.text |> Field.required "Required")
+            |> Form.field "body" (Field.text |> Field.required "Required" |> Field.textarea { rows = Nothing, cols = Nothing })
+            |> Form.hiddenKind ( "kind", "send-message" ) "Expected kind"
+
+    handler : Form.Handler.Handler String Action
+    handler =
+        Form.Handler.init UpdateProfile updateProfile
+        |> Form.Handler.with SendMessage sendMessage
+
+    Form.Handler.run
+        [ ( "first", "Jane" )
+        , ( "last", "Doe" )
+        , ( "kind", "update-profile" )
+        ]
+        handler
+
+    --> Form.Valid (UpdateProfile ("Jane", "Doe") )
+
+    Form.Handler.run
+        [ ( "to", "Jane" )
+        , ( "body", "Hello!" )
+        , ( "kind", "send-message" )
+        ]
+        handler
+
+    --> Form.Valid (SendMessage ("Jane", "Hello!") )
 
 @docs Handler
 
@@ -23,7 +97,8 @@ import Pages.FormState exposing (FormState)
 import Pages.Internal.Form
 
 
-{-| -}
+{-| A combined set of Form parsers which can be run with [`run`](#run)
+-}
 type Handler error parsed
     = Handler
         (List
@@ -36,7 +111,8 @@ type Handler error parsed
         )
 
 
-{-| -}
+{-| Start building a `Handler`.
+-}
 init :
     (parsed -> combined)
     ->
@@ -52,7 +128,8 @@ init mapFn form =
     Handler [ normalizeServerForm mapFn form ]
 
 
-{-| -}
+{-| Include an additional `Form` as one of the possibilities to parse into.
+-}
 with :
     (parsed -> combined)
     ->
@@ -131,71 +208,7 @@ normalizeServerForm mapFn (Internal.Form.Form _ parseFn _) =
         (\_ -> [])
 
 
-{-|
-
-    import Form
-    import Form.Field as Field
-    import Form.Handler exposing (Handler)
-    import Form.Validation as Validation
-
-    type Action =
-        UpdateProfile ( String, String )
-        | SendMessage ( String, String )
-
-
-    updateProfile : Form.HtmlForm String ( String, String ) input msg
-    updateProfile =
-        Form.form
-            (\first last ->
-                { combine =
-                    Validation.succeed Tuple.pair
-                        |> Validation.andMap first
-                        |> Validation.andMap last
-                , view = \_ -> []
-                }
-            )
-            |> Form.field "first" (Field.text |> Field.required "Required")
-            |> Form.field "last" (Field.text |> Field.required "Required")
-            |> Form.hiddenKind ( "kind", "update-profile" ) "Expected kind"
-
-    sendMessage : Form.HtmlForm String ( String, String ) input msg
-    sendMessage =
-        Form.form
-            (\to last ->
-                { combine =
-                    Validation.succeed Tuple.pair
-                        |> Validation.andMap to
-                        |> Validation.andMap last
-                , view = \_ -> []
-                }
-            )
-            |> Form.field "to" (Field.text |> Field.required "Required")
-            |> Form.field "body" (Field.text |> Field.required "Required" |> Field.textarea { rows = Nothing, cols = Nothing })
-            |> Form.hiddenKind ( "kind", "send-message" ) "Expected kind"
-
-    handler : Form.Handler.Handler String Action
-    handler =
-        Form.Handler.init UpdateProfile updateProfile
-        |> Form.Handler.with SendMessage sendMessage
-
-    Form.Handler.run
-        [ ( "first", "Jane" )
-        , ( "last", "Doe" )
-        , ( "kind", "update-profile" )
-        ]
-        handler
-
-    --> Form.Valid (UpdateProfile ("Jane", "Doe") )
-
-    Form.Handler.run
-        [ ( "to", "Jane" )
-        , ( "body", "Hello!" )
-        , ( "kind", "send-message" )
-        ]
-        handler
-
-    --> Form.Valid (SendMessage ("Jane", "Hello!") )
-
+{-| Parse your [`Handler`](#Handler) with the given raw form data into a [`Validated`](Form#Validated) value.
 -}
 run :
     List ( String, String )
