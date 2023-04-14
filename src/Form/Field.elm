@@ -928,7 +928,27 @@ withClientValidation mapFn (Internal.Field.Field field kind) =
         kind
 
 
-{-| -}
+{-| Set the min value for the Field. This results in both a validation (run on the server as well as the client) as well as a display hint to the browser
+(`<input type="date" min="2023-04-14">`). The Browser will prevent the user from entering a value below the min value in some cases but not all.
+
+See <https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/min>.
+
+If the value is invalid (below the minimum), the error will be whichever error is passed in as the second argument.
+
+    import Date exposing (Date)
+    import Form.Field as Field
+
+    example =
+        Field.date
+            { invalid = \_ -> "Must be valid date" }
+            |> Field.required "Required"
+            |> Field.withMin today ("Must be after " ++ Date.toIsoString today)
+
+    today : Date
+    today =
+        Date.fromRataDie 738624
+
+-}
 withMin : initial -> error -> Field error parsed input initial kind { constraints | min : initial } -> Field error parsed input initial kind constraints
 withMin min error (Internal.Field.Field field kind) =
     Internal.Field.Field
@@ -1022,7 +1042,26 @@ isEmptyValue value =
     (value |> Maybe.withDefault "") == ""
 
 
-{-| -}
+{-| Same as [`withMin`](#withMin) but for a maximum value. See <https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/max>.
+
+    import Date exposing (Date)
+    import Form.Field as Field
+
+    example =
+        Field.date
+            { invalid = \_ -> "Must be valid date" }
+            |> Field.required "Required"
+            |> Field.withMax today "Cannot schedule more than 7 days in advance"
+
+    inAWeek : Date
+    inAWeek =
+        Date.fromRataDie (today + 7)
+
+    today : Int
+    today =
+        738624
+
+-}
 withMax : initial -> error -> Field error parsed input initial kind { constraints | max : initial } -> Field error parsed input initial kind constraints
 withMax max error (Internal.Field.Field field kind) =
     Internal.Field.Field
@@ -1055,7 +1094,18 @@ withMax max error (Internal.Field.Field field kind) =
         kind
 
 
-{-| -}
+{-| Sets the `step` attribute on the form field for Field's with `Int` steps. See <https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/step>.
+
+For `int` fields, the step will change the up/down buttons in the field's UI to increment/decrement by the given step.
+
+`Int` step values have different meanings for different kinds of Fields.
+
+  - [`date`](#date) - number of days
+  - [`time`](#time) - time in seconds
+
+Use [`withFloatStep`](#withFloatStep) for Field's that use `Float` steps.
+
+-}
 withStep : Int -> Field error value input initial view { constraints | step : Int } -> Field error value input initial view constraints
 withStep step (Internal.Field.Field info kind) =
     withStringProperty ( "step", String.fromInt step ) (Internal.Field.Field info kind)
@@ -1074,7 +1124,26 @@ withStringProperty ( key, value ) (Internal.Field.Field field kind) =
         kind
 
 
-{-| -}
+{-| Set an initial value for the `Field` given the `Form`'s `input` (see [`Form.withInput`](Form#withInput)).
+This allows you to pass in dynamic state like values from your `Model`.
+
+The initial value will be used until the field is modified by the user, and from there it is controlled by user input. If you
+need to programmatically set a field's value for more advanced use cases, you can also modify the [`Form.Model`](Form#Model).
+
+The type you use to set the initial value depends on the Field. For example, you can set a `checkbox` Field's initial value
+with a `Bool`
+
+    example =
+        Form.checkbox |> Form.withInitialValue .autoplay
+
+    formOptions : { autoplay : Bool } -> Form.Options String parsed { autoplay : Bool } msg
+    formOptions currentSettings =
+        Form.options "settings"
+            |> Form.withInput currentSettings
+
+Note that the type used to set the initial value is independent of types you might `map` a field into.
+
+-}
 withInitialValue : (input -> initial) -> Field error value input initial kind constraints -> Field error value input initial kind constraints
 withInitialValue toInitialValue (Internal.Field.Field field kind) =
     Internal.Field.Field
@@ -1082,7 +1151,18 @@ withInitialValue toInitialValue (Internal.Field.Field field kind) =
         kind
 
 
-{-| -}
+{-| Similar to [`withInitialValue`](#withInitialValue), but takes in a `Maybe` value. If the `Maybe` is `Nothing` then it's
+the same as if no initial value were set.
+
+    example =
+        Form.text |> Form.withOptionalInitialValue .nickname
+
+    formOptions : { nickname : Maybe String } -> Form.Options String parsed { nickname : Maybe String } msg
+    formOptions currentProfile =
+        Form.options "profile"
+            |> Form.withInput currentProfile
+
+-}
 withOptionalInitialValue : (input -> Maybe initial) -> Field error value input initial kind constraints -> Field error value input initial kind constraints
 withOptionalInitialValue toInitialValue (Internal.Field.Field field kind) =
     Internal.Field.Field
