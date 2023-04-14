@@ -131,7 +131,72 @@ normalizeServerForm mapFn (Internal.Form.Form _ parseFn _) =
         (\_ -> [])
 
 
-{-| -}
+{-|
+
+    import Form
+    import Form.Field as Field
+    import Form.Handler exposing (Handler)
+    import Form.Validation as Validation
+
+    type Action =
+        UpdateProfile ( String, String )
+        | SendMessage ( String, String )
+
+
+    updateProfile : Form.HtmlForm String ( String, String ) input msg
+    updateProfile =
+        Form.form
+            (\first last ->
+                { combine =
+                    Validation.succeed Tuple.pair
+                        |> Validation.andMap first
+                        |> Validation.andMap last
+                , view = \_ -> []
+                }
+            )
+            |> Form.field "first" (Field.text |> Field.required "Required")
+            |> Form.field "last" (Field.text |> Field.required "Required")
+            |> Form.hiddenKind ( "kind", "update-profile" ) "Expected kind"
+
+    sendMessage : Form.HtmlForm String ( String, String ) input msg
+    sendMessage =
+        Form.form
+            (\to last ->
+                { combine =
+                    Validation.succeed Tuple.pair
+                        |> Validation.andMap to
+                        |> Validation.andMap last
+                , view = \_ -> []
+                }
+            )
+            |> Form.field "to" (Field.text |> Field.required "Required")
+            |> Form.field "body" (Field.text |> Field.required "Required" |> Field.textarea { rows = Nothing, cols = Nothing })
+            |> Form.hiddenKind ( "kind", "send-message" ) "Expected kind"
+
+    handler : Form.Handler.Handler String Action
+    handler =
+        Form.Handler.init UpdateProfile updateProfile
+        |> Form.Handler.with SendMessage sendMessage
+
+    Form.Handler.run
+        [ ( "first", "Jane" )
+        , ( "last", "Doe" )
+        , ( "kind", "update-profile" )
+        ]
+        handler
+
+    --> Form.Valid (UpdateProfile ("Jane", "Doe") )
+
+    Form.Handler.run
+        [ ( "to", "Jane" )
+        , ( "body", "Hello!" )
+        , ( "kind", "send-message" )
+        ]
+        handler
+
+    --> Form.Valid (SendMessage ("Jane", "Hello!") )
+
+-}
 run :
     List ( String, String )
     -> Handler error parsed

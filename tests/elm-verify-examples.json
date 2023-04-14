@@ -2,6 +2,7 @@
   "root": "../src",
   "tests": [
     "Form",
+    "Form.Handler",
     "./README.md"
   ]
 }
