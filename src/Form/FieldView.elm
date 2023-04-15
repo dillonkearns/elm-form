@@ -558,7 +558,8 @@ expectViewField viewField =
             expectViewField viewField
 
 
-{-| -}
+{-| Same as [`radio`](#radio), but renders to [`Html.Styled`](https://package.elm-lang.org/packages/rtfeldman/elm-css/latest/Html-Styled).
+-}
 radioStyled :
     List (Html.Styled.Attribute msg)
     ->
