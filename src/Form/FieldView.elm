@@ -370,7 +370,8 @@ select selectAttrs enumToOption (Validation viewField fieldName _) =
         )
 
 
-{-| -}
+{-| Same as [`select`](#select), but renders to [`Html.Styled`](https://package.elm-lang.org/packages/rtfeldman/elm-css/latest/Html-Styled).
+-}
 selectStyled :
     List (Html.Styled.Attribute msg)
     ->
