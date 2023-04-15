@@ -1,6 +1,8 @@
 module Form.Validation exposing
     ( Combined, Field, Validation
-    , andMap, andThen, fail, fromMaybe, fromResult, map, map2, parseWithError, succeed, withError, withErrorIf, withFallback
+    , succeed
+    , andMap
+    , andThen, fail, fromMaybe, fromResult, map, map2, parseWithError, withError, withErrorIf, withFallback
     , value, fieldName
     , FieldStatus(..), fieldStatus, fieldStatusToString
     , statusAtLeast
@@ -16,7 +18,10 @@ module Form.Validation exposing
 
 @docs Combined, Field, Validation
 
-@docs andMap, andThen, fail, fromMaybe, fromResult, map, map2, parseWithError, succeed, withError, withErrorIf, withFallback
+@docs succeed
+
+@docs andMap
+@docs andThen, fail, fromMaybe, fromResult, map, map2, parseWithError, withError, withErrorIf, withFallback
 
 
 ## Field Metadata
@@ -56,6 +61,8 @@ type alias Combined error parsed =
   - Parse - Use the `Field` to compose together with other `Field`s into a Validation which can be used to parse into the desired data type or add validation errors
 
 You get a `Field` from the pipeline of fields defined using [`Form.field`](Form#field) and [`Form.hiddenField`](Form#hiddenField).
+The only other way to get a `Field` is to use [`global`](#global). You can use this special `Field` to attach validation errors
+to the form as a whole rather than to a specific field.
 
 This type is one of the key designs in this package. Because we can share this `Field` type between the view and the parsing,
 we don't need to use "stringly typed" values to refer to fields in our form in an error-prone way. Instead, we know that a
@@ -112,7 +119,12 @@ fieldStatusToString status =
             "Blurred"
 
 
-{-| -}
+{-| `elm-form` manages form fields' `FieldStatus` in the order described in [`FieldStatus`](#FieldStatus).
+
+This function is useful when writing a condition for when to show a `Field`'s validation errors in the view.
+See [`Form.errorsForField`](Form#errorsForField) for an example.
+
+-}
 statusAtLeast : FieldStatus -> Field error parsed kind -> Bool
 statusAtLeast status field =
     (field |> fieldStatus |> statusRank) >= statusRank status
@@ -188,13 +200,19 @@ expectViewField viewField =
             expectViewField viewField
 
 
-{-| -}
+{-| Get a `Combined` value that successfully parses into the given value with no errors.
+
+Helpful for starting a chain of `Validation` functions that will eventually parse into a value. See [`andMap`](#andMap)
+for an example of a common idiom.
+
+-}
 succeed : parsed -> Combined error parsed
 succeed parsed =
     Pages.Internal.Form.Validation Nothing Nothing ( Just parsed, Dict.empty )
 
 
-{-| -}
+{-| A `Field` that represents the form as a whole. This is useful for attaching validation errors to the form as a whole rather than to a specific field.
+-}
 global : Field error () Never
 global =
     Pages.Internal.Form.Validation Nothing
@@ -229,7 +247,14 @@ parseWithError parsed ( key, error ) =
     Pages.Internal.Form.Validation Nothing Nothing ( Just parsed, Dict.singleton key [ error ] )
 
 
-{-| -}
+{-| Add an error to the given `Field`, short-circuiting its parsed value so that it will fail to parse.
+This can be helpful if you want to fail with a value that you can combine together with other values because
+it has an unbound `parsed` type variable. Similar to how [`Json.Decode.fail`](https://package.elm-lang.org/packages/elm/json/latest/Json-Decode#fail)
+gives you a `Decoder a`.
+
+See [`withError`](#withError) if you want to add an error without short-circuiting the parsed value.
+
+-}
 fail : error -> Field error parsed1 field -> Combined error parsed
 fail parsed (Pages.Internal.Form.Validation _ key _) =
     Pages.Internal.Form.Validation Nothing Nothing ( Nothing, Dict.singleton (key |> Maybe.withDefault "") [ parsed ] )
@@ -302,6 +327,8 @@ fromResult fieldResult =
 
 {-| Lets you combine Validation's in a pipeline.
 
+    import Form
+    import Form.Field as Field
     import Form.Validation as Validation
 
     example =
