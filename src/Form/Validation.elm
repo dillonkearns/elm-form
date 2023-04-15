@@ -2,7 +2,7 @@ module Form.Validation exposing
     ( Field, Validation
     , succeed
     , andMap
-    , andThen, fail, fromMaybe, fromResult, map, map2, parseWithError, withError, withErrorIf, withFallback
+    , andThen, fail, fromResult, map, map2, parseWithError, withError, withErrorIf, withFallback
     , value, fieldName
     , FieldStatus(..), fieldStatus, fieldStatusToString
     , statusAtLeast
@@ -20,7 +20,7 @@ module Form.Validation exposing
 @docs succeed
 
 @docs andMap
-@docs andThen, fail, fromMaybe, fromResult, map, map2, parseWithError, withError, withErrorIf, withFallback
+@docs andThen, fail, fromResult, map, map2, parseWithError, withError, withErrorIf, withFallback
 
 
 ## Field Metadata
@@ -558,12 +558,6 @@ map9 f validation1 validation2 validation3 validation4 validation5 validation6 v
         |> andMap validation7
         |> andMap validation8
         |> andMap validation9
-
-
-{-| -}
-fromMaybe : Maybe parsed -> Validation error parsed Never constraintsAny
-fromMaybe maybe =
-    Pages.Internal.Form.Validation Nothing Nothing ( maybe, Dict.empty )
 
 
 {-| -}
