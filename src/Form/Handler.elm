@@ -91,7 +91,7 @@ Example:
 import Dict exposing (Dict)
 import Form exposing (Validated)
 import Form.FieldStatus
-import Form.Validation exposing (Combined, Validation)
+import Form.Validation exposing (Validation)
 import Internal.Form exposing (Form)
 import Pages.FormState exposing (FormState)
 import Pages.Internal.Form
@@ -104,7 +104,7 @@ type Handler error parsed
         (List
             (Form
                 error
-                (Combined error parsed)
+                (Validation error parsed Never Never)
                 Never
                 Never
             )
@@ -186,7 +186,7 @@ with mapFn form (Handler serverForms) =
 normalizeServerForm :
     (parsed -> combined)
     -> Form error { combineAndView | combine : Validation error parsed kind constraints } parsed input
-    -> Form error (Combined error combined) Never Never
+    -> Form error (Validation error combined Never Never) Never Never
 normalizeServerForm mapFn (Internal.Form.Form _ parseFn _) =
     Internal.Form.Form
         []

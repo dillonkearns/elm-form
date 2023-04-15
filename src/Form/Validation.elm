@@ -1,5 +1,5 @@
 module Form.Validation exposing
-    ( Combined, Field, Validation
+    ( Field, Validation
     , succeed
     , andMap
     , andThen, fail, fromMaybe, fromResult, map, map2, parseWithError, withError, withErrorIf, withFallback
@@ -16,7 +16,7 @@ module Form.Validation exposing
 
 ## Validations
 
-@docs Combined, Field, Validation
+@docs Field, Validation
 
 @docs succeed
 
@@ -48,11 +48,6 @@ module Form.Validation exposing
 
 import Dict exposing (Dict)
 import Pages.Internal.Form exposing (ViewField)
-
-
-{-| -}
-type alias Combined error parsed =
-    Validation error parsed Never Never
 
 
 {-| Represents a form field. This value is used for two purposes:
@@ -206,7 +201,7 @@ Helpful for starting a chain of `Validation` functions that will eventually pars
 for an example of a common idiom.
 
 -}
-succeed : parsed -> Combined error parsed
+succeed : parsed -> Validation error parsed kind constraints
 succeed parsed =
     Pages.Internal.Form.Validation Nothing Nothing ( Just parsed, Dict.empty )
 
@@ -242,7 +237,7 @@ value (Pages.Internal.Form.Validation _ _ ( maybeParsed, _ )) =
 
 
 {-| -}
-parseWithError : parsed -> ( String, error ) -> Combined error parsed
+parseWithError : parsed -> ( String, error ) -> Validation error parsed kind constraints
 parseWithError parsed ( key, error ) =
     Pages.Internal.Form.Validation Nothing Nothing ( Just parsed, Dict.singleton key [ error ] )
 
@@ -255,7 +250,7 @@ gives you a `Decoder a`.
 See [`withError`](#withError) if you want to add an error without short-circuiting the parsed value.
 
 -}
-fail : error -> Field error parsed1 field -> Combined error parsed
+fail : error -> Field error parsed1 field -> Validation error parsed kind constraints
 fail parsed (Pages.Internal.Form.Validation _ key _) =
     Pages.Internal.Form.Validation Nothing Nothing ( Nothing, Dict.singleton (key |> Maybe.withDefault "") [ parsed ] )
 
@@ -305,14 +300,14 @@ map mapFn (Pages.Internal.Form.Validation _ name ( maybeParsedA, errorsA )) =
 
 
 {-| -}
-mapToCombined : (parsed -> mapped) -> Validation error parsed named constraint -> Combined error mapped
+mapToCombined : (parsed -> mapped) -> Validation error parsed named constraint -> Validation error mapped kind constraints
 mapToCombined mapFn (Pages.Internal.Form.Validation _ name ( maybeParsedA, errorsA )) =
     Pages.Internal.Form.Validation Nothing name ( Maybe.map mapFn maybeParsedA, errorsA )
 
 
 {-| Resolve a `Result` within a `Field`. If it is `Err`, the error will be added to the `Field`'s errors.
 -}
-fromResult : Field error (Result error parsed) kind -> Combined error parsed
+fromResult : Field error (Result error parsed) kind -> Validation error parsed Never constraints
 fromResult fieldResult =
     fieldResult
         |> andThen
@@ -349,7 +344,7 @@ fromResult fieldResult =
             |> Form.field "last" (Field.text |> Field.required "Required")
 
 -}
-andMap : Validation error a named1 constraints1 -> Validation error (a -> b) named2 constraints2 -> Combined error b
+andMap : Validation error a named1 constraints1 -> Validation error (a -> b) named2 constraints2 -> Validation error b Never constraints3
 andMap =
     map2 (|>)
 
@@ -392,7 +387,7 @@ andMap =
                 )
 
 -}
-andThen : (parsed -> Validation error mapped named1 constraints1) -> Validation error parsed named2 constraints2 -> Combined error mapped
+andThen : (parsed -> Validation error mapped named1 constraints1) -> Validation error parsed named2 constraints2 -> Validation error mapped Never constraintsAny
 andThen andThenFn (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors )) =
     case maybeParsed of
         Just parsed ->
@@ -425,7 +420,7 @@ andThen andThenFn (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors )) =
             |> Form.field "last" (Field.text |> Field.required "Required")
 
 -}
-map2 : (a -> b -> c) -> Validation error a named1 constraints1 -> Validation error b named2 constraints2 -> Combined error c
+map2 : (a -> b -> c) -> Validation error a named1 constraints1 -> Validation error b named2 constraints2 -> Validation error c Never constraintsAny
 map2 f (Pages.Internal.Form.Validation _ _ ( maybeParsedA, errorsA )) (Pages.Internal.Form.Validation _ _ ( maybeParsedB, errorsB )) =
     Pages.Internal.Form.Validation Nothing
         Nothing
@@ -440,7 +435,7 @@ map3 :
     -> Validation error a1 named1 constraints1
     -> Validation error a2 named2 constraints2
     -> Validation error a3 named3 constraints3
-    -> Combined error a4
+    -> Validation error a4 Never constraintsAny
 map3 f validation1 validation2 validation3 =
     succeed f
         |> andMap validation1
@@ -455,7 +450,7 @@ map4 :
     -> Validation error a2 named2 constraints2
     -> Validation error a3 named3 constraints3
     -> Validation error a4 named4 constraints4
-    -> Combined error a5
+    -> Validation error a5 Never constraintsAny
 map4 f validation1 validation2 validation3 validation4 =
     succeed f
         |> andMap validation1
@@ -472,7 +467,7 @@ map5 :
     -> Validation error a3 named3 constraints3
     -> Validation error a4 named4 constraints4
     -> Validation error a5 named5 constraints5
-    -> Combined error a6
+    -> Validation error a6 Never constraintsAny
 map5 f validation1 validation2 validation3 validation4 validation5 =
     succeed f
         |> andMap validation1
@@ -491,7 +486,7 @@ map6 :
     -> Validation error a4 named4 constraints4
     -> Validation error a5 named5 constraints5
     -> Validation error a6 named6 constraints6
-    -> Combined error a7
+    -> Validation error a7 Never constraintsAny
 map6 f validation1 validation2 validation3 validation4 validation5 validation6 =
     succeed f
         |> andMap validation1
@@ -512,7 +507,7 @@ map7 :
     -> Validation error a5 named5 constraints5
     -> Validation error a6 named6 constraints6
     -> Validation error a7 named7 constraints7
-    -> Combined error a8
+    -> Validation error a8 Never constraintsAny
 map7 f validation1 validation2 validation3 validation4 validation5 validation6 validation7 =
     succeed f
         |> andMap validation1
@@ -535,7 +530,7 @@ map8 :
     -> Validation error a6 named6 constraints6
     -> Validation error a7 named7 constraints7
     -> Validation error a8 named8 constraints8
-    -> Combined error a9
+    -> Validation error a9 Never constraintsAny
 map8 f validation1 validation2 validation3 validation4 validation5 validation6 validation7 validation8 =
     succeed f
         |> andMap validation1
@@ -560,7 +555,7 @@ map9 :
     -> Validation error a7 named7 constraints7
     -> Validation error a8 named8 constraints8
     -> Validation error a9 named9 constraints9
-    -> Combined error a10
+    -> Validation error a10 Never constraintsAny
 map9 f validation1 validation2 validation3 validation4 validation5 validation6 validation7 validation8 validation9 =
     succeed f
         |> andMap validation1
@@ -575,7 +570,7 @@ map9 f validation1 validation2 validation3 validation4 validation5 validation6 v
 
 
 {-| -}
-fromMaybe : Maybe parsed -> Combined error parsed
+fromMaybe : Maybe parsed -> Validation error parsed Never constraintsAny
 fromMaybe maybe =
     Pages.Internal.Form.Validation Nothing Nothing ( maybe, Dict.empty )
 

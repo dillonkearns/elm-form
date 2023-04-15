@@ -246,7 +246,7 @@ import Dict exposing (Dict)
 import Form.Field as Field exposing (Field)
 import Form.FieldStatus
 import Form.FieldView
-import Form.Validation exposing (Combined)
+import Form.Validation exposing (Validation)
 import Html exposing (Html)
 import Html.Attributes as Attr
 import Html.Lazy
@@ -1471,7 +1471,7 @@ This lower-level type alias is provided as well in case it's helpful. It locks i
 type alias DoneForm error parsed input view =
     Form
         error
-        { combine : Combined error parsed
+        { combine : Validation error parsed Never Never
         , view : Context error input -> view
         }
         parsed
@@ -1483,7 +1483,7 @@ type alias DoneForm error parsed input view =
 type alias HtmlForm error parsed input msg =
     Form
         error
-        { combine : Combined error parsed
+        { combine : Validation error parsed Never Never
         , view : Context error input -> List (Html msg)
         }
         parsed
@@ -1495,7 +1495,7 @@ type alias HtmlForm error parsed input msg =
 type alias StyledHtmlForm error parsed input msg =
     Form
         error
-        { combine : Combined error parsed
+        { combine : Validation error parsed Never Never
         , view : Context error input -> List (Html.Styled.Html msg)
         }
         parsed
