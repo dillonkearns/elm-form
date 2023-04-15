@@ -304,7 +304,7 @@ all =
                                 |> Field.url
                             )
 
-                --postForm : Form String { combine : Combined String PostAction, view : Form.Context String data -> MyView } data msg
+                postForm : DoneForm String PostAction input MyView
                 postForm =
                     Form.form
                         (\title body ->
@@ -324,7 +324,7 @@ all =
                         |> Form.field "title" (Field.text |> Field.required "Required")
                         |> Form.field "body" Field.text
 
-                --dependentParser : Form String { combine : Combined String PostAction, view : Form.Context String data -> MyView } data msg
+                dependentParser : DoneForm String PostAction input MyView
                 dependentParser =
                     Form.form
                         (\kind postForm_ ->
