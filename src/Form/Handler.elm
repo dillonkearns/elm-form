@@ -201,7 +201,7 @@ normalizeServerForm mapFn (Internal.Form.Form _ parseFn _) =
                     parseFn Nothing formState
             in
             { result = parsed.result
-            , combineAndView = parsed.combineAndView.combine |> Form.Validation.mapToCombined mapFn
+            , combineAndView = parsed.combineAndView.combine |> Form.Validation.map mapFn
             , isMatchCandidate = parsed.isMatchCandidate
             }
         )

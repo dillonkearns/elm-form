@@ -7,7 +7,6 @@ module Form.Validation exposing
     , FieldStatus(..), fieldStatus, fieldStatusToString
     , statusAtLeast
     , map3, map4, map5, map6, map7, map8, map9
-    , mapToCombined
     , global
     )
 
@@ -36,8 +35,6 @@ module Form.Validation exposing
 ## Mapping
 
 @docs map3, map4, map5, map6, map7, map8, map9
-
-@docs mapToCombined
 
 
 ## Global Validation
@@ -294,14 +291,8 @@ withErrorIf includeError (Pages.Internal.Form.Validation _ key _) error (Pages.I
             |> Form.hiddenField "uuid" (Field.text |> Field.required "Required")
 
 -}
-map : (parsed -> mapped) -> Validation error parsed named constraint -> Validation error mapped named constraint
+map : (parsed -> mapped) -> Validation error parsed named constraint -> Validation error mapped erasedKind erasedConstraints
 map mapFn (Pages.Internal.Form.Validation _ name ( maybeParsedA, errorsA )) =
-    Pages.Internal.Form.Validation Nothing name ( Maybe.map mapFn maybeParsedA, errorsA )
-
-
-{-| -}
-mapToCombined : (parsed -> mapped) -> Validation error parsed named constraint -> Validation error mapped kind constraints
-mapToCombined mapFn (Pages.Internal.Form.Validation _ name ( maybeParsedA, errorsA )) =
     Pages.Internal.Form.Validation Nothing name ( Maybe.map mapFn maybeParsedA, errorsA )
 
 
