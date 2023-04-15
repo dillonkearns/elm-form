@@ -45,11 +45,11 @@ Example:
     sendMessage : Form.HtmlForm String ( String, String ) input msg
     sendMessage =
         Form.form
-            (\to last ->
+            (\to body ->
                 { combine =
                     Validation.succeed Tuple.pair
                         |> Validation.andMap to
-                        |> Validation.andMap last
+                        |> Validation.andMap body
                 , view = \_ -> []
                 }
             )

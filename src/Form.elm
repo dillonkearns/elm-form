@@ -359,7 +359,96 @@ form combineAndView =
         (\_ -> [])
 
 
-{-| -}
+{-| Allows you to render a Form that renders a sub-form based on the `decider` value.
+
+For example, here is a `Form` that shows a dropdown to select between a `Post` and a `Link`, and then
+renders the `linkForm` or `postForm` based on the dropdown selection.
+
+    import Form.Handler
+    import Form.Validation as Validation
+    import Form.Field as Field
+
+    type PostAction
+        = ParsedLink String
+        | ParsedPost { title : String, body : Maybe String }
+
+
+    type PostKind
+        = Link
+        | Post
+
+    dependentForm : Form.HtmlForm String PostAction input msg
+    dependentForm =
+        Form.form
+            (\kind postForm_ ->
+                { combine =
+                    kind
+                        |> Validation.andThen postForm_.combine
+                , view = \_ -> []
+                }
+            )
+            |> Form.field "kind"
+                (Field.select
+                    [ ( "link", Link )
+                    , ( "post", Post )
+                    ]
+                    (\_ -> "Invalid")
+                    |> Field.required "Required"
+                )
+            |> Form.dynamic
+                (\parsedKind ->
+                    case parsedKind of
+                        Link -> linkForm
+                        Post -> postForm
+                )
+
+    linkForm : Form.HtmlForm String PostAction input msg
+    linkForm =
+        Form.form
+            (\url ->
+                { combine =
+                    Validation.succeed ParsedLink
+                        |> Validation.andMap url
+                , view = \_ -> []
+                }
+            )
+            |> Form.field "url"
+                (Field.text
+                    |> Field.required "Required"
+                    |> Field.url
+                )
+
+
+    postForm : Form.HtmlForm String PostAction input msg
+    postForm =
+        Form.form
+            (\title body ->
+                { combine =
+                    Validation.succeed
+                        (\titleValue bodyValue ->
+                            { title = titleValue
+                            , body = bodyValue
+                            }
+                        )
+                        |> Validation.andMap title
+                        |> Validation.andMap body
+                        |> Validation.map ParsedPost
+                , view = \_ -> []
+                }
+            )
+            |> Form.field "title" (Field.text |> Field.required "Required")
+            |> Form.field "body" Field.text
+
+
+    Form.Handler.run
+        [ ( "kind", "link" )
+        , ( "url", "https://elm-radio.com/episode/wrap-early-unwrap-late" )
+        ]
+        (dependentForm |> Form.Handler.init identity)
+
+    --> (Valid (ParsedLink "https://elm-radio.com/episode/wrap-early-unwrap-late"))
+
+-}
 dynamic :
     (decider
      ->
@@ -707,7 +796,25 @@ hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form defini
         )
 
 
-{-| -}
+{-| Like [`hiddenField`](#hiddenField), but uses a hardcoded value. This is useful to ensure that your [`Form.Handler`](Form-Handler)
+is parsing the right kind of Form when there is more than one kind of Form on a given page.
+
+    updateProfile : Form.HtmlForm String ( String, String ) input msg
+    updateProfile =
+        Form.form
+            (\first last ->
+                { combine =
+                    Validation.succeed Tuple.pair
+                        |> Validation.andMap first
+                        |> Validation.andMap last
+                , view = \_ -> []
+                }
+            )
+            |> Form.field "first" (Field.text |> Field.required "Required")
+            |> Form.field "last" (Field.text |> Field.required "Required")
+            |> Form.hiddenKind ( "kind", "update-profile" ) "Expected kind"
+
+-}
 hiddenKind :
     ( String, String )
     -> error
@@ -764,12 +871,46 @@ hiddenKind ( name, value ) error_ (Internal.Form.Form definitions parseFn toInit
         )
 
 
-{-| -}
+{-| The current validation errors for the given `Form`.
+You can get the errors for a specific field using [`errorsForField`](#errorsForField).
+-}
 type Errors error
     = Errors (Dict String (List error))
 
 
-{-| -}
+{-| Get the List of errors for a given field.
+
+Often it's helpful to define a helper function for rendering a fields errors using your application's layout and style
+conventions.
+
+    import Form
+    import Form.Validation as Validation
+    import Html exposing (Html)
+
+    errorsView :
+        Form.Context String input
+        -> Validation.Field String parsed kind
+        -> Html msg
+    errorsView { submitAttempted, errors } field =
+        if submitAttempted || Validation.statusAtLeast Validation.Blurred field then
+            -- only show validations when a field has been blurred
+            -- (it can be annoying to see errors while you type the initial entry for a field, but we want to see the current
+            -- errors once we've left the field, even if we are changing it so we know once it's been fixed or whether a new
+            -- error is introduced)
+            errors
+                |> Form.errorsForField field
+                |> List.map
+                    (\error ->
+                        Html.li
+                            [ Html.Attributes.style "color" "red" ]
+                            [ Html.text error ]
+                    )
+                |> Html.ul []
+
+        else
+            Html.ul [] []
+
+-}
 errorsForField : Form.Validation.Field error parsed kind -> Errors error -> List error
 errorsForField field_ (Errors errorsDict) =
     errorsDict
@@ -809,7 +950,9 @@ mergeErrors errors1 errors2 =
         Dict.empty
 
 
-{-| -}
+{-| Try parsing the `Form`. Usually not needed directly, usually it's better to use [`Form.Handler`](Form-Handler)
+to try parsing one of multiple `Form`s.
+-}
 parse :
     String
     -> Model
@@ -1473,7 +1616,9 @@ init =
     Dict.empty
 
 
-{-| -}
+{-| Update the `Form.Model` given the `Form.Msg` and the previous `Form.Model`. See the
+[README's section on Wiring](./#wiring).
+-}
 update : Msg msg -> Model -> ( Model, Cmd msg )
 update formMsg formModel =
     case formMsg of
