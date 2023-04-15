@@ -343,10 +343,12 @@ fromResult fieldResult =
         (\first middle last ->
             { combine =
                 Validation.succeed
-                    (\first middle last ->
-                        first ++ " " ++ middle ++ " " ++ last
+                    (\vFirst vMiddle vLast ->
+                        vFirst ++ " " ++ vMiddle ++ " " ++ vLast
                     )
                     |> Validation.andMap first
+                    |> Validation.andMap middle
+                    |> Validation.andMap last
             , view = \_ -> []
             }
         )
