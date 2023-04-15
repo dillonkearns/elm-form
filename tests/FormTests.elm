@@ -22,7 +22,7 @@ type Action
 type alias DoneForm error parsed input view =
     Form.Form
         error
-        { combine : Validation.Combined error parsed
+        { combine : Validation.Validation error parsed Never Never
         , view : Form.Context error input -> view
         }
         parsed
@@ -37,16 +37,20 @@ all =
                 Form.form
                     (\password passwordConfirmation ->
                         { combine =
-                            Validation.succeed
-                                (\passwordValue passwordConfirmationValue ->
-                                    Validation.succeed { password = passwordValue }
-                                        |> Validation.withErrorIf (passwordValue /= passwordConfirmationValue)
-                                            passwordConfirmation
-                                            "Must match password"
-                                )
-                                |> Validation.andMap password
-                                |> Validation.andMap passwordConfirmation
-                                |> Validation.andThen identity
+                            password
+                                |> Validation.andThen
+                                    (\passwordValue ->
+                                        passwordConfirmation
+                                            |> Validation.map
+                                                (\passwordConfirmationValue ->
+                                                    if passwordValue == passwordConfirmationValue then
+                                                        Ok { password = passwordValue }
+
+                                                    else
+                                                        Err "Must match password"
+                                                )
+                                            |> Validation.fromResult
+                                    )
                         , view = \_ -> Div
                         }
                     )
@@ -74,7 +78,7 @@ all =
                     )
                     (passwordConfirmationParser |> Form.Handler.init identity)
                     |> Expect.equal
-                        (Invalid (Just { password = "mypassword" })
+                        (Invalid Nothing
                             (Dict.fromList [ ( "password-confirmation", [ "Must match password" ] ) ])
                         )
         , describe "oneOf" <|

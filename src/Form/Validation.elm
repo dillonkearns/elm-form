@@ -2,7 +2,7 @@ module Form.Validation exposing
     ( Field, Validation
     , succeed
     , andMap
-    , andThen, fail, fromResult, map, map2, parseWithError, withError, withErrorIf, withFallback
+    , andThen, fail, fromResult, map, map2, withError, withErrorIf, withFallback
     , value, fieldName
     , FieldStatus(..), fieldStatus, fieldStatusToString
     , statusAtLeast
@@ -20,7 +20,7 @@ module Form.Validation exposing
 @docs succeed
 
 @docs andMap
-@docs andThen, fail, fromResult, map, map2, parseWithError, withError, withErrorIf, withFallback
+@docs andThen, fail, fromResult, map, map2, withError, withErrorIf, withFallback
 
 
 ## Field Metadata
@@ -214,7 +214,9 @@ global =
         )
 
 
-{-| -}
+{-| Include a fallback value to parse into. Does not remove any previous validation errors that have been encountered
+so it will not effect whether it parses to `Valid` or `Invalid`.
+-}
 withFallback : parsed -> Validation error parsed named constraints -> Validation error parsed named constraints
 withFallback parsed (Pages.Internal.Form.Validation viewField name ( maybeParsed, errors )) =
     Pages.Internal.Form.Validation viewField
@@ -252,13 +254,32 @@ fail parsed (Pages.Internal.Form.Validation _ key _) =
     Pages.Internal.Form.Validation Nothing Nothing ( Nothing, Dict.singleton (key |> Maybe.withDefault "") [ parsed ] )
 
 
-{-| -}
+{-| Add an error to the given `Field`.
+-}
 withError : Field error parsed1 field -> error -> Validation error parsed2 named constraints -> Validation error parsed2 named constraints
 withError (Pages.Internal.Form.Validation _ key _) error (Pages.Internal.Form.Validation viewField name ( maybeParsedA, errorsA )) =
     Pages.Internal.Form.Validation viewField name ( maybeParsedA, errorsA |> insertIfNonempty (key |> Maybe.withDefault "") [ error ] )
 
 
-{-| -}
+{-| Conditionally add an error to the given `Field`.
+
+    import Date
+    import Form.Validation as Validation
+
+    example checkIn checkOut =
+        Validation.map2
+            (\checkinValue checkoutValue ->
+                Validation.succeed
+                    { date = checkinValue
+                    , nights = Date.toRataDie checkoutValue - Date.toRataDie checkinValue
+                    }
+                    |> Validation.withErrorIf (Date.toRataDie checkinValue >= Date.toRataDie checkoutValue) checkIn "Must be before checkout"
+            )
+            checkIn
+            checkOut
+            |> Validation.andThen identity
+
+-}
 withErrorIf : Bool -> Field error ignored field -> error -> Validation error parsed named constraints -> Validation error parsed named constraints
 withErrorIf includeError (Pages.Internal.Form.Validation _ key _) error (Pages.Internal.Form.Validation viewField name ( maybeParsedA, errorsA )) =
     Pages.Internal.Form.Validation viewField
@@ -298,7 +319,7 @@ map mapFn (Pages.Internal.Form.Validation _ name ( maybeParsedA, errorsA )) =
 
 {-| Resolve a `Result` within a `Field`. If it is `Err`, the error will be added to the `Field`'s errors.
 -}
-fromResult : Field error (Result error parsed) kind -> Validation error parsed Never constraints
+fromResult : Field error (Result error parsed) kind -> Validation error parsed Never Never
 fromResult fieldResult =
     fieldResult
         |> andThen
