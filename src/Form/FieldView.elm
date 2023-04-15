@@ -274,7 +274,38 @@ inputStyled attrs (Validation viewField fieldName _) =
                 []
 
 
-{-| -}
+{-| Render an [`Options`](#Options) field as a [`select`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/select) element.
+
+    import Form.FieldView as FieldView
+
+    type Size
+        = Small
+        | Medium
+        | Large
+
+    dropdownView field =
+        FieldView.select []
+            (\size ->
+                ( -- we can optionally add HTML attributes here
+                  []
+                , sizeToString size
+                )
+            )
+            field
+
+    sizeToString : Size -> String
+    sizeToString size =
+        case size of
+            Small ->
+                "Small"
+
+            Medium ->
+                "Medium"
+
+            Large ->
+                "Large"
+
+-}
 select :
     List (Html.Attribute msg)
     ->
@@ -404,23 +435,69 @@ selectStyled selectAttrs enumToOption (Validation viewField fieldName _) =
         )
 
 
-{-| -}
+{-| Render an [`Options`](#Options) [`Field`](Form-Validation#Field) as a set of [`radio`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/radio) elements.
+
+Radio buttons are highly customizable. Even more so than dropdowns (`<select>` elements) because you can render HTML for each entry rather than just text.
+
+To render using this `radio` function, you pass in
+
+  - list of HTML attributes to add to the top-level `<fieldset>` that is rendered around the radio inputs.
+  - A function that gives you the option render, and a function to render the radio element itself given a list of HTML attributes.
+  - The `Options` Field to render the radio buttons for
+
+Example:
+
+    import Form.FieldView as FieldView
+    import Html
+
+    type Size
+        = Small
+        | Medium
+        | Large
+
+    dropdownView field =
+        Html.div []
+            [ FieldView.radio []
+                (\size toRadio ->
+                    Html.div []
+                        [ Html.label []
+                            [ Html.text (sizeToString size)
+                            , toRadio []
+                            ]
+                        ]
+                )
+                field
+            ]
+
+    sizeToString : Size -> String
+    sizeToString size =
+        case size of
+            Small ->
+                "Small"
+
+            Medium ->
+                "Medium"
+
+            Large ->
+                "Large"
+
+-}
 radio :
     List (Html.Attribute msg)
     ->
-        (parsed
+        (option
          -> (List (Html.Attribute msg) -> Html msg)
          -> Html msg
         )
-    -> Form.Validation.Field error parsed2 (Options parsed)
+    -> Form.Validation.Field error parsed2 (Options option)
     -> Html msg
 radio selectAttrs enumToOption (Validation viewField fieldName _) =
     let
-        justViewField : ViewField (Options parsed)
+        justViewField : ViewField (Options option)
         justViewField =
             viewField |> expectViewField
 
-        rawField : { name : String, value : Maybe String, kind : ( Options parsed, List ( String, Encode.Value ) ) }
+        rawField : { name : String, value : Maybe String, kind : ( Options option, List ( String, Encode.Value ) ) }
         rawField =
             { name = fieldName |> Maybe.withDefault ""
             , value = justViewField.value
@@ -440,7 +517,7 @@ radio selectAttrs enumToOption (Validation viewField fieldName _) =
             |> List.filterMap
                 (\possibleValue ->
                     let
-                        parsed : Maybe parsed
+                        parsed : Maybe option
                         parsed =
                             possibleValue
                                 |> parseValue
