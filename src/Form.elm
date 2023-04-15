@@ -187,6 +187,9 @@ to render the fields themselves, the rendering for everything besides the fields
 
 @docs renderHtml, renderStyledHtml
 
+
+## Render Options
+
 @docs Options, options
 
 @docs withInput, withAction, withOnSubmit, withServerResponse
@@ -1594,11 +1597,10 @@ statusRank status =
             3
 
 
-{-| -}
+{-| The Options for rendering a `Form`. You can build up `Options` by initializing the default Options with [`init`](#init)
+and then adding options with functions from [Render Options](#render-options) like [`withInput`](#withInput), [`withOnSubmit`](#withOnSubmit), etc.
+-}
 type alias Options error parsed input msg =
-    -- TODO have a way to override path?
-    -- TODO move method from Form options to here
-    --path : Path
     { id : String
     , action : Maybe String
     , method : Method
@@ -1828,7 +1830,14 @@ withAction action options_ =
     { options_ | action = Just action }
 
 
-{-| -}
+{-| An HTTP method to use for the form submission. The default when you build `Options` with [`Form.options`](#options) is `Post`.
+
+See <https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#method> for more about the default browser behavior.
+
+Note that the default browser behavior can be simulated with client-side code using progress enhancement principles, but
+you'll need to implement that yourself to get that same behavior unless you're using a framework that has it built in like `elm-pages`.
+
+-}
 type Method
     = Get
     | Post
@@ -1842,7 +1851,8 @@ withGetMethod options_ =
     { options_ | method = Get }
 
 
-{-| -}
+{-| Turn a `Method` into "GET" or "POST".
+-}
 methodToString : Method -> String
 methodToString method =
     case method of
@@ -1853,14 +1863,17 @@ methodToString method =
             "POST"
 
 
-{-| -}
+{-| The state for an individual form field. Since `elm-form` manages state for you, it tracks both the values and [`FieldStatus`](Form-Validation#FieldStatus)
+for all fields.
+-}
 type alias FieldState =
     { value : String
     , status : Form.Validation.FieldStatus
     }
 
 
-{-| -}
+{-| The state for an individual `Form`. [`Model`](#Model) is a `Dict String FormState`, so it can contain the state for multiple forms.
+-}
 type alias FormState =
     { fields : Dict String FieldState
     , submitAttempted : Bool
