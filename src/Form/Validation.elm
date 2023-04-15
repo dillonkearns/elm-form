@@ -310,7 +310,8 @@ mapToCombined mapFn (Pages.Internal.Form.Validation _ name ( maybeParsedA, error
     Pages.Internal.Form.Validation Nothing name ( Maybe.map mapFn maybeParsedA, errorsA )
 
 
-{-| -}
+{-| Resolve a `Result` within a `Field`. If it is `Err`, the error will be added to the `Field`'s errors.
+-}
 fromResult : Field error (Result error parsed) kind -> Combined error parsed
 fromResult fieldResult =
     fieldResult
@@ -353,7 +354,44 @@ andMap =
     map2 (|>)
 
 
-{-| -}
+{-| Continue a `Validation` based on the given `parsed` value.
+
+    import Date
+    import Form
+    import Form.Field as Field
+    import Form.Validation as Validation
+
+    example : Form.HtmlForm String { date : Date, nights : Int } input msg
+    example =
+        (\checkIn checkOut ->
+            { combine =
+                Validation.map2
+                    (\checkinValue checkoutValue ->
+                        Validation.succeed
+                            { date = checkinValue
+                            , nights = Date.toRataDie checkoutValue - Date.toRataDie checkinValue
+                            }
+                            |> Validation.withErrorIf (Date.toRataDie checkinValue >= Date.toRataDie checkoutValue) checkIn "Must be before checkout"
+                    )
+                    checkIn
+                    checkOut
+                    |> Validation.andThen identity
+            , view = \_ -> []
+            }
+        )
+            |> Form.form
+            |> Form.field "checkin"
+                (Field.date
+                    { invalid = \_ -> "Invalid" }
+                    |> Field.required "Required"
+                )
+            |> Form.field "checkout"
+                (Field.date
+                    { invalid = \_ -> "Invalid" }
+                    |> Field.required "Required"
+                )
+
+-}
 andThen : (parsed -> Validation error mapped named1 constraints1) -> Validation error parsed named2 constraints2 -> Combined error mapped
 andThen andThenFn (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors )) =
     case maybeParsed of
@@ -367,7 +405,26 @@ andThen andThenFn (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors )) =
             Pages.Internal.Form.Validation Nothing Nothing ( Nothing, errors )
 
 
-{-| -}
+{-| Combine together two `Validation`'s.
+
+    import Form
+    import Form.Field as Field
+    import Form.Validation as Validation
+
+    example =
+        (\first last ->
+            { combine =
+                Validation.map2 Tuple.pair
+                    first
+                    last
+            , view = \_ -> [{- ... -}]
+            }
+        )
+            |> Form.form
+            |> Form.field "first" (Field.text |> Field.required "Required")
+            |> Form.field "last" (Field.text |> Field.required "Required")
+
+-}
 map2 : (a -> b -> c) -> Validation error a named1 constraints1 -> Validation error b named2 constraints2 -> Combined error c
 map2 f (Pages.Internal.Form.Validation _ _ ( maybeParsedA, errorsA )) (Pages.Internal.Form.Validation _ _ ( maybeParsedB, errorsB )) =
     Pages.Internal.Form.Validation Nothing
