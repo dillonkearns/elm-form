@@ -1310,12 +1310,6 @@ withStep step (Internal.Field.Field info kind) =
     withStringProperty ( "step", String.fromInt step ) (Internal.Field.Field info kind)
 
 
-withFloatStep : Float -> Field error value input initial view { constraints | step : Float } -> Field error value input initial view constraints
-withFloatStep step (Internal.Field.Field info kind) =
-    -- TODO is this safe to expose? Can't safely check this validation, so maybe not?
-    withStringProperty ( "step", String.fromFloat step ) (Internal.Field.Field info kind)
-
-
 withStringProperty : ( String, String ) -> Field error parsed input initial kind constraints1 -> Field error parsed input initial kind constraints2
 withStringProperty ( key, value ) (Internal.Field.Field field kind) =
     Internal.Field.Field

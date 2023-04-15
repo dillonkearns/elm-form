@@ -246,7 +246,7 @@ import Dict exposing (Dict)
 import Form.Field as Field exposing (Field)
 import Form.FieldStatus
 import Form.FieldView
-import Form.Validation exposing (Validation)
+import Form.Validation
 import Html exposing (Html)
 import Html.Attributes as Attr
 import Html.Lazy
@@ -1461,21 +1461,6 @@ initSingle =
     { fields = Dict.empty
     , submitAttempted = False
     }
-
-
-{-| Usually it's easier to annotate your Form definitions with [`HtmlForm`](#HtmlForm) or [`StyledHtmlForm`](#StyledHtmlForm).
-
-This lower-level type alias is provided as well in case it's helpful. It locks in the type for `combine : ..., view ... }`.
-
--}
-type alias DoneForm error parsed input view =
-    Form
-        error
-        { combine : Validation error parsed Never Never
-        , view : Context error input -> view
-        }
-        parsed
-        input
 
 
 {-| A `Form` that renders to `elm/html`. Can be rendered with [`renderHtml`](#renderHtml).

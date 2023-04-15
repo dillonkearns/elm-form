@@ -235,12 +235,6 @@ value (Pages.Internal.Form.Validation _ _ ( maybeParsed, _ )) =
     maybeParsed
 
 
-{-| -}
-parseWithError : parsed -> ( String, error ) -> Validation error parsed kind constraints
-parseWithError parsed ( key, error ) =
-    Pages.Internal.Form.Validation Nothing Nothing ( Just parsed, Dict.singleton key [ error ] )
-
-
 {-| Add an error to the given `Field`, short-circuiting its parsed value so that it will fail to parse.
 This can be helpful if you want to fail with a value that you can combine together with other values because
 it has an unbound `parsed` type variable. Similar to how [`Json.Decode.fail`](https://package.elm-lang.org/packages/elm/json/latest/Json-Decode#fail)
