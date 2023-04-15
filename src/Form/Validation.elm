@@ -181,7 +181,8 @@ withFallback parsed (Pages.Internal.Form.Validation viewField name ( maybeParsed
         )
 
 
-{-| -}
+{-| Get the parsed value if it is parseable (could be either invalid or valid).
+-}
 value : Validation error parsed named constraint -> Maybe parsed
 value (Pages.Internal.Form.Validation _ _ ( maybeParsed, _ )) =
     maybeParsed
@@ -219,11 +220,25 @@ withErrorIf includeError (Pages.Internal.Form.Validation _ key _) error (Pages.I
         )
 
 
+{-| Apply a function to the parsed value.
 
---map : (parsed -> mapped) -> Validation error parsed named -> Validation error mapped named
+    import Form.Validation as Validation
 
+    type Uuid
+        = Uuid String
 
-{-| -}
+    example =
+        (\uuid ->
+            { combine =
+                Validation.succeed identity
+                    |> Validation.andMap (uuid |> Validation.map Uuid)
+            , view = \_ -> []
+            }
+        )
+            |> Form.form
+            |> Form.hiddenField "uuid" (Field.text |> Field.required "Required")
+
+-}
 map : (parsed -> mapped) -> Validation error parsed named constraint -> Validation error mapped named constraint
 map mapFn (Pages.Internal.Form.Validation _ name ( maybeParsedA, errorsA )) =
     Pages.Internal.Form.Validation Nothing name ( Maybe.map mapFn maybeParsedA, errorsA )
@@ -250,7 +265,27 @@ fromResult fieldResult =
             )
 
 
-{-| -}
+{-| Lets you combine Validation's in a pipeline.
+
+    import Form.Validation as Validation
+
+    example =
+        (\first middle last ->
+            { combine =
+                Validation.succeed
+                    (\first middle last ->
+                        first ++ " " ++ middle ++ " " ++ last
+                    )
+                    |> Validation.andMap first
+            , view = \_ -> []
+            }
+        )
+            |> Form.form
+            |> Form.field "first" (Field.text |> Field.required "Required")
+            |> Form.field "middle" (Field.text |> Field.required "Required")
+            |> Form.field "last" (Field.text |> Field.required "Required")
+
+-}
 andMap : Validation error a named1 constraints1 -> Validation error (a -> b) named2 constraints2 -> Combined error b
 andMap =
     map2 (|>)
