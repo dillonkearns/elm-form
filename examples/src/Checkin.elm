@@ -164,7 +164,7 @@ example =
             (Field.time
                 { invalid = \_ -> "Invalid" }
                 |> Field.required "Required"
-                |> Field.withMin { hours = 10, minutes = 0 } "Must be after today"
+                |> Field.withMin { hours = 10, minutes = 0, seconds = Nothing } "Must be after today"
             )
         |> Form.field "emailUpdates"
             Field.checkbox
