@@ -50,24 +50,42 @@ type alias Combined error parsed =
     Validation error parsed Never Never
 
 
-{-| -}
+{-| Represents a form field. This value is used for two purposes:
+
+  - Render - Turn the `Field` into a view using [`Form.FieldView`](Form-FieldView)
+  - Parse - Use the `Field` to compose together with other `Field`s into a Validation which can be used to parse into the desired data type or add validation errors
+
+You get a `Field` from the pipeline of fields defined using [`Form.field`](Form#field) and [`Form.hiddenField`](Form#hiddenField).
+
+This type is one of the key designs in this package. Because we can share this `Field` type between the view and the parsing,
+we don't need to use "stringly typed" values to refer to fields in our form in an error-prone way. Instead, we know that a
+`Field` represents a form field that we have defined for the given [`Form`](Form#Form). It's a little confusing that this `Field`
+type serves two purposes, but it allows us to have a safe way to reference a Form's fields, and doesn't require two
+declarations with a duplicate parameter list.
+
+See the [`Form`](Form) docs for more on how to use `Field`s to render your `Form`'s view and define its `combine` `Validation`.
+
+-}
 type alias Field error parsed kind =
     Validation error parsed kind { field : kind }
 
 
-{-| -}
+{-| A `Validation` represents a parsed value or a list of errors.
+-}
 type alias Validation error parsed kind constraints =
     Pages.Internal.Form.Validation error parsed kind constraints
 
 
-{-| -}
+{-| Get the `Field`'s name.
+-}
 fieldName : Field error parsed kind -> String
 fieldName (Pages.Internal.Form.Validation _ name _) =
     name
         |> Maybe.withDefault ""
 
 
-{-| -}
+{-| Get the `Field`'s [`FieldStatus`](#FieldStatus).
+-}
 fieldStatus : Field error parsed kind -> FieldStatus
 fieldStatus (Pages.Internal.Form.Validation viewField _ _) =
     viewField
@@ -76,7 +94,8 @@ fieldStatus (Pages.Internal.Form.Validation viewField _ _) =
         |> statusFromRank
 
 
-{-| -}
+{-| Mostly useful for debugging, you'll usually want to compare `FieldStatus` to other `FieldStatus` values or use helpers like [`statusAtLeast`](#statusAtLeast).
+-}
 fieldStatusToString : FieldStatus -> String
 fieldStatusToString status =
     case status of
@@ -99,7 +118,23 @@ statusAtLeast status field =
     (field |> fieldStatus |> statusRank) >= statusRank status
 
 
-{-| -}
+{-| `elm-form` manages the state of a form's fields, including `FieldStatus`.
+
+`FieldStatus` goes through the following states in this order, and never goes backwards (unless it is changed manually through the [`Form.Model`](Form#Model) value):
+
+1.  `NotVisited` - The initial `FieldStatus` for all fields. The field hasn't been changed or focused.
+2.  `Focused` - The field has been focused, but not changed or blurred.
+3.  `Changed` - The field has had an input event, but has not yet been blurred (lost focus).
+4.  `Blurred` - The field has been blurred (lost focus).
+
+You can use a [`Form`](Form#Form)'s `submitAttempted` state and/or a `Field`'s `FieldStatus` to decide when to render a `Field`'s validation errors.
+
+For example, you might choose to render a `Field`'s validation errors once `Field` has been `Blurred` so that the user doesn't see validation errors before they've had a chance
+to input a valid value (it can be an annoying user experience to get error feedback too early).
+
+See [`Form.errorsForField`](Form#errorsForField) for a common way to use a `Field`'s `FieldStatus`.
+
+-}
 type FieldStatus
     = NotVisited
     | Focused
