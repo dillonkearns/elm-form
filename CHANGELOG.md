@@ -8,4 +8,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to
 [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+
+
 ## [Unreleased]
+## [2.0.0] - 2023-04-17
+
+### Fixed
+
+- The type variable for `error` was mistakenly hardcoded as `String` in the `Form.form` function. This allows the `error` type to be any value (though it is usually a `String`).
+

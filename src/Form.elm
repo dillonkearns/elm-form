@@ -346,7 +346,7 @@ parameter for each field that comes after.
             |> Form.field "email" (Field.text |> Field.required "Required")
 
 -}
-form : combineAndView -> Form String combineAndView parsed input
+form : combineAndView -> Form error combineAndView parsed input
 form combineAndView =
     Internal.Form.Form
         []
