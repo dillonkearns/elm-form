@@ -11,6 +11,12 @@ and this project adheres to
 
 
 ## [Unreleased]
+## [2.0.1] - 2023-04-17
+
+### Added
+
+- Changed README to include an Ellie demo.
+
 ## [2.0.0] - 2023-04-17
 
 ### Fixed
