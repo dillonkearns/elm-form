@@ -37,9 +37,7 @@ Some of these underlying ideas were discussed in [the Elm Radio episode Explorin
 Many Elm form examples and APIs use the pattern of handling each changed field within
 the `update` function. [For example, `elm-spa-example` uses this pattern in the Settings route](https://github.com/rtfeldman/elm-spa-example/blob/cb32acd73c3d346d0064e7923049867d8ce67193/src/Page/Settings.elm#L210-L214) (and throughout the app).
 
-
 ❗️🛑 NOTE: This code below is NOT the pattern this package is built on ❗️🛑
-
 
 ```elm
 type alias Model =
@@ -76,7 +74,6 @@ each individual field. Here is [the same Settings route with `elm-pages` and `el
 ✅👇 NOTE: the code below is the wiring pattern we use in this package. ✅👇
 
 Instead of wiring in different Msg's and Model fields for each individual form field, the wiring in this package is done once for all form state like this:
-
 
 ```elm
 type Msg
