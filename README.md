@@ -3,10 +3,10 @@
 Live Ellie demo: <https://ellie-app.com/myVVqSVC2QZa1>
 
 `elm-form` is built around the idea
-of managing a single [`Form.Model`](https://package.elm-lang.org/packages/dillonkearns/elm-form/2.0.1/Form/#Model) value as an unparsed set of raw field values and [`FieldStatus` (blurred, changed, etc.)](https://package.elm-lang.org/packages/dillonkearns/elm-form/2.0.1/Form-Validation/#FieldStatus).
+of managing a single [`Form.Model`](https://package.elm-lang.org/packages/dillonkearns/elm-form/2.0.2/Form/#Model) value as an unparsed set of raw field values and [`FieldStatus` (blurred, changed, etc.)](https://package.elm-lang.org/packages/dillonkearns/elm-form/2.0.2/Form-Validation/#FieldStatus).
 This `Form.Model` can even handle form state of more than one form on a page, or even across multiple pages.
 The package manages all of the unparsed state for you with a single `Msg`, a single `Model` entry, and then
-uses your [`Form`](https://package.elm-lang.org/packages/dillonkearns/elm-form/2.0.1/Form/#Form) definition to run its validations against the unparsed values ([`Model`](https://package.elm-lang.org/packages/dillonkearns/elm-form/2.0.1/Form/#Model)),
+uses your [`Form`](https://package.elm-lang.org/packages/dillonkearns/elm-form/2.0.2/Form/#Form) definition to run its validations against the unparsed values ([`Model`](https://package.elm-lang.org/packages/dillonkearns/elm-form/2.0.2/Form/#Model)),
 and to render the form fields along with any validation errors.
 
 If you use `elm-form` with `elm-pages`, the wiring is built into the framework so you don't need to wire in `update` or `Model`
@@ -23,14 +23,14 @@ Some of these underlying ideas were discussed in [the Elm Radio episode Explorin
 
 ## Core Ideas
 
-- [`Form.Validation`](https://package.elm-lang.org/packages/dillonkearns/elm-form/2.0.1/Form-Validation/) lets you build up validations and parse fields into a combined value in the same pass (if you wanted to, you could even parse into a `Json.Encode.Value` or some payload to send to an API `onSubmit`)
-- [`Form.Field`](https://package.elm-lang.org/packages/dillonkearns/elm-form/2.0.1/Form-Field/) lets you declare the fields (in the applicative pipeline in the Form definition)
-- You can pass an input value when you render the form which can be used in rendering the view, and for getting initial values ([`withInitialValue`](https://package.elm-lang.org/packages/dillonkearns/elm-form/2.0.1/Form-Field/#withInitialValue))
+- [`Form.Validation`](https://package.elm-lang.org/packages/dillonkearns/elm-form/2.0.2/Form-Validation/) lets you build up validations and parse fields into a combined value in the same pass (if you wanted to, you could even parse into a `Json.Encode.Value` or some payload to send to an API `onSubmit`)
+- [`Form.Field`](https://package.elm-lang.org/packages/dillonkearns/elm-form/2.0.2/Form-Field/) lets you declare the fields (in the applicative pipeline in the Form definition)
+- You can pass an input value when you render the form which can be used in rendering the view, and for getting initial values ([`withInitialValue`](https://package.elm-lang.org/packages/dillonkearns/elm-form/2.0.2/Form-Field/#withInitialValue))
 
 ## Opinions
 
 - Forms are always rendered within a `<form>` element for accessibility, and to enable progressive enhancement
-- Fields are always rendered within a form field element of some kind (<input> or <textarea>). Rendering the view for Fields with the appropriate attributes is done by the [`Form.FieldView` module](https://package.elm-lang.org/packages/dillonkearns/elm-form/2.0.1/Form-FieldView/). It can be rendered as [`elm/html`](https://package.elm-lang.org/packages/elm/html/latest/) or [`elm-css`](https://package.elm-lang.org/packages/rtfeldman/elm-css/latest/) elements (since those are the two basic ways to render semantic HTML field tags, `<input>` and `<textarea>`). `elm-ui` doesn't currently have a way to render semantic HTML tags for forms (`<form>` tag), so there aren't any `elm-ui` helpers at the moment, though you can always render to `elm/html`.
+- Fields are always rendered within a form field element of some kind (<input> or <textarea>). Rendering the view for Fields with the appropriate attributes is done by the [`Form.FieldView` module](https://package.elm-lang.org/packages/dillonkearns/elm-form/2.0.2/Form-FieldView/). It can be rendered as [`elm/html`](https://package.elm-lang.org/packages/elm/html/latest/) or [`elm-css`](https://package.elm-lang.org/packages/rtfeldman/elm-css/latest/) elements (since those are the two basic ways to render semantic HTML field tags, `<input>` and `<textarea>`). `elm-ui` doesn't currently have a way to render semantic HTML tags for forms (`<form>` tag), so there aren't any `elm-ui` helpers at the moment, though you can always render to `elm/html`.
 
 ## Wiring
 
