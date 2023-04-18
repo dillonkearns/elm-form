@@ -448,14 +448,14 @@ time toError =
                             if parsedRaw.hours == value.hours then
                                 if parsedRaw.minutes == value.minutes then
                                     Basics.compare
-                                        (parsedRaw.seconds |> Maybe.withDefault 0)
                                         (value.seconds |> Maybe.withDefault 0)
+                                        (parsedRaw.seconds |> Maybe.withDefault 0)
 
                                 else
-                                    Basics.compare parsedRaw.minutes value.minutes
+                                    Basics.compare value.minutes parsedRaw.minutes
 
                             else
-                                Basics.compare parsedRaw.hours value.hours
+                                Basics.compare value.hours parsedRaw.hours
                         )
                     |> Result.withDefault LT
         }
@@ -766,7 +766,7 @@ int toError =
             \raw value ->
                 case String.toInt raw of
                     Just parsed ->
-                        Basics.compare parsed value
+                        Basics.compare value parsed
 
                     _ ->
                         LT
@@ -1168,7 +1168,7 @@ withMin min error (Internal.Field.Field field kind) =
 
                                     else
                                         case field.compare (value |> Maybe.withDefault "") min of
-                                            LT ->
+                                            GT ->
                                                 ( Just okValue, error :: errors )
 
                                             _ ->
@@ -1283,7 +1283,7 @@ withMax max error (Internal.Field.Field field kind) =
 
                                     else
                                         case field.compare (value |> Maybe.withDefault "") max of
-                                            GT ->
+                                            LT ->
                                                 ( Just okValue, error :: errors )
 
                                             _ ->

@@ -368,6 +368,143 @@ all =
                         |> Expect.equal
                             (Valid (ParsedLink "https://elm-radio.com/episode/wrap-early-unwrap-late"))
             ]
+        , describe "min/max validations" <|
+            let
+                minMaxForm : DoneForm String () input ()
+                minMaxForm =
+                    Form.form
+                        (\date time int float range text ->
+                            { combine = Validation.succeed ()
+                            , view = \_ -> ()
+                            }
+                        )
+                        |> Form.field "date"
+                            (Field.date { invalid = \_ -> "Invalid" }
+                                |> Field.required "Required"
+                                |> Field.withMin (Date.fromRataDie 738157) ("Must be on or after " ++ (Date.fromRataDie 738157 |> Date.toIsoString))
+                                |> Field.withMax (Date.fromRataDie 738167) ("Must be on or before " ++ (Date.fromRataDie 738167 |> Date.toIsoString))
+                            )
+                        |> Form.field "time"
+                            (Field.time { invalid = \_ -> "Invalid" }
+                                |> Field.withMin { hours = 10, minutes = 0, seconds = Nothing } "Must be at 10:00am or later"
+                                |> Field.withMax { hours = 12, minutes = 0, seconds = Nothing } "Must be at 12:00pm or earlier"
+                                |> Field.required "Required"
+                            )
+                        |> Form.field "int"
+                            (Field.int { invalid = \_ -> "Invalid" }
+                                |> Field.withMin 10 "Must be 10 or more"
+                                |> Field.withMax 100 "Must be 100 or less"
+                                |> Field.required "Required"
+                            )
+                        |> Form.field "float"
+                            (Field.int { invalid = \_ -> "Invalid" }
+                                |> Field.withMin 10 "Must be 10 or more"
+                                |> Field.withMax 100 "Must be 100 or less"
+                                |> Field.required "Required"
+                            )
+                        |> Form.field "range"
+                            (Field.range
+                                { min = 10
+                                , max = 100
+                                , missing = "Required"
+                                , invalid = Debug.toString
+                                }
+                                (Field.int { invalid = \_ -> "Invalid" })
+                            )
+                        |> Form.field "text"
+                            (Field.text
+                                |> Field.required "Required"
+                                |> Field.withMinLength 5 "Must be 5 characters or more"
+                                |> Field.withMaxLength 10 "Must be 10 characters or less"
+                            )
+            in
+            [ test "below min" <|
+                \() ->
+                    Form.Handler.run
+                        (fields
+                            [ ( "date", "2022-01-01" )
+                            , ( "time", "9:00" )
+                            , ( "int", "9" )
+                            , ( "float", "9" )
+                            , ( "range", "9" )
+                            , ( "text", "1234" )
+                            ]
+                        )
+                        (minMaxForm
+                            |> Form.Handler.init identity
+                        )
+                        |> Expect.equal
+                            (Invalid (Just ())
+                                (Dict.fromList
+                                    [ ( "date", [ "Must be on or after 2022-01-02" ] )
+                                    , ( "time", [ "Must be at 10:00am or later" ] )
+                                    , ( "int", [ "Must be 10 or more" ] )
+                                    , ( "float", [ "Must be 10 or more" ] )
+                                    , ( "range", [ "BelowRange" ] )
+                                    , ( "text", [ "Must be 5 characters or more" ] )
+                                    ]
+                                )
+                            )
+            , test "above max" <|
+                \() ->
+                    Form.Handler.run
+                        (fields
+                            [ ( "date", "2022-01-13" )
+                            , ( "time", "12:01" )
+                            , ( "int", "101" )
+                            , ( "float", "101" )
+                            , ( "range", "101" )
+                            , ( "text", "12345678901" )
+                            ]
+                        )
+                        (minMaxForm
+                            |> Form.Handler.init identity
+                        )
+                        |> Expect.equal
+                            (Invalid (Just ())
+                                (Dict.fromList
+                                    [ ( "date", [ "Must be on or before 2022-01-12" ] )
+                                    , ( "time", [ "Must be at 12:00pm or earlier" ] )
+                                    , ( "int", [ "Must be 100 or less" ] )
+                                    , ( "float", [ "Must be 100 or less" ] )
+                                    , ( "range", [ "AboveRange" ] )
+                                    , ( "text", [ "Must be 10 characters or less" ] )
+                                    ]
+                                )
+                            )
+            , test "min valid" <|
+                \() ->
+                    Form.Handler.run
+                        (fields
+                            [ ( "date", "2022-01-02" )
+                            , ( "time", "10:00" )
+                            , ( "int", "10" )
+                            , ( "float", "10" )
+                            , ( "range", "10" )
+                            , ( "text", "12345" )
+                            ]
+                        )
+                        (minMaxForm
+                            |> Form.Handler.init identity
+                        )
+                        |> Expect.equal (Valid ())
+            , test "max valid" <|
+                \() ->
+                    Form.Handler.run
+                        (fields
+                            [ ( "date", "2022-01-12" )
+                            , ( "time", "12:00" )
+                            , ( "int", "100" )
+                            , ( "float", "100" )
+                            , ( "range", "100" )
+                            , ( "text", "1234567890" )
+                            ]
+                        )
+                        (minMaxForm
+                            |> Form.Handler.init identity
+                        )
+                        |> Expect.equal (Valid ())
+            ]
         ]
 
 
