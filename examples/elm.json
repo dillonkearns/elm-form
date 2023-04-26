@@ -26,11 +26,18 @@
     },
     "test-dependencies": {
         "direct": {
-            "elm-explorations/test": "2.1.1"
+            "avh4/elm-program-test": "4.0.0",
+            "elm-explorations/test": "2.1.1",
+            "elm/http": "2.0.0"
         },
         "indirect": {
+            "avh4/elm-fifo": "1.0.4",
             "elm/bytes": "1.0.8",
-            "elm/random": "1.0.0"
+            "elm/file": "1.0.5",
+            "elm/random": "1.0.0",
+            "elm-community/list-extra": "8.7.0",
+            "hecrj/html-parser": "2.4.0",
+            "mgold/elm-nonempty-list": "4.2.0"
         }
     }
 }
