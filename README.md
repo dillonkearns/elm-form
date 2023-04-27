@@ -134,7 +134,7 @@ type alias SignUpForm =
     { username : String, password : String }
 
 
-signUpForm : Form.HtmlForm String SignUpForm input
+signUpForm : Form.HtmlForm String SignUpForm input msg
 signUpForm =
     (\username password passwordConfirmation ->
         { combine =
