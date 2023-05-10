@@ -125,7 +125,7 @@ formView model =
         , toMsg = FormMsg
         }
         (Form.options "form"
-            |> Form.withOnSubmit OnSubmit
+            |> Form.withOnSubmit (\{parsed} -> OnSubmit parsed)
         )
         []
 
@@ -135,7 +135,7 @@ type alias SignUpForm =
     { username : String, password : String }
 
 
-signUpForm : Form.HtmlForm String SignUpForm input
+signUpForm : Form.HtmlForm String SignUpForm input msg
 signUpForm =
     (\username password passwordConfirmation ->
         { combine =
