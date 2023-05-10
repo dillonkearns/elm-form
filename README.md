@@ -78,6 +78,7 @@ Instead of wiring in different Msg's and Model fields for each individual form f
 ```elm
 type Msg
     = FormMsg (Form.Msg Msg)
+    | OnSubmit (Form.Validated String SignUpForm)
     -- | ... Other Msg's for your app
 
 type alias Model =
