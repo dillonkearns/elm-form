@@ -98,7 +98,7 @@ init flags =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        OnSubmit { parsed } ->
+        OnSubmit parsed ->
             case parsed of
                 Form.Valid signUpData ->
                     ( { model | submitting = True }
