@@ -1044,7 +1044,7 @@ renderHtml :
     , state : Model
     , toMsg : Msg mappedMsg -> mappedMsg
     }
-    -> Options error parsed input mappedMsg
+    -> Options error parsed input mappedMsg extras
     -> List (Html.Attribute mappedMsg)
     ->
         Form
@@ -1079,7 +1079,7 @@ renderStyledHtml :
     , state : Model
     , toMsg : Msg mappedMsg -> mappedMsg
     }
-    -> Options error parsed input mappedMsg
+    -> Options error parsed input mappedMsg extras
     -> List (Html.Styled.Attribute mappedMsg)
     ->
         Form
@@ -1116,7 +1116,7 @@ renderHelper :
     , state : Model
     , toMsg : Msg mappedMsg -> mappedMsg
     }
-    -> Options error parsed input mappedMsg
+    -> Options error parsed input mappedMsg extras
     -> List (Html.Attribute mappedMsg)
     ->
         Form
@@ -1193,7 +1193,7 @@ renderStyledHelper :
     , state : Model
     , toMsg : Msg mappedMsg -> mappedMsg
     }
-    -> Options error parsed input mappedMsg
+    -> Options error parsed input mappedMsg extras
     -> List (Html.Styled.Attribute mappedMsg)
     ->
         Form
@@ -1268,7 +1268,7 @@ renderStyledHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_
 
 
 helperValues :
-    Options error parsed input mappedMsg
+    Options error parsed input mappedMsg extras
     -> (List (Html.Attribute mappedMsg) -> view)
     ->
         { submitting : Bool
@@ -1730,7 +1730,7 @@ statusRank status =
 {-| The Options for rendering a `Form`. You can build up `Options` by initializing the default Options with [`init`](#init)
 and then adding options with functions from [Render Options](#render-options) like [`withInput`](#withInput), [`withOnSubmit`](#withOnSubmit), etc.
 -}
-type alias Options error parsed input msg =
+type alias Options error parsed input msg extras =
     { id : String
     , action : Maybe String
     , method : Method
@@ -1741,6 +1741,7 @@ type alias Options error parsed input msg =
              -> msg
             )
     , serverResponse : Maybe (ServerResponse error)
+    , extras : Maybe extras
     }
 
 
@@ -1765,7 +1766,7 @@ For example,
             |> Html.div []
 
 -}
-options : String -> Options error parsed () msg
+options : String -> Options error parsed () msg extras
 options id =
     { id = id
     , action = Nothing
@@ -1773,6 +1774,7 @@ options id =
     , input = ()
     , onSubmit = Nothing
     , serverResponse = Nothing
+    , extras = Nothing
     }
 
 
@@ -1788,7 +1790,7 @@ be sure to wire in a `ServerResponse` so that the form state is persisted in the
 You can also use this `ServerResponse` to send down server-side errors, especially if you are using full-stack Elm.
 
 -}
-withServerResponse : Maybe (ServerResponse error) -> Options error parsed input msg -> Options error parsed input msg
+withServerResponse : Maybe (ServerResponse error) -> Options error parsed input msg extras -> Options error parsed input msg extras
 withServerResponse serverResponse options_ =
     { options_ | serverResponse = serverResponse }
 
@@ -1869,7 +1871,7 @@ One example where you would use an `input` value is if you have an existing User
         ]
 
 -}
-withInput : input -> Options error parsed () msg -> Options error parsed input msg
+withInput : input -> Options error parsed () msg extras -> Options error parsed input msg extras
 withInput input options_ =
     { id = options_.id
     , action = options_.action
@@ -1877,6 +1879,7 @@ withInput input options_ =
     , onSubmit = options_.onSubmit
     , serverResponse = options_.serverResponse
     , method = options_.method
+    , extras = options_.extras
     }
 
 
@@ -1935,7 +1938,7 @@ an example ot illustrate this general pattern, but consider the best types for y
             |> Form.field "email" (Field.text |> Field.required "Required")
 
 -}
-withOnSubmit : ({ fields : List ( String, String ), method : Method, action : String, parsed : Validated error parsed } -> msg) -> Options error parsed input oldMsg -> Options error parsed input msg
+withOnSubmit : ({ fields : List ( String, String ), method : Method, action : String, parsed : Validated error parsed } -> msg) -> Options error parsed input oldMsg extras -> Options error parsed input msg extras
 withOnSubmit onSubmit options_ =
     { id = options_.id
     , action = options_.action
@@ -1943,6 +1946,7 @@ withOnSubmit onSubmit options_ =
     , onSubmit = Just onSubmit
     , serverResponse = options_.serverResponse
     , method = options_.method
+    , extras = options_.extras
     }
 
 
@@ -1955,7 +1959,7 @@ then the form submission will go to the given URL. If you are attempting to use 
 See also <https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#action>.
 
 -}
-withAction : String -> Options error parsed input msg -> Options error parsed input msg
+withAction : String -> Options error parsed input msg extras -> Options error parsed input msg extras
 withAction action options_ =
     { options_ | action = Just action }
 
@@ -1976,7 +1980,7 @@ type Method
 {-| The default Method from `options` is `Post` since that is the most common. The `Get` Method for form submissions will add the form fields as a query string and navigate to that route using a GET.
 You will need to progressively enhance your onSubmit to simulate this browser behavior if you want something similar, or use a framework that has this simulation built in like `elm-pages`.
 -}
-withGetMethod : Options error parsed input msg -> Options error parsed input msg
+withGetMethod : Options error parsed input msg extras -> Options error parsed input msg extras
 withGetMethod options_ =
     { options_ | method = Get }
 
