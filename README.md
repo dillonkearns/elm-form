@@ -78,6 +78,7 @@ Instead of wiring in different Msg's and Model fields for each individual form f
 ```elm
 type Msg
     = FormMsg (Form.Msg Msg)
+    | OnSubmit (Form.Validated String SignUpForm)
     -- | ... Other Msg's for your app
 
 type alias Model =
@@ -97,7 +98,7 @@ init flags =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        OnSubmit { parsed } ->
+        OnSubmit parsed ->
             case parsed of
                 Form.Valid signUpData ->
                     ( { model | submitting = True }
@@ -124,7 +125,7 @@ formView model =
         , toMsg = FormMsg
         }
         (Form.options "form"
-            |> Form.withOnSubmit OnSubmit
+            |> Form.withOnSubmit (\{parsed} -> OnSubmit parsed)
         )
         []
 
@@ -134,7 +135,7 @@ type alias SignUpForm =
     { username : String, password : String }
 
 
-signUpForm : Form.HtmlForm String SignUpForm input
+signUpForm : Form.HtmlForm String SignUpForm input msg
 signUpForm =
     (\username password passwordConfirmation ->
         { combine =
