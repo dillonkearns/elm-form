@@ -124,16 +124,7 @@ to render the fields themselves, the rendering for everything besides the fields
         Field.text
             |> Field.password
             |> Field.required "Required"
-            |> Field.withClientValidation
-                (\password ->
-                    ( Just password
-                    , if String.length password < 4 then
-                        [ "Must be at least 4 characters" ]
-
-                      else
-                        []
-                    )
-                )
+            |> Field.withMinLength 4 "Must be at least 4 characters"
 
     fieldView :
         Form.Context String input
