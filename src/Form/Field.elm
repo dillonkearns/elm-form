@@ -827,7 +827,7 @@ float toError =
             \raw value ->
                 case String.toFloat raw of
                     Just parsed ->
-                        Basics.compare parsed value
+                        Basics.compare value parsed
 
                     _ ->
                         LT
