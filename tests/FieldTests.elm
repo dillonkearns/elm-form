@@ -5,10 +5,12 @@ import Expect
 import Form.Field as Field
 import Internal.Field exposing (Field(..))
 import Test exposing (Test, test)
+import Test exposing (describe)
 
 
-all : List Test
+all : Test
 all =
+    describe "Field Parser" <|
     [ test "options" <|
         \() ->
             (Field.select
@@ -146,6 +148,37 @@ all =
                     [ ( Just "", Ok Nothing )
                     , ( Nothing, Ok Nothing )
                     , ( Just "13:45", Ok (Just { hours = 13, minutes = 45, seconds = Nothing }) )
+                    ]
+    , test "required password with policy" <|
+        \() ->
+            let
+                policy p =
+                    let
+                        getErrors =
+                            List.map Tuple.second <|
+                                List.filter Tuple.first
+                                    [ ( String.length (String.filter Char.isLower p) < 3, "Must contain at least 3 lower case letters (a-z)" )
+                                    , ( String.length (String.filter Char.isUpper p) < 3, "Must contain at least 3 upper case letters (A-Z)" )
+                                    , ( String.length (String.filter Char.isDigit p) < 3, "Must contain at least 3 numbers (i.e. 0-9)" )
+                                    ]
+                    in
+                    case getErrors of
+                        [] ->
+                            Ok p
+
+                        errors ->
+                            Err errors
+
+            in
+            Field.text
+                |> Field.password
+                |> Field.required "Required"
+                |> Field.validateMap policy
+                |> expect
+                    [ ( Just "ABC", Err [ "Must contain at least 3 lower case letters (a-z)", "Must contain at least 3 numbers (i.e. 0-9)" ] )
+                    , ( Just "abc", Err [ "Must contain at least 3 upper case letters (A-Z)", "Must contain at least 3 numbers (i.e. 0-9)" ] )
+                    , ( Just "123", Err [ "Must contain at least 3 lower case letters (a-z)", "Must contain at least 3 upper case letters (A-Z)"] )
+                    , ( Just "abcABC123", Ok "abcABC123" )
                     ]
     ]
 

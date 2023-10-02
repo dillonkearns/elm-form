@@ -1088,7 +1088,7 @@ map mapFn field_ =
               Username string |> Ok
 
 -}
-validateMap : (parsed -> Result error mapped) -> Field error parsed input initial kind constraints -> Field error mapped input initial kind { constraints | wasMapped : Yes }
+validateMap : (parsed -> Result (List error) mapped) -> Field error parsed input initial kind constraints -> Field error mapped input initial kind { constraints | wasMapped : Yes }
 validateMap mapFn (Internal.Field.Field field kind) =
     validateMap_
         (\parsed ->
@@ -1096,8 +1096,8 @@ validateMap mapFn (Internal.Field.Field field kind) =
                 Ok mapped ->
                     ( Just mapped, [] )
 
-                Err error ->
-                    ( Nothing, [ error ] )
+                Err errors ->
+                    ( Nothing, errors )
         )
         (Internal.Field.Field field kind)
 
