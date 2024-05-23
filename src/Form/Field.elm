@@ -720,7 +720,7 @@ Floating point numbers will give a validation error, using the error value passe
     import Form.Field as Field
 
     example =
-        Field.number
+        Field.int
             { invalid =
                 \value -> "Must be an integer"
             }
@@ -782,7 +782,7 @@ It will give a validation error if the input is not a number, using the error va
     import Form.Field as Field
 
     example =
-        Field.number
+        Field.float
             { invalid =
                 \value -> "Must be a number"
             }
