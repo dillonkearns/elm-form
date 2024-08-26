@@ -10,6 +10,10 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [3.0.1] - 2024-08-26
+
+- Fix crash in case where status is compared for global field, fixes [#16](https://github.com/dillonkearns/elm-form/issues/16).
+
 ## [2.0.2] - 2023-04-18
 
 ### Fixed
