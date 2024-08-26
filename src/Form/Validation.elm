@@ -88,8 +88,8 @@ fieldName (Pages.Internal.Form.Validation _ name _) =
 fieldStatus : Field error parsed kind -> FieldStatus
 fieldStatus (Pages.Internal.Form.Validation viewField _ _) =
     viewField
-        |> expectViewField
-        |> .status
+        |> Maybe.map .status
+        |> Maybe.withDefault 0
         |> statusFromRank
 
 
