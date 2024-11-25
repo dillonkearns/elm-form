@@ -1574,7 +1574,9 @@ type alias Model =
     Dict String FormState
 
 
-{-| Initialize the [`Form.Model`](Form#Model).
+{-| Initialize an empty form model. This managed state for [`Form.Model`](Form#Model).
+
+Note: Most applications should only need a single `Form.Model` in their application.
 
     import Form
 

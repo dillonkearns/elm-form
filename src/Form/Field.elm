@@ -85,7 +85,7 @@ does two things:
 
 1.  Sets display options for the browser to display the field with [`<input type="date">`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/date).
 
-2.  Parses into an Elm value of type [`Date`](https://package.elm-lang.org/packages/justinmimbs/date/latest/Date#Date) (or a validation error if the format isn't invalid).
+2.  Parses into an Elm value of type [`Date`](https://package.elm-lang.org/packages/justinmimbs/date/latest/Date#Date) (or a validation error if the format is invalid).
 
 Why would the date format be invalid if it is managed by the Browser's date picker element? In the happy path on the Browser this will never happen.
 
@@ -220,7 +220,7 @@ type No
     = No Never
 
 
-{-| Gives a validation error for fields that haven't been set, and removes the `Maybe` around the parsed value.
+{-| Gives a validation error for fields that have not been set, and removes the `Maybe` around the parsed value.
 
     example =
         Field.int { invalid = \_ -> "Invalid" }
@@ -854,7 +854,7 @@ telephone (Internal.Field.Field field _) =
         (Internal.Input.Input Internal.Input.Tel)
 
 
-{-| Modifier for [`text`](#text) Field. This changes the display of the Field to a password input (`<input type="search">`).
+{-| Modifier for [`text`](#text) Field. This changes the display of the Field to a search input (`<input type="search">`).
 On mobile devices, this will display a keyboard with a search button.
 
 See <https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/search>.
@@ -972,7 +972,7 @@ textarea options (Internal.Field.Field field _) =
     Internal.Field.Field field (Internal.Input.Input (Internal.Input.Textarea options))
 
 
-{-| Used for errors from a [`range`](#range) Field.
+{-| Used for validation errors from a [`range`](#range) Field.
 -}
 type OutsideRange
     = AboveRange
