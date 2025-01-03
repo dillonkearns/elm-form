@@ -367,6 +367,21 @@ all =
                         (dependentParser |> Form.Handler.init identity)
                         |> Expect.equal
                             (Valid (ParsedLink "https://elm-radio.com/episode/wrap-early-unwrap-late"))
+            , test "includes dynamic form errors" <|
+                \() ->
+                    Form.Handler.run
+                        (fields
+                            [ ( "kind", "link" )
+                            ]
+                        )
+                        (dependentParser |> Form.Handler.init identity)
+                        |> Expect.equal
+                            (Invalid Nothing
+                                (Dict.fromList
+                                    [ ( "url", [ "Required" ] )
+                                    ]
+                                )
+                            )
             ]
         , describe "min/max validations" <|
             let
