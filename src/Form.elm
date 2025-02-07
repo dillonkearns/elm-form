@@ -486,6 +486,10 @@ dynamic forms (Internal.Form.Form _ parseFn _) =
                             -- TODO need to include hidden form fields from `definitions` (should they be automatically rendered? Does that mean the view type needs to be hardcoded?)
                             parseFn2 maybeData formState
 
+                toResult2 : decider -> Dict String (List error)
+                toResult2 decider =
+                    decider |> toParser |> .result
+
                 myFn :
                     { result : Dict String (List error)
                     , isMatchCandidate : Bool
@@ -504,9 +508,30 @@ dynamic forms (Internal.Form.Form _ parseFn _) =
                         arg : { combine : decider -> Validation error parsed named constraints1, view : decider -> subView }
                         arg =
                             { combine =
-                                toParser
-                                    >> .combineAndView
-                                    >> .combine
+                                \decider ->
+                                    decider
+                                        |> toParser
+                                        |> .combineAndView
+                                        |> .combine
+                                        |> (\(Validation a b ( maybeParsed, errors )) ->
+                                                Validation a
+                                                    b
+                                                    ( maybeParsed
+                                                    , Dict.merge
+                                                        (\key entries soFar ->
+                                                            soFar |> insertIfNonempty key entries
+                                                        )
+                                                        (\key entries1 entries2 soFar ->
+                                                            soFar |> insertIfNonempty key (entries1 ++ entries2)
+                                                        )
+                                                        (\key entries soFar ->
+                                                            soFar |> insertIfNonempty key entries
+                                                        )
+                                                        errors
+                                                        (toResult2 decider)
+                                                        Dict.empty
+                                                    )
+                                           )
                             , view =
                                 \decider ->
                                     decider
