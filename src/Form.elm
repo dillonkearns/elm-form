@@ -468,7 +468,7 @@ dynamic :
             combineAndView
             parsed
             input
-dynamic forms formBuilder =
+dynamic forms (Internal.Form.Form _ parseFn _) =
     Internal.Form.Form
         []
         (\maybeData formState ->
@@ -482,9 +482,9 @@ dynamic forms formBuilder =
                         }
                 toParser decider =
                     case forms decider of
-                        Internal.Form.Form _ parseFn _ ->
+                        Internal.Form.Form _ parseFn2 _ ->
                             -- TODO need to include hidden form fields from `definitions` (should they be automatically rendered? Does that mean the view type needs to be hardcoded?)
-                            parseFn maybeData formState
+                            parseFn2 maybeData formState
 
                 myFn :
                     { result : Dict String (List error)
@@ -499,9 +499,7 @@ dynamic forms formBuilder =
                             , combineAndView : { combine : decider -> Validation error parsed named constraints1, view : decider -> subView } -> combineAndView
                             }
                         newThing =
-                            case formBuilder of
-                                Internal.Form.Form _ parseFn _ ->
-                                    parseFn maybeData formState
+                            parseFn maybeData formState
 
                         arg : { combine : decider -> Validation error parsed named constraints1, view : decider -> subView }
                         arg =
@@ -517,10 +515,8 @@ dynamic forms formBuilder =
                                         |> .view
                             }
                     in
-                    { result =
-                        newThing.result
-                    , combineAndView =
-                        newThing.combineAndView arg
+                    { result = newThing.result
+                    , combineAndView = newThing.combineAndView arg
                     , isMatchCandidate = newThing.isMatchCandidate
                     }
             in
