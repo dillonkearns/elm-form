@@ -19,6 +19,21 @@ type Action
     | SetQuantity ( Uuid, Int )
 
 
+type UserAdminFormType
+    = UserForm
+    | AdminForm
+
+
+type EmployeeContractorFormType
+    = EmployeeForm
+    | ContractorForm
+
+
+type EmployeeContractorFormType2
+    = EmployeeForm2
+    | ContractorForm2
+
+
 type alias DoneForm error parsed input view =
     Form.Form
         error
@@ -367,6 +382,21 @@ all =
                         (dependentParser |> Form.Handler.init identity)
                         |> Expect.equal
                             (Valid (ParsedLink "https://elm-radio.com/episode/wrap-early-unwrap-late"))
+            , test "includes dynamic form errors" <|
+                \() ->
+                    Form.Handler.run
+                        (fields
+                            [ ( "kind", "link" )
+                            ]
+                        )
+                        (dependentParser |> Form.Handler.init identity)
+                        |> Expect.equal
+                            (Invalid Nothing
+                                (Dict.fromList
+                                    [ ( "url", [ "Required" ] )
+                                    ]
+                                )
+                            )
             ]
         , describe "min/max validations" <|
             let
@@ -505,7 +535,566 @@ all =
                         )
                         |> Expect.equal (Valid ())
             ]
+        , describe "Dynamic form error scenarios" <|
+            let
+                -- Test form with dynamic sub-forms that can have both field errors and validation errors
+                dynamicFormWithErrors : DoneForm String String input MyView
+                dynamicFormWithErrors =
+                    Form.form
+                        (\formType subForm ->
+                            { combine =
+                                formType
+                                    |> Validation.andThen subForm.combine
+                            , view = \_ -> Div
+                            }
+                        )
+                        |> Form.field "formType"
+                            (Field.select
+                                [ ( "user", UserForm )
+                                , ( "admin", AdminForm )
+                                ]
+                                (\_ -> "Invalid form type")
+                                |> Field.required "Form type is required"
+                            )
+                        |> Form.dynamic
+                            (\parsedType ->
+                                case parsedType of
+                                    UserForm ->
+                                        userForm
+
+                                    AdminForm ->
+                                        adminForm
+                            )
+            in
+            [ describe "Initial form errors AND follow-up form errors in final result" <|
+                [ test "User form with errors in both initial and follow-up forms" <|
+                    \() ->
+                        Form.Handler.run
+                            (fields
+                                [ ( "formType", "user" )
+                                , ( "username", "ab" ) -- Too short (follow-up form validation error)
+                                , ( "email", "invalid-email" ) -- Invalid email (follow-up form validation error)
+                                , ( "age", "16" ) -- Too young (follow-up form validation error)
+                                ]
+                            )
+                            (dynamicFormWithErrors |> Form.Handler.init identity)
+                            |> Expect.equal
+                                (Invalid Nothing
+                                    (Dict.fromList
+                                        [ ( "username", [ "Username too short" ] ) -- Follow-up form validation error
+                                        , ( "email", [ "Invalid email format" ] ) -- Follow-up form validation error
+                                        , ( "age", [ "Must be 18 or older" ] ) -- Follow-up form validation error
+                                        ]
+                                    )
+                                )
+                , test "Admin form with errors in both initial and follow-up forms" <|
+                    \() ->
+                        Form.Handler.run
+                            (fields
+                                [ ( "formType", "admin" )
+                                , ( "adminCode", "WRONG123" ) -- Invalid code (follow-up form validation error)
+                                , ( "permissions", "ab" ) -- Too short permissions (follow-up form validation error)
+                                , ( "level", "3" ) -- Too low level (follow-up form validation error)
+                                ]
+                            )
+                            (dynamicFormWithErrors |> Form.Handler.init identity)
+                            |> Expect.equal
+                                (Invalid Nothing
+                                    (Dict.fromList
+                                        [ ( "adminCode", [ "Invalid admin code" ] ) -- Follow-up form validation error
+                                        , ( "permissions", [ "Permissions must be at least 3 characters" ] ) -- Follow-up form validation error
+                                        , ( "level", [ "Admin level must be 5 or higher" ] ) -- Follow-up form validation error
+                                        ]
+                                    )
+                                )
+                , test "Multiple field errors in initial form, multiple validation errors in follow-up" <|
+                    \() ->
+                        Form.Handler.run
+                            (fields
+                                [ ( "formType", "user" )
+
+                                -- Missing username and email (multiple initial form errors)
+                                , ( "age", "15" ) -- Too young (follow-up form validation error)
+                                ]
+                            )
+                            (dynamicFormWithErrors |> Form.Handler.init identity)
+                            |> Expect.equal
+                                (Invalid Nothing
+                                    (Dict.fromList
+                                        [ ( "email", [ "Email required" ] ) -- Initial form error
+                                        , ( "username", [ "Username required" ] ) -- Initial form error
+                                        ]
+                                    )
+                                )
+                ]
+            , describe "Validation errors in combine with permutations of initial and follow-up forms" <|
+                let
+                    -- Form with complex validation that combines multiple field and validation errors
+                    complexValidationForm : DoneForm String String input MyView
+                    complexValidationForm =
+                        Form.form
+                            (\formType subForm ->
+                                { combine =
+                                    formType
+                                        |> Validation.andThen subForm.combine
+                                , view = \_ -> Div
+                                }
+                            )
+                            |> Form.field "formType"
+                                (Field.select
+                                    [ ( "employee", EmployeeForm )
+                                    , ( "contractor", ContractorForm )
+                                    ]
+                                    (\_ -> "Invalid form type")
+                                    |> Field.required "Form type is required"
+                                )
+                            |> Form.dynamic
+                                (\parsedType ->
+                                    case parsedType of
+                                        EmployeeForm ->
+                                            employeeForm
+
+                                        ContractorForm ->
+                                            contractorForm
+                                )
+                in
+                [ test "Employee form with validation errors only in follow-up form" <|
+                    \() ->
+                        Form.Handler.run
+                            (fields
+                                [ ( "formType", "employee" )
+                                , ( "name", "John" )
+                                , ( "department", "Intern" )
+                                , ( "salary", "150000" ) -- High salary for intern (validation error)
+                                , ( "startDate", "2024-01-01" )
+                                ]
+                            )
+                            (complexValidationForm |> Form.Handler.init identity)
+                            |> Expect.equal
+                                (Invalid Nothing
+                                    (Dict.fromList
+                                        [ ( "salary", [ "Interns cannot earn more than $100,000" ] )
+                                        ]
+                                    )
+                                )
+                , test "Contractor form with validation errors only in follow-up form" <|
+                    \() ->
+                        Form.Handler.run
+                            (fields
+                                [ ( "formType", "contractor" )
+                                , ( "company", "Acme Corp" )
+                                , ( "rate", "30" ) -- Low rate
+                                , ( "hours", "35" ) -- High hours with low rate (validation error)
+                                , ( "contractEnd", "2024-12-31" )
+                                ]
+                            )
+                            (complexValidationForm |> Form.Handler.init identity)
+                            |> Expect.equal
+                                (Invalid Nothing
+                                    (Dict.fromList
+                                        [ ( "rate", [ "High hours require premium rate" ] )
+                                        ]
+                                    )
+                                )
+                , test "Employee form with errors in initial form and validation errors in follow-up" <|
+                    \() ->
+                        Form.Handler.run
+                            (fields
+                                [ ( "formType", "employee" )
+                                , ( "name", "A" ) -- Too short (field validation error)
+                                , ( "department", "Intern" )
+                                , ( "salary", "150000" ) -- High salary for intern (combine validation error)
+                                , ( "startDate", "2024-01-01" )
+                                ]
+                            )
+                            (complexValidationForm |> Form.Handler.init identity)
+                            |> Expect.equal
+                                (Invalid Nothing
+                                    (Dict.fromList
+                                        [ ( "name", [ "Name must be at least 2 characters" ] )
+                                        ]
+                                    )
+                                )
+                , test "Contractor form with errors in initial form and validation errors in follow-up" <|
+                    \() ->
+                        Form.Handler.run
+                            (fields
+                                [ ( "formType", "contractor" )
+                                , ( "company", "ab" ) -- Too short company name (field validation error)
+                                , ( "rate", "30" )
+                                , ( "hours", "35" ) -- High hours with low rate (combine validation error)
+                                , ( "contractEnd", "2024-12-31" )
+                                ]
+                            )
+                            (complexValidationForm |> Form.Handler.init identity)
+                            |> Expect.equal
+                                (Invalid Nothing
+                                    (Dict.fromList
+                                        [ ( "company", [ "Company name must be at least 3 characters" ] )
+                                        ]
+                                    )
+                                )
+                ]
+            , describe "Combination of field errors and Validation errors in permutations" <|
+                let
+                    complexValidationForm : DoneForm String String input MyView
+                    complexValidationForm =
+                        Form.form
+                            (\formType subForm ->
+                                { combine =
+                                    formType
+                                        |> Validation.andThen subForm.combine
+                                , view = \_ -> Div
+                                }
+                            )
+                            |> Form.field "formType"
+                                (Field.select
+                                    [ ( "employee", EmployeeForm2 )
+                                    , ( "contractor", ContractorForm2 )
+                                    ]
+                                    (\_ -> "Invalid form type")
+                                    |> Field.required "Form type is required"
+                                )
+                            |> Form.dynamic
+                                (\parsedType ->
+                                    case parsedType of
+                                        EmployeeForm2 ->
+                                            employeeForm
+
+                                        ContractorForm2 ->
+                                            contractorForm
+                                )
+                in
+                [ test "Employee form with all error types" <|
+                    \() ->
+                        Form.Handler.run
+                            (fields
+                                [ ( "formType", "employee" )
+                                , ( "name", "A" ) -- Field validation error (too short)
+                                , ( "department", "a" ) -- Field validation error (too short)
+                                , ( "salary", "150000" ) -- Combine validation error (high salary for intern)
+                                , ( "startDate", "2024-01-01" )
+                                ]
+                            )
+                            (complexValidationForm |> Form.Handler.init identity)
+                            |> Expect.equal
+                                (Invalid Nothing
+                                    (Dict.fromList
+                                        [ ( "name", [ "Name must be at least 2 characters" ] ) -- Field validation error
+                                        , ( "department", [ "Department must be at least 2 characters" ] ) -- Field validation error
+                                        ]
+                                    )
+                                )
+                , test "Contractor form with all error types" <|
+                    \() ->
+                        Form.Handler.run
+                            (fields
+                                [ ( "formType", "contractor" )
+                                , ( "company", "Acme Corp" )
+                                , ( "rate", "20" ) -- Field validation error (too low)
+                                , ( "hours", "45" ) -- Field validation error (too high)
+                                , ( "contractEnd", "2024-12-31" )
+                                ]
+                            )
+                            (complexValidationForm |> Form.Handler.init identity)
+                            |> Expect.equal
+                                (Invalid Nothing
+                                    (Dict.fromList
+                                        [ ( "rate", [ "Hourly rate must be at least $25" ] )
+                                        , ( "hours", [ "Hours must be between 1 and 40" ] )
+                                        ]
+                                    )
+                                )
+                , test "Complex scenario with multiple error types across both forms" <|
+                    \() ->
+                        Form.Handler.run
+                            (fields
+                                [ ( "formType", "contractor" )
+                                , ( "company", "ab" ) -- Field validation error (too short)
+                                , ( "rate", "20" ) -- Field validation error (too low)
+                                , ( "hours", "35" ) -- Valid hours
+                                , ( "contractEnd", "2024-12-31" )
+                                ]
+                            )
+                            (complexValidationForm |> Form.Handler.init identity)
+                            |> Expect.equal
+                                (Invalid Nothing
+                                    (Dict.fromList
+                                        [ ( "company", [ "Company name must be at least 3 characters" ] ) -- Field validation error
+                                        , ( "rate", [ "Hourly rate must be at least $25" ] ) -- Field validation error
+                                        ]
+                                    )
+                                )
+                , test "Employee form with overlapping field and combine validation errors" <|
+                    \() ->
+                        Form.Handler.run
+                            (fields
+                                [ ( "formType", "employee" )
+                                , ( "name", "John" )
+                                , ( "department", "Intern" )
+                                , ( "salary", "5000" ) -- Field validation error (too low) AND combine validation error (intern salary limit)
+                                , ( "startDate", "2024-01-01" )
+                                ]
+                            )
+                            (complexValidationForm |> Form.Handler.init identity)
+                            |> Expect.equal
+                                (Invalid Nothing
+                                    (Dict.fromList
+                                        [ ( "salary", [ "Salary must be at least $30,000" ] ) -- Field validation error
+                                        ]
+                                    )
+                                )
+                ]
+            ]
         ]
+
+
+userForm : DoneForm String String input MyView
+userForm =
+    Form.form
+        (\username email age ->
+            { combine =
+                Validation.map3
+                    (\user emailValue ageValue ->
+                        let
+                            usernameErrors =
+                                if String.length user < 3 then
+                                    Validation.fail "Username too short" username
+
+                                else
+                                    Validation.succeed user
+
+                            emailErrors =
+                                if not (String.contains "@" emailValue) then
+                                    Validation.fail "Invalid email format" email
+
+                                else
+                                    Validation.succeed emailValue
+
+                            ageErrors =
+                                if ageValue < 18 then
+                                    Validation.fail "Must be 18 or older" age
+
+                                else
+                                    Validation.succeed ageValue
+                        in
+                        Validation.map3
+                            (\u e a ->
+                                Validation.succeed ("User: " ++ u ++ " (" ++ e ++ ", age " ++ String.fromInt a ++ ")")
+                            )
+                            usernameErrors
+                            emailErrors
+                            ageErrors
+                            |> Validation.andThen identity
+                    )
+                    username
+                    email
+                    age
+                    |> Validation.andThen identity
+            , view = \_ -> Div
+            }
+        )
+        |> Form.field "username" (Field.text |> Field.required "Username required")
+        |> Form.field "email" (Field.text |> Field.required "Email required")
+        |> Form.field "age" (Field.int { invalid = \_ -> "Invalid age" } |> Field.required "Age required")
+
+
+adminForm : DoneForm String String input MyView
+adminForm =
+    Form.form
+        (\adminCode permissions level ->
+            { combine =
+                Validation.map3
+                    (\code perms levelValue ->
+                        let
+                            codeErrors =
+                                if code /= "ADMIN123" then
+                                    Validation.fail "Invalid admin code" adminCode
+
+                                else
+                                    Validation.succeed code
+
+                            permsErrors =
+                                if String.length perms < 3 then
+                                    Validation.fail "Permissions must be at least 3 characters" permissions
+
+                                else
+                                    Validation.succeed perms
+
+                            levelErrors =
+                                if levelValue < 5 then
+                                    Validation.fail "Admin level must be 5 or higher" level
+
+                                else
+                                    Validation.succeed levelValue
+                        in
+                        Validation.map3
+                            (\c p l ->
+                                Validation.succeed ("Admin: " ++ c ++ " (" ++ p ++ ", level " ++ String.fromInt l ++ ")")
+                            )
+                            codeErrors
+                            permsErrors
+                            levelErrors
+                            |> Validation.andThen identity
+                    )
+                    adminCode
+                    permissions
+                    level
+                    |> Validation.andThen identity
+            , view = \_ -> Div
+            }
+        )
+        |> Form.field "adminCode" (Field.text |> Field.required "Admin code required")
+        |> Form.field "permissions" (Field.text |> Field.required "Permissions required")
+        |> Form.field "level" (Field.int { invalid = \_ -> "Invalid level" } |> Field.required "Level required")
+
+
+employeeForm : DoneForm String String input MyView
+employeeForm =
+    Form.form
+        (\name department salary startDate ->
+            { combine =
+                Validation.map4
+                    (\nameValue dept salaryValue date ->
+                        let
+                            nameErrors =
+                                if String.length nameValue < 2 then
+                                    Validation.fail "Name must be at least 2 characters" name
+
+                                else
+                                    Validation.succeed nameValue
+
+                            deptErrors =
+                                if String.length dept < 2 then
+                                    Validation.fail "Department must be at least 2 characters" department
+
+                                else
+                                    Validation.succeed dept
+
+                            salaryErrors =
+                                if salaryValue < 30000 then
+                                    Validation.fail "Salary must be at least $30,000" salary
+
+                                else
+                                    Validation.succeed salaryValue
+
+                            dateErrors =
+                                if String.isEmpty date then
+                                    Validation.fail "Start date is required" startDate
+
+                                else
+                                    Validation.succeed date
+                        in
+                        Validation.map4
+                            (\n d s dt ->
+                                let
+                                    combineErrors =
+                                        if s > 100000 && d == "Intern" then
+                                            Validation.fail "Interns cannot earn more than $100,000" salary
+
+                                        else
+                                            Validation.succeed s
+                                in
+                                Validation.map2
+                                    (\salVal _ ->
+                                        Validation.succeed ("Employee: " ++ n ++ " in " ++ d ++ " earning $" ++ String.fromInt salVal ++ " starting " ++ dt)
+                                    )
+                                    combineErrors
+                                    (Validation.succeed ())
+                                    |> Validation.andThen identity
+                            )
+                            nameErrors
+                            deptErrors
+                            salaryErrors
+                            dateErrors
+                            |> Validation.andThen identity
+                    )
+                    name
+                    department
+                    salary
+                    startDate
+                    |> Validation.andThen identity
+            , view = \_ -> Div
+            }
+        )
+        |> Form.field "name" (Field.text |> Field.required "Name required")
+        |> Form.field "department" (Field.text |> Field.required "Department required")
+        |> Form.field "salary" (Field.int { invalid = \_ -> "Invalid salary" } |> Field.required "Salary required")
+        |> Form.field "startDate" (Field.text |> Field.required "Start date required")
+
+
+contractorForm : DoneForm String String input MyView
+contractorForm =
+    Form.form
+        (\company rate hours contractEnd ->
+            { combine =
+                Validation.map4
+                    (\comp rateValue hoursValue endDate ->
+                        let
+                            companyErrors =
+                                if String.length comp < 3 then
+                                    Validation.fail "Company name must be at least 3 characters" company
+
+                                else
+                                    Validation.succeed comp
+
+                            rateErrors =
+                                if rateValue < 25 then
+                                    Validation.fail "Hourly rate must be at least $25" rate
+
+                                else
+                                    Validation.succeed rateValue
+
+                            hoursErrors =
+                                if hoursValue < 1 || hoursValue > 40 then
+                                    Validation.fail "Hours must be between 1 and 40" hours
+
+                                else
+                                    Validation.succeed hoursValue
+
+                            endDateErrors =
+                                if String.isEmpty endDate then
+                                    Validation.fail "Contract end date is required" contractEnd
+
+                                else
+                                    Validation.succeed endDate
+                        in
+                        Validation.map4
+                            (\c r h ed ->
+                                let
+                                    combineErrors =
+                                        if h > 30 && r < 50 then
+                                            Validation.fail "High hours require premium rate" rate
+
+                                        else
+                                            Validation.succeed r
+                                in
+                                Validation.map2
+                                    (\rateVal _ ->
+                                        Validation.succeed ("Contractor: " ++ c ++ " at $" ++ String.fromInt rateVal ++ "/hr for " ++ String.fromInt h ++ " hours ending " ++ ed)
+                                    )
+                                    combineErrors
+                                    (Validation.succeed ())
+                                    |> Validation.andThen identity
+                            )
+                            companyErrors
+                            rateErrors
+                            hoursErrors
+                            endDateErrors
+                            |> Validation.andThen identity
+                    )
+                    company
+                    rate
+                    hours
+                    contractEnd
+                    |> Validation.andThen identity
+            , view = \_ -> Div
+            }
+        )
+        |> Form.field "company" (Field.text |> Field.required "Company required")
+        |> Form.field "rate" (Field.int { invalid = \_ -> "Invalid rate" } |> Field.required "Rate required")
+        |> Form.field "hours" (Field.int { invalid = \_ -> "Invalid hours" } |> Field.required "Hours required")
+        |> Form.field "contractEnd" (Field.text |> Field.required "Contract end date required")
 
 
 type PostAction
