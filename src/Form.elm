@@ -728,7 +728,7 @@ You define the field's validations the same way as for `field`, with the
             )
             |> Form.field "quantity"
                 (Field.int |> Field.required "Required")
-            |> Form.field "productId"
+            |> Form.hiddenField "productId"
                 (Field.text
                     |> Field.required "Required"
                     |> Field.withInitialValue (\product -> Form.Value.string product.id)
