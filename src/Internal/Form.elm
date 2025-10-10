@@ -18,9 +18,10 @@ type Form error combineAndView parsed input
             }
         )
         (input -> List ( String, Maybe String ))
+        (String -> String -> String)
 
 
 {-| -}
 type FieldDefinition
-    = RegularField
-    | HiddenField
+    = RegularField { formatOnBlur : Maybe (String -> String) }
+    | HiddenField { formatOnBlur : Maybe (String -> String) }

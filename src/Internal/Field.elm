@@ -16,4 +16,5 @@ type alias FieldInfo error parsed input initial =
     , properties : List ( String, Encode.Value )
     , initialToString : initial -> String
     , compare : String -> initial -> Order
+    , formatOnBlur : Maybe (String -> String)
     }

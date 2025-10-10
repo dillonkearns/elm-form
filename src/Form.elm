@@ -307,6 +307,7 @@ initFormState : FormState
 initFormState =
     { fields = Dict.empty
     , submitAttempted = False
+    , onBlur = \_ value -> value
     }
 
 
@@ -348,6 +349,7 @@ form combineAndView =
             }
         )
         (\_ -> [])
+        (\_ value -> value)
 
 
 {-| Allows you to render a Form that renders a sub-form based on the `decider` value.
@@ -468,7 +470,7 @@ dynamic :
             combineAndView
             parsed
             input
-dynamic forms (Internal.Form.Form _ parseFn _) =
+dynamic forms (Internal.Form.Form _ parseFn _ _) =
     Internal.Form.Form
         []
         (\maybeData formState ->
@@ -482,7 +484,7 @@ dynamic forms (Internal.Form.Form _ parseFn _) =
                         }
                 toParser decider =
                     case forms decider of
-                        Internal.Form.Form _ parseFn2 _ ->
+                        Internal.Form.Form _ parseFn2 _ _ ->
                             -- TODO need to include hidden form fields from `definitions` (should they be automatically rendered? Does that mean the view type needs to be hardcoded?)
                             parseFn2 maybeData formState
 
@@ -548,6 +550,7 @@ dynamic forms (Internal.Form.Form _ parseFn _) =
             myFn
         )
         (\_ -> [])
+        (\_ value -> value)
 
 
 
@@ -642,17 +645,13 @@ field :
     -> Field error parsed input initial kind constraints
     -> Form error (Form.Validation.Field error parsed kind -> combineAndView) parsedCombined input
     -> Form error combineAndView parsedCombined input
-field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form definitions parseFn toInitialValues) =
+field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form definitions parseFn toInitialValues onBlurPrevious) =
     Internal.Form.Form
-        (( name, Internal.Form.RegularField )
+        (( name, Internal.Form.RegularField { formatOnBlur = fieldParser.formatOnBlur } )
             :: definitions
         )
         (\maybeData formState ->
             let
-                ( maybeParsed, errors ) =
-                    -- @@@@@@ use code from here
-                    fieldParser.decode rawFieldValue
-
                 ( rawFieldValue, fieldStatus ) =
                     case formState.fields |> Dict.get name of
                         Just info ->
@@ -660,6 +659,10 @@ field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form definitio
 
                         Nothing ->
                             ( maybeData |> Maybe.andThen (\data -> fieldParser.initialValue data), Form.FieldStatus.notVisited )
+
+                ( maybeParsed, errors ) =
+                    -- @@@@@@ use code from here
+                    fieldParser.decode rawFieldValue
 
                 thing : Pages.Internal.Form.ViewField kind
                 thing =
@@ -709,6 +712,18 @@ field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form definitio
                 Nothing ->
                     toInitialValues input
         )
+        (\fieldName value ->
+            if fieldName == name then
+                case fieldParser.formatOnBlur of
+                    Just formatter ->
+                        formatter value
+
+                    Nothing ->
+                        value
+
+            else
+                onBlurPrevious fieldName value
+        )
 
 
 {-| Declare a hidden field for the form.
@@ -740,16 +755,13 @@ hiddenField :
     -> Field error parsed input initial kind constraints
     -> Form error (Form.Validation.Field error parsed Form.FieldView.Hidden -> combineAndView) parsedCombined input
     -> Form error combineAndView parsedCombined input
-hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form definitions parseFn toInitialValues) =
+hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form definitions parseFn toInitialValues onBlurPrevious) =
     Internal.Form.Form
-        (( name, Internal.Form.HiddenField )
+        (( name, Internal.Form.HiddenField { formatOnBlur = fieldParser.formatOnBlur } )
             :: definitions
         )
         (\maybeData formState ->
             let
-                ( maybeParsed, errors ) =
-                    fieldParser.decode rawFieldValue
-
                 ( rawFieldValue, fieldStatus ) =
                     case formState.fields |> Dict.get name of
                         Just info ->
@@ -757,6 +769,9 @@ hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form defini
 
                         Nothing ->
                             ( maybeData |> Maybe.andThen (\data -> fieldParser.initialValue data), Form.FieldStatus.notVisited )
+
+                ( maybeParsed, errors ) =
+                    fieldParser.decode rawFieldValue
 
                 thing : Pages.Internal.Form.ViewField Form.FieldView.Hidden
                 thing =
@@ -806,6 +821,18 @@ hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form defini
                 Nothing ->
                     toInitialValues input
         )
+        (\fieldName value ->
+            if fieldName == name then
+                case fieldParser.formatOnBlur of
+                    Just formatter ->
+                        formatter value
+
+                    Nothing ->
+                        value
+
+            else
+                onBlurPrevious fieldName value
+        )
 
 
 {-| Like [`hiddenField`](#hiddenField), but uses a hardcoded value. This is useful to ensure that your [`Form.Handler`](Form-Handler)
@@ -832,13 +859,13 @@ hiddenKind :
     -> error
     -> Form error combineAndView parsed input
     -> Form error combineAndView parsed input
-hiddenKind ( name, value ) error_ (Internal.Form.Form definitions parseFn toInitialValues) =
+hiddenKind ( name, value ) error_ (Internal.Form.Form definitions parseFn toInitialValues onBlurPrevious) =
     let
         (Internal.Field.Field fieldParser _) =
             Field.exactValue value error_
     in
     Internal.Form.Form
-        (( name, Internal.Form.HiddenField )
+        (( name, Internal.Form.HiddenField { formatOnBlur = fieldParser.formatOnBlur } )
             :: definitions
         )
         (\maybeData formState ->
@@ -880,6 +907,18 @@ hiddenKind ( name, value ) error_ (Internal.Form.Form definitions parseFn toInit
         (\input ->
             ( name, Just value )
                 :: toInitialValues input
+        )
+        (\fieldName fieldValue ->
+            if fieldName == name then
+                case fieldParser.formatOnBlur of
+                    Just formatter ->
+                        formatter fieldValue
+
+                    Nothing ->
+                        fieldValue
+
+            else
+                onBlurPrevious fieldName fieldValue
         )
 
 
@@ -971,7 +1010,7 @@ parse :
     -> input
     -> Form error { info | combine : Validation error parsed named constraints } parsed input
     -> Validated error parsed
-parse formId state input (Internal.Form.Form _ parser _) =
+parse formId state input (Internal.Form.Form _ parser _ _) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
@@ -1139,7 +1178,7 @@ renderHelper :
             parsed
             input
     -> Html mappedMsg
-renderHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_) =
+renderHelper formState options_ attrs ((Internal.Form.Form _ _ _ onBlurFn) as form_) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
@@ -1151,7 +1190,7 @@ renderHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_) =
             Html.input hiddenAttrs []
     in
     Html.form
-        ((Form.listeners options_.id
+        ((Form.listeners options_.id onBlurFn
             |> List.map (Attr.map (Internal.FieldEvent.FormFieldEvent >> formState.toMsg))
          )
             ++ [ Attr.method (methodToString options_.method)
@@ -1216,7 +1255,7 @@ renderStyledHelper :
             parsed
             input
     -> Html.Styled.Html mappedMsg
-renderStyledHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_) =
+renderStyledHelper formState options_ attrs ((Internal.Form.Form _ _ _ onBlurFn) as form_) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
@@ -1228,7 +1267,7 @@ renderStyledHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_
             Html.Styled.input (hiddenAttrs |> List.map StyledAttr.fromUnstyled) []
     in
     Html.Styled.form
-        ((Form.listeners options_.id
+        ((Form.listeners options_.id onBlurFn
             |> List.map (Attr.map (Internal.FieldEvent.FormFieldEvent >> formState.toMsg))
             |> List.map StyledAttr.fromUnstyled
          )
@@ -1296,7 +1335,7 @@ helperValues :
             parsed
             input
     -> { hiddenInputs : List view, children : List view, isValid : Bool, parsed : Maybe parsed, fields : List ( String, String ), errors : Dict String (List error) }
-helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitions parser toInitialValues) =
+helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitions parser toInitialValues onBlurFn) =
     let
         initialValues : Dict String FieldState
         initialValues =
@@ -1325,6 +1364,7 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
                                         |> List.map (Tuple.mapSecond (\value -> { value = value, status = Form.Validation.NotVisited }))
                                         |> Dict.fromList
                                 , submitAttempted = True
+                                , onBlur = \_ value -> value
                                 }
                             )
                         |> Maybe.withDefault initFormState
@@ -1396,11 +1436,12 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
                                             )
                                         |> Dict.fromList
                                 , submitAttempted = True
+                                , onBlur = \_ value -> value
                                 }
                             )
                         |> Maybe.withDefault initSingle
                     )
-                |> (\state -> { state | fields = fullFormState })
+                |> (\state -> { state | fields = fullFormState, onBlur = onBlurFn })
 
         rawFields : List ( String, String )
         rawFields =
@@ -1428,7 +1469,7 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
                 |> List.filterMap
                     (\( name, fieldDefinition ) ->
                         case fieldDefinition of
-                            Internal.Form.HiddenField ->
+                            Internal.Form.HiddenField _ ->
                                 [ Attr.name name
                                 , Attr.type_ "hidden"
                                 , Attr.value
@@ -1441,7 +1482,7 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
                                     |> toHiddenInput
                                     |> Just
 
-                            Internal.Form.RegularField ->
+                            Internal.Form.RegularField _ ->
                                 Nothing
                     )
 
@@ -1472,6 +1513,7 @@ initSingle : FormState
 initSingle =
     { fields = Dict.empty
     , submitAttempted = False
+    , onBlur = \_ value -> value
     }
 
 
@@ -1691,7 +1733,10 @@ updateForm fieldEvent formState =
                                 }
 
                             BlurEvent ->
-                                { previousValue | status = previousValue.status |> increaseStatusTo Form.Validation.Blurred }
+                                { previousValue
+                                    | status = previousValue.status |> increaseStatusTo Form.Validation.Blurred
+                                    , value = fieldEvent.value
+                                }
                         )
                             |> Just
                     )
@@ -2023,4 +2068,5 @@ type alias FieldState =
 type alias FormState =
     { fields : Dict String FieldState
     , submitAttempted : Bool
+    , onBlur : String -> String -> String
     }

@@ -9,19 +9,26 @@ import Json.Decode as Decode exposing (Decoder)
 
 
 {-| -}
-listeners : String -> List (Attribute FieldEvent)
-listeners formId =
-    [ Html.Events.on "focusin" fieldEventDecoder
-    , Html.Events.on "focusout" fieldEventDecoder
-    , Html.Events.on "input" fieldEventDecoder
+listeners : String -> (String -> String -> String) -> List (Attribute FieldEvent)
+listeners formId onBlurFn =
+    [ Html.Events.on "focusin" (fieldEventDecoder onBlurFn)
+    , Html.Events.on "focusout" (fieldEventDecoder onBlurFn)
+    , Html.Events.on "input" (fieldEventDecoder onBlurFn)
     , Attr.id formId
     ]
 
 
 {-| -}
-fieldEventDecoder : Decoder FieldEvent
-fieldEventDecoder =
-    Decode.map4 FieldEvent
+fieldEventDecoder : (String -> String -> String) -> Decoder FieldEvent
+fieldEventDecoder onBlurFn =
+    Decode.map3
+        (\value formId name ->
+            { value = value
+            , formId = formId
+            , name = name
+            , event = BlurEvent
+            }
+        )
         inputValueDecoder
         (Decode.at [ "currentTarget", "id" ] Decode.string)
         (Decode.at [ "target", "name" ] Decode.string
@@ -34,7 +41,23 @@ fieldEventDecoder =
                         Decode.succeed name
                 )
         )
-        fieldDecoder
+        |> Decode.andThen
+            (\partial ->
+                fieldDecoder
+                    |> Decode.map
+                        (\event ->
+                            { partial
+                                | event = event
+                                , value =
+                                    case event of
+                                        BlurEvent ->
+                                            onBlurFn partial.name partial.value
+
+                                        _ ->
+                                            partial.value
+                            }
+                        )
+            )
 
 
 {-| -}
