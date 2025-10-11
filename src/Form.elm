@@ -647,7 +647,7 @@ field :
     -> Form error combineAndView parsedCombined input
 field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form definitions parseFn toInitialValues onEventPrevious) =
     Internal.Form.Form
-        (( name, Internal.Form.RegularField { formatOnEvent = fieldParser.formatOnEvent } )
+        (( name, Internal.Form.RegularField )
             :: definitions
         )
         (\maybeData formState ->
@@ -757,7 +757,7 @@ hiddenField :
     -> Form error combineAndView parsedCombined input
 hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form definitions parseFn toInitialValues onEventPrevious) =
     Internal.Form.Form
-        (( name, Internal.Form.HiddenField { formatOnEvent = fieldParser.formatOnEvent } )
+        (( name, Internal.Form.HiddenField )
             :: definitions
         )
         (\maybeData formState ->
@@ -865,7 +865,7 @@ hiddenKind ( name, value ) error_ (Internal.Form.Form definitions parseFn toInit
             Field.exactValue value error_
     in
     Internal.Form.Form
-        (( name, Internal.Form.HiddenField { formatOnEvent = fieldParser.formatOnEvent } )
+        (( name, Internal.Form.HiddenField )
             :: definitions
         )
         (\maybeData formState ->
@@ -1469,7 +1469,7 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
                 |> List.filterMap
                     (\( name, fieldDefinition ) ->
                         case fieldDefinition of
-                            Internal.Form.HiddenField _ ->
+                            Internal.Form.HiddenField ->
                                 [ Attr.name name
                                 , Attr.type_ "hidden"
                                 , Attr.value
@@ -1482,7 +1482,7 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
                                     |> toHiddenInput
                                     |> Just
 
-                            Internal.Form.RegularField _ ->
+                            Internal.Form.RegularField ->
                                 Nothing
                     )
 

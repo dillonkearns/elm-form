@@ -24,5 +24,5 @@ type Form error combineAndView parsed input
 
 {-| -}
 type FieldDefinition
-    = RegularField { formatOnEvent : Maybe (EventInfo -> Maybe String) }
-    | HiddenField { formatOnEvent : Maybe (EventInfo -> Maybe String) }
+    = RegularField
+    | HiddenField

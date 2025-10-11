@@ -282,7 +282,7 @@ Use this to conditionally format field values based on the event type and cursor
 
 -}
 type EventInfo
-    = Input Form.Field.Selection.Selection
+    = Input Selection
     | Blur String
     | Focus String
 
