@@ -6,11 +6,11 @@ module Form.Field exposing
     , withInitialValue, withOptionalInitialValue
     , exactValue
     , required, validateMap, map
+    , formatOnEvent, EventInfo(..)
     , email, password, search, telephone, url, textarea
     , range, withMin, withMax
     , withMinLength, withMaxLength
     , withStep
-    , formatOnBlur
     , No, Yes
     )
 
@@ -48,7 +48,7 @@ module Form.Field exposing
 
 @docs required, validateMap, map
 
-@docs formatOnBlur
+@docs formatOnEvent, EventInfo
 
 
 ## Text Field Display Options
@@ -73,6 +73,7 @@ module Form.Field exposing
 
 import Date exposing (Date)
 import Dict exposing (Dict)
+import Form.Field.Selection exposing (Selection)
 import Form.FieldView exposing (Input)
 import Internal.Field
 import Internal.Input exposing (Options(..))
@@ -270,29 +271,86 @@ required missingError (Internal.Field.Field field kind) =
         , properties =
             ( "required", Encode.bool True ) :: field.properties
         , compare = field.compare
-        , formatOnBlur = field.formatOnBlur
+        , formatOnEvent = field.formatOnEvent
         }
         kind
 
 
-{-| Apply a formatting function when the field loses focus (on blur).
+{-| Represents event information for form field events.
 
-This is useful for formatting user input in a declarative way, such as:
-- Trimming whitespace
-- Normalizing phone numbers
-- Formatting currency values
-
-The formatter is applied when the user leaves the field, so it won't interfere with typing.
-
-    Field.text
-        |> Field.formatOnBlur String.trim
-        |> Field.required "Required"
+Use this to conditionally format field values based on the event type and cursor position.
 
 -}
-formatOnBlur : (String -> String) -> Field error parsed input initial kind constraints -> Field error parsed input initial kind constraints
-formatOnBlur formatter (Internal.Field.Field field kind) =
+type EventInfo
+    = Input Form.Field.Selection.Selection
+    | Blur String
+    | Focus String
+
+
+{-| Apply custom formatting to a field based on form events.
+
+The function receives an `EventInfo` describing the event (Input, Blur, or Focus)
+and returns `Maybe String`:
+
+  - `Just newValue` updates the field to the new value
+  - `Nothing` leaves the field unchanged
+
+Example - format only on blur:
+
+    Field.text
+        |> Field.formatOnEvent
+            (\event ->
+                case event of
+                    Blur value ->
+                        Just (String.trim value)
+
+                    _ ->
+                        Nothing
+            )
+
+Example - format on input when cursor is at end:
+
+    import Form.Field.Selection as Selection
+
+    Field.text
+        |> Field.formatOnEvent
+            (\event ->
+                case event of
+                    Input selection ->
+                        if Selection.cursorAtEnd selection then
+                            Just (formatPhoneNumber (Selection.value selection))
+
+                        else
+                            Nothing
+
+                    _ ->
+                        Nothing
+            )
+
+-}
+formatOnEvent : (EventInfo -> Maybe String) -> Field error parsed input initial kind constraints -> Field error parsed input initial kind constraints
+formatOnEvent formatter (Internal.Field.Field field kind) =
     Internal.Field.Field
-        { field | formatOnBlur = Just formatter }
+        { field
+            | formatOnEvent =
+                Just
+                    (\internalEvent ->
+                        -- Convert Internal.Field.EventInfo to Form.Field.EventInfo
+                        let
+                            publicEvent =
+                                case internalEvent of
+                                    Internal.Field.Input selection ->
+                                        Input selection
+
+                                    Internal.Field.Blur value ->
+                                        Blur value
+
+                                    Internal.Field.Focus value ->
+                                        Focus value
+                        in
+                        formatter publicEvent
+                    )
+        }
         kind
 
 
@@ -348,7 +406,7 @@ text =
                 )
         , properties = []
         , compare = Basics.compare
-        , formatOnBlur = Nothing
+        , formatOnEvent = Nothing
         }
         (Internal.Input.Input Internal.Input.Text)
 
@@ -401,7 +459,7 @@ date toError =
                         Err error ->
                             ( Nothing, [ error ] )
         , properties = []
-        , formatOnBlur = Nothing
+        , formatOnEvent = Nothing
         , compare =
             \raw value ->
                 Result.map2 Date.compare
@@ -467,7 +525,7 @@ time toError =
                         Err error ->
                             ( Nothing, [ error ] )
         , properties = []
-        , formatOnBlur = Nothing
+        , formatOnEvent = Nothing
         , compare =
             \raw value ->
                 parseTimeOfDay raw
@@ -645,7 +703,7 @@ select optionsMapping invalidError =
                                   ]
                                 )
         , properties = []
-        , formatOnBlur = Nothing
+        , formatOnEvent = Nothing
         , compare =
             \_ _ ->
                 -- min/max properties aren't allowed for this field type
@@ -692,7 +750,7 @@ exactValue initialValue error =
                 else
                     ( rawValue, [ error ] )
         , properties = []
-        , formatOnBlur = Nothing
+        , formatOnEvent = Nothing
         , compare =
             \_ _ ->
                 -- min/max properties aren't allowed for this field type
@@ -735,7 +793,7 @@ checkbox =
                 , []
                 )
         , properties = []
-        , formatOnBlur = Nothing
+        , formatOnEvent = Nothing
         , compare =
             \_ _ ->
                 -- min/max properties aren't allowed for this field type
@@ -793,7 +851,7 @@ int toError =
                             Nothing ->
                                 ( Nothing, [ toError.invalid string ] )
         , properties = []
-        , formatOnBlur = Nothing
+        , formatOnEvent = Nothing
         , compare =
             \raw value ->
                 case String.toInt raw of
@@ -855,7 +913,7 @@ float toError =
                             Nothing ->
                                 ( Nothing, [ toError.invalid string ] )
         , properties = []
-        , formatOnBlur = Nothing
+        , formatOnEvent = Nothing
         , compare =
             \raw value ->
                 case String.toFloat raw of
@@ -1155,7 +1213,7 @@ validateMap_ mapFn (Internal.Field.Field field kind) =
                                         |> Tuple.mapSecond ((++) errors)
                        )
         , properties = field.properties
-        , formatOnBlur = field.formatOnBlur
+        , formatOnEvent = field.formatOnEvent
         , compare = field.compare
         }
         kind
@@ -1209,7 +1267,7 @@ withMin min error (Internal.Field.Field field kind) =
                                                 ( Just okValue, errors )
                        )
         , properties = ( "min", Encode.string (field.initialToString min) ) :: field.properties
-        , formatOnBlur = field.formatOnBlur
+        , formatOnEvent = field.formatOnEvent
         , compare = field.compare
         }
         kind
@@ -1239,7 +1297,7 @@ withMinLength minLength error (Internal.Field.Field field kind) =
                                         ( Just okValue, error :: errors )
                        )
         , properties = ( "minlength", Encode.string (String.fromInt minLength) ) :: field.properties
-        , formatOnBlur = field.formatOnBlur
+        , formatOnEvent = field.formatOnEvent
         , compare = field.compare
         }
         kind
@@ -1269,7 +1327,7 @@ withMaxLength maxLength error (Internal.Field.Field field kind) =
                                         ( Just okValue, error :: errors )
                        )
         , properties = ( "maxlength", Encode.string (String.fromInt maxLength) ) :: field.properties
-        , formatOnBlur = field.formatOnBlur
+        , formatOnEvent = field.formatOnEvent
         , compare = field.compare
         }
         kind
@@ -1327,7 +1385,7 @@ withMax max error (Internal.Field.Field field kind) =
                                                 ( Just okValue, errors )
                        )
         , properties = ( "max", Encode.string (field.initialToString max) ) :: field.properties
-        , formatOnBlur = field.formatOnBlur
+        , formatOnEvent = field.formatOnEvent
         , compare = field.compare
         }
         kind

@@ -1,7 +1,8 @@
-module Internal.Field exposing (Field(..), FieldInfo)
+module Internal.Field exposing (EventInfo(..), Field(..), FieldInfo)
 
 {-| -}
 
+import Form.Field.Selection as Selection exposing (Selection)
 import Json.Encode as Encode
 
 
@@ -16,5 +17,12 @@ type alias FieldInfo error parsed input initial =
     , properties : List ( String, Encode.Value )
     , initialToString : initial -> String
     , compare : String -> initial -> Order
-    , formatOnBlur : Maybe (String -> String)
+    , formatOnEvent : Maybe (EventInfo -> Maybe String)
     }
+
+
+{-| -}
+type EventInfo
+    = Input Selection
+    | Blur String
+    | Focus String

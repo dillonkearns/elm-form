@@ -1,32 +1,34 @@
 module Pages.FormState exposing (FieldState, FormState, listeners)
 
 import Dict exposing (Dict)
+import Form.Field.Selection as Selection
 import Html exposing (Attribute)
 import Html.Attributes as Attr
 import Html.Events
+import Internal.Field
 import Internal.FieldEvent exposing (Event(..), FieldEvent)
 import Json.Decode as Decode exposing (Decoder)
 
 
 {-| -}
-listeners : String -> (String -> String -> String) -> List (Attribute FieldEvent)
-listeners formId onBlurFn =
-    [ Html.Events.on "focusin" (fieldEventDecoder onBlurFn)
-    , Html.Events.on "focusout" (fieldEventDecoder onBlurFn)
-    , Html.Events.on "input" (fieldEventDecoder onBlurFn)
+listeners : String -> (String -> Internal.Field.EventInfo -> Maybe String) -> List (Attribute FieldEvent)
+listeners formId onEventFn =
+    [ Html.Events.on "focusin" (fieldEventDecoder onEventFn)
+    , Html.Events.on "focusout" (fieldEventDecoder onEventFn)
+    , Html.Events.on "input" (fieldEventDecoder onEventFn)
     , Attr.id formId
     ]
 
 
 {-| -}
-fieldEventDecoder : (String -> String -> String) -> Decoder FieldEvent
-fieldEventDecoder onBlurFn =
-    Decode.map3
-        (\value formId name ->
+fieldEventDecoder : (String -> Internal.Field.EventInfo -> Maybe String) -> Decoder FieldEvent
+fieldEventDecoder onEventFn =
+    Decode.map4
+        (\value formId name selection ->
             { value = value
             , formId = formId
             , name = name
-            , event = BlurEvent
+            , selection = selection
             }
         )
         inputValueDecoder
@@ -41,23 +43,57 @@ fieldEventDecoder onBlurFn =
                         Decode.succeed name
                 )
         )
+        selectionDecoder
         |> Decode.andThen
             (\partial ->
                 fieldDecoder
                     |> Decode.map
                         (\event ->
-                            { partial
-                                | event = event
-                                , value =
+                            let
+                                eventInfo : Internal.Field.EventInfo
+                                eventInfo =
                                     case event of
-                                        BlurEvent ->
-                                            onBlurFn partial.name partial.value
+                                        InputEvent _ ->
+                                            Internal.Field.Input partial.selection
 
-                                        _ ->
-                                            partial.value
+                                        BlurEvent ->
+                                            Internal.Field.Blur partial.value
+
+                                        FocusEvent ->
+                                            Internal.Field.Focus partial.value
+
+                                newValue : Maybe String
+                                newValue =
+                                    onEventFn partial.name eventInfo
+                            in
+                            { value =
+                                case newValue of
+                                    Just formatted ->
+                                        formatted
+
+                                    Nothing ->
+                                        partial.value
+                            , formId = partial.formId
+                            , name = partial.name
+                            , event = event
                             }
                         )
             )
+
+
+{-| Decode selection data (selectionStart and selectionEnd) from the input event.
+On blur events, selectionStart might be null, so we default to 0.
+-}
+selectionDecoder : Decoder Selection.Selection
+selectionDecoder =
+    Decode.map2 Selection.fromRaw
+        (Decode.at [ "target", "value" ] Decode.string)
+        (Decode.map2 Tuple.pair
+            (Decode.maybe (Decode.at [ "target", "selectionStart" ] Decode.int)
+                |> Decode.map (Maybe.withDefault 0)
+            )
+            (Decode.maybe (Decode.at [ "target", "selectionEnd" ] Decode.int))
+        )
 
 
 {-| -}

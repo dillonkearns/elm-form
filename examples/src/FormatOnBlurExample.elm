@@ -2,7 +2,8 @@ module FormatOnBlurExample exposing (main)
 
 import Browser
 import Form
-import Form.Field as Field
+import Form.Field as Field exposing (EventInfo(..))
+import Form.Field.Selection as Selection
 import Form.FieldView as FieldView
 import Form.Validation as Validation
 import Html exposing (Html)
@@ -24,6 +25,7 @@ type alias ContactForm =
     { name : String
     , email : String
     , phone : String
+    , code : String
     }
 
 
@@ -75,15 +77,21 @@ update msg model =
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "formatOnBlur Example"
+    { title = "formatOnEvent Example"
     , body =
         [ Html.div [ Attr.style "max-width" "600px", Attr.style "margin" "40px auto", Attr.style "font-family" "sans-serif" ]
-            [ Html.h1 [] [ Html.text "formatOnBlur Example" ]
+            [ Html.h1 [] [ Html.text "formatOnEvent Example" ]
             , Html.p []
                 [ Html.text "This example demonstrates the "
-                , Html.code [] [ Html.text "formatOnBlur" ]
-                , Html.text " feature. Try typing text with leading/trailing spaces in the fields below, then blur (tab or click away) to see the formatting applied!"
+                , Html.code [] [ Html.text "formatOnEvent" ]
+                , Html.text " feature with different event types:"
                 ]
+            , Html.ul []
+                [ Html.li [] [ Html.text "Name, Email, Phone: formatted on blur only" ]
+                , Html.li [] [ Html.text "Code: formatted on input (when cursor at end) and blur" ]
+                ]
+            , Html.p []
+                [ Html.text "Try typing in the Code field - it will uppercase as you type, but only if your cursor is at the end. Try moving the cursor to the middle and typing to see the difference!" ]
             , contactForm
                 |> Form.renderHtml
                     { submitting = model.submitting
@@ -101,17 +109,19 @@ view model =
 
 contactForm : Form.HtmlForm String ContactForm input msg
 contactForm =
-    (\name email phone ->
+    (\name email phone code ->
         { combine =
             Validation.succeed ContactForm
                 |> Validation.andMap name
                 |> Validation.andMap email
                 |> Validation.andMap phone
+                |> Validation.andMap code
         , view =
             \formState ->
                 [ fieldView formState "Name (trimmed on blur)" name
                 , fieldView formState "Email (trimmed and lowercased on blur)" email
                 , fieldView formState "Phone (formatted on blur)" phone
+                , fieldView formState "Code (uppercased as you type, only at end)" code
                 , Html.button
                     [ Attr.style "margin-top" "20px"
                     , Attr.style "padding" "10px 20px"
@@ -128,19 +138,65 @@ contactForm =
         |> Form.form
         |> Form.field "name"
             (Field.text
-                |> Field.formatOnBlur String.trim
+                |> Field.formatOnEvent
+                    (\event ->
+                        case event of
+                            Blur value ->
+                                Just (String.trim value)
+
+                            _ ->
+                                Nothing
+                    )
                 |> Field.required "Name is required"
             )
         |> Form.field "email"
             (Field.text
-                |> Field.formatOnBlur (String.trim >> String.toLower)
+                |> Field.formatOnEvent
+                    (\event ->
+                        case event of
+                            Blur value ->
+                                Just (String.trim value |> String.toLower)
+
+                            _ ->
+                                Nothing
+                    )
                 |> Field.required "Email is required"
                 |> Field.email
             )
         |> Form.field "phone"
             (Field.text
-                |> Field.formatOnBlur formatPhoneNumber
+                |> Field.formatOnEvent
+                    (\event ->
+                        case event of
+                            Blur value ->
+                                Just (formatPhoneNumber value)
+
+                            _ ->
+                                Nothing
+                    )
                 |> Field.required "Phone is required"
+            )
+        |> Form.field "code"
+            (Field.text
+                |> Field.formatOnEvent
+                    (\event ->
+                        case event of
+                            Input selection ->
+                                -- Only format if cursor is at the end
+                                if Selection.cursorAtEnd selection then
+                                    Just (Selection.value selection |> String.toUpper)
+
+                                else
+                                    Nothing
+
+                            Blur value ->
+                                -- Always format on blur
+                                Just (String.toUpper value)
+
+                            _ ->
+                                Nothing
+                    )
+                |> Field.required "Code is required"
             )
 
 
