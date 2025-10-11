@@ -1,12 +1,12 @@
 module Pages.FormState exposing (FieldState, FormState, listeners)
 
 import Dict exposing (Dict)
-import Form.Field.Selection as Selection
 import Html exposing (Attribute)
 import Html.Attributes as Attr
 import Html.Events
 import Internal.Field
 import Internal.FieldEvent exposing (Event(..), FieldEvent)
+import Internal.Selection
 import Json.Decode as Decode exposing (Decoder)
 
 
@@ -84,9 +84,9 @@ fieldEventDecoder onEventFn =
 {-| Decode selection data (selectionStart and selectionEnd) from the input event.
 On blur events, selectionStart might be null, so we default to 0.
 -}
-selectionDecoder : Decoder Selection.Selection
+selectionDecoder : Decoder Internal.Selection.Selection
 selectionDecoder =
-    Decode.map2 Selection.fromRaw
+    Decode.map2 Internal.Selection.Selection
         (Decode.at [ "target", "value" ] Decode.string)
         (Decode.map2 Tuple.pair
             (Decode.maybe (Decode.at [ "target", "selectionStart" ] Decode.int)

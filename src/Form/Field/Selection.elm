@@ -1,6 +1,5 @@
 module Form.Field.Selection exposing
     ( Selection
-    , fromRaw
     , value, cursorPosition, cursorAtEnd
     , zipper, SelectionZipper(..)
     )
@@ -8,7 +7,6 @@ module Form.Field.Selection exposing
 {-|
 
 @docs Selection
-@docs fromRaw
 
 
 # Accessing Data
@@ -22,18 +20,17 @@ module Form.Field.Selection exposing
 
 -}
 
+import Internal.Selection
+
 
 {-| A `Selection` is the value of a form field along with its cursor position or text selection.
--}
-type Selection
-    = Selection String ( Int, Maybe Int )
 
+This is an opaque type - you cannot construct Selections directly. They are provided by the
+`formatOnEvent` callback when handling form events.
 
-{-| Create a Selection from raw values. This is used internally by the form decoder.
 -}
-fromRaw : String -> ( Int, Maybe Int ) -> Selection
-fromRaw val pos =
-    Selection val pos
+type alias Selection =
+    Internal.Selection.Selection
 
 
 {-| Get the full field value without any selection information.
@@ -43,7 +40,7 @@ fromRaw val pos =
 
 -}
 value : Selection -> String
-value (Selection val _) =
+value (Internal.Selection.Selection val _) =
     val
 
 
@@ -54,7 +51,7 @@ value (Selection val _) =
 
 -}
 cursorPosition : Selection -> ( Int, Maybe Int )
-cursorPosition (Selection _ pos) =
+cursorPosition (Internal.Selection.Selection _ pos) =
     pos
 
 
@@ -67,7 +64,7 @@ Returns `True` if:
 
 -}
 cursorAtEnd : Selection -> Bool
-cursorAtEnd (Selection val ( start, maybeEnd )) =
+cursorAtEnd (Internal.Selection.Selection val ( start, maybeEnd )) =
     case maybeEnd of
         Nothing ->
             start == String.length val
@@ -97,7 +94,7 @@ For a text selection:
 
 -}
 zipper : Selection -> SelectionZipper
-zipper (Selection val ( start, maybeEnd )) =
+zipper (Internal.Selection.Selection val ( start, maybeEnd )) =
     case maybeEnd of
         Nothing ->
             Cursor
