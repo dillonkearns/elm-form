@@ -307,7 +307,6 @@ initFormState : FormState
 initFormState =
     { fields = Dict.empty
     , submitAttempted = False
-    , onEvent = \_ _ -> Nothing
     }
 
 
@@ -1335,7 +1334,7 @@ helperValues :
             parsed
             input
     -> { hiddenInputs : List view, children : List view, isValid : Bool, parsed : Maybe parsed, fields : List ( String, String ), errors : Dict String (List error) }
-helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitions parser toInitialValues onEventFn) =
+helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitions parser toInitialValues _) =
     let
         initialValues : Dict String FieldState
         initialValues =
@@ -1364,7 +1363,6 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
                                         |> List.map (Tuple.mapSecond (\value -> { value = value, status = Form.Validation.NotVisited }))
                                         |> Dict.fromList
                                 , submitAttempted = True
-                                , onEvent = \_ _ -> Nothing
                                 }
                             )
                         |> Maybe.withDefault initFormState
@@ -1436,12 +1434,11 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
                                             )
                                         |> Dict.fromList
                                 , submitAttempted = True
-                                , onEvent = \_ _ -> Nothing
                                 }
                             )
                         |> Maybe.withDefault initSingle
                     )
-                |> (\state -> { state | fields = fullFormState, onEvent = onEventFn })
+                |> (\state -> { state | fields = fullFormState })
 
         rawFields : List ( String, String )
         rawFields =
@@ -1513,7 +1510,6 @@ initSingle : FormState
 initSingle =
     { fields = Dict.empty
     , submitAttempted = False
-    , onEvent = \_ _ -> Nothing
     }
 
 
@@ -2068,5 +2064,4 @@ type alias FieldState =
 type alias FormState =
     { fields : Dict String FieldState
     , submitAttempted : Bool
-    , onEvent : String -> Internal.Field.EventInfo -> Maybe String
     }
