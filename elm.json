@@ -6,6 +6,7 @@
     "version": "3.0.1",
     "exposed-modules": [
         "Form.Field",
+        "Form.Field.Selection",
         "Form.Validation",
         "Form",
         "Form.FieldView",
