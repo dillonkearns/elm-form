@@ -60,7 +60,7 @@ jobs:
       #   env:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: elm-format
-        run: npx --no-install elm-format --validate
+        run: npx --no-install elm-format --validate .
       # - name: prettier
       #   run: npx --no-install prettier --check .
       - name: Build elm docs
