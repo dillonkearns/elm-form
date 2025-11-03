@@ -52,8 +52,8 @@ jobs:
         run: npx --no-install elm-tooling install
       - name: Tests
         run: npm test
-      - name: Add elm-review, elm and elm-format to path
-        run: npm bin >> $GITHUB_PATH
+      # - name: Add elm-review, elm and elm-format to path
+      #   run: npm bin >> $GITHUB_PATH
       - name: Run elm-review
         run: npx elm-review
       # - uses: sparksp/elm-review-action@v1
