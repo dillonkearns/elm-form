@@ -3,6 +3,7 @@ module Internal.Form exposing (FieldDefinition(..), Form(..))
 {-| -}
 
 import Dict exposing (Dict)
+import Internal.Field exposing (EventInfo)
 import Pages.FormState exposing (FormState)
 
 
@@ -18,6 +19,7 @@ type Form error combineAndView parsed input
             }
         )
         (input -> List ( String, Maybe String ))
+        (String -> EventInfo -> Maybe String)
 
 
 {-| -}
