@@ -58,6 +58,18 @@ formDataOnSubmit =
         )
 
 
+{-| The "fields" property is not standard and requires a JavaScript hack:
+<https://github.com/dillonkearns/elm-pages/blob/0cfcd13122448ebfa19e380b332b5a260ec725a2/generator/static-code/elm-pages.js#L107-L117>
+
+The JavaScript snippet above gathers all named HTML form fields and their values as strings.
+
+elm-form does not need to read this property normally, though, since the raw
+string values of each form field is tracked in the model. The "fields" property
+should be a superset of what we already have in the model. Reading the raw fields
+from the event is only needed for an undocumented feature where you can read
+the values of named form elements that aren’t created by elm-form.
+
+-}
 fieldsDecoder : Decoder (Maybe (List ( String, String )))
 fieldsDecoder =
     Decode.maybe
