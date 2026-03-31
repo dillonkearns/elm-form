@@ -61,7 +61,7 @@ valueButton :
     -> List (Html msg)
     -> Form.Validation.Field error parsed kind
     -> Html msg
-valueButton exactValue attrs children (Validation viewField fieldName _) =
+valueButton exactValue attrs children (Validation viewField fieldName _ _) =
     let
         justViewField : ViewField kind
         justViewField =
@@ -95,7 +95,7 @@ valueButtonStyled :
     -> List (Html.Styled.Html msg)
     -> Form.Validation.Field error parsed kind
     -> Html.Styled.Html msg
-valueButtonStyled exactValue attrs children (Validation viewField fieldName _) =
+valueButtonStyled exactValue attrs children (Validation viewField fieldName _ _) =
     let
         justViewField : ViewField kind
         justViewField =
@@ -166,7 +166,7 @@ input :
     List (Html.Attribute msg)
     -> Form.Validation.Field error parsed Input
     -> Html msg
-input attrs (Validation viewField fieldName _) =
+input attrs (Validation viewField fieldName _ _) =
     let
         justViewField : ViewField Input
         justViewField =
@@ -221,7 +221,7 @@ inputStyled :
     List (Html.Styled.Attribute msg)
     -> Form.Validation.Field error parsed Input
     -> Html.Styled.Html msg
-inputStyled attrs (Validation viewField fieldName _) =
+inputStyled attrs (Validation viewField fieldName _ _) =
     let
         justViewField : ViewField Input
         justViewField =
@@ -317,7 +317,7 @@ select :
         )
     -> Form.Validation.Field error parsed2 (Options parsed)
     -> Html msg
-select selectAttrs enumToOption (Validation viewField fieldName _) =
+select selectAttrs enumToOption (Validation viewField fieldName _ _) =
     let
         justViewField : ViewField (Options parsed)
         justViewField =
@@ -383,7 +383,7 @@ selectStyled :
         )
     -> Form.Validation.Field error parsed2 (Options parsed)
     -> Html.Styled.Html msg
-selectStyled selectAttrs enumToOption (Validation viewField fieldName _) =
+selectStyled selectAttrs enumToOption (Validation viewField fieldName _ _) =
     let
         justViewField : ViewField (Options parsed)
         justViewField =
@@ -492,7 +492,7 @@ radio :
         )
     -> Form.Validation.Field error parsed2 (Options option)
     -> Html msg
-radio selectAttrs enumToOption (Validation viewField fieldName _) =
+radio selectAttrs enumToOption (Validation viewField fieldName _ _) =
     let
         justViewField : ViewField (Options option)
         justViewField =
@@ -570,7 +570,7 @@ radioStyled :
         )
     -> Form.Validation.Field error parsed2 (Options parsed)
     -> Html.Styled.Html msg
-radioStyled selectAttrs enumToOption (Validation viewField fieldName _) =
+radioStyled selectAttrs enumToOption (Validation viewField fieldName _ _) =
     let
         justViewField : ViewField (Options parsed)
         justViewField =

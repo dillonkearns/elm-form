@@ -463,7 +463,6 @@ dynamic :
     ->
         Form
             error
-            --((decider -> Validation error parsed named) -> combined)
             ({ combine : decider -> Validation error parsed named constraints1
              , view : decider -> subView
              }
@@ -522,7 +521,7 @@ dynamic forms (Internal.Form.Form _ parseFn _) =
                                         |> toParser
                                         |> .combineAndView
                                         |> .combine
-                                        |> (\(Validation a b ( maybeParsed, errors )) ->
+                                        |> (\(Validation a b ( maybeParsed, errors ) handlers) ->
                                                 Validation a
                                                     b
                                                     ( maybeParsed
@@ -540,6 +539,7 @@ dynamic forms (Internal.Form.Form _ parseFn _) =
                                                         (toResult2 decider)
                                                         Dict.empty
                                                     )
+                                                    handlers
                                            )
                             , view =
                                 \decider ->
@@ -658,10 +658,6 @@ field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form definitio
         )
         (\maybeData formState ->
             let
-                ( maybeParsed, errors ) =
-                    -- @@@@@@ use code from here
-                    fieldParser.decode rawFieldValue
-
                 ( rawFieldValue, fieldStatus ) =
                     case formState.fields |> Dict.get name of
                         Just info ->
@@ -670,6 +666,9 @@ field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form definitio
                         Nothing ->
                             ( maybeData |> Maybe.andThen (\data -> fieldParser.initialValue data), Form.FieldStatus.notVisited )
 
+                ( maybeParsed, errors ) =
+                    fieldParser.decode rawFieldValue
+
                 thing : Pages.Internal.Form.ViewField kind
                 thing =
                     { value = rawFieldValue
@@ -677,9 +676,18 @@ field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form definitio
                     , kind = ( kind, fieldParser.properties )
                     }
 
+                eventHandlerDict : Dict String Pages.Internal.Form.EventHandler
+                eventHandlerDict =
+                    case fieldParser.formatOnEvent of
+                        Just handler ->
+                            Dict.singleton name handler
+
+                        Nothing ->
+                            Dict.empty
+
                 parsedField : Form.Validation.Field error parsed kind
                 parsedField =
-                    Pages.Internal.Form.Validation (Just thing) (Just name) ( maybeParsed, Dict.empty )
+                    Pages.Internal.Form.Validation (Just thing) (Just name) ( maybeParsed, Dict.empty ) eventHandlerDict
 
                 myFn :
                     { result : Dict String (List error)
@@ -692,16 +700,11 @@ field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form definitio
                         , isMatchCandidate : Bool
                         }
                 myFn soFar =
-                    let
-                        validationField : Form.Validation.Field error parsed kind
-                        validationField =
-                            parsedField
-                    in
                     { result =
                         soFar.result
                             |> addErrorsInternal name errors
                     , combineAndView =
-                        soFar.combineAndView validationField
+                        soFar.combineAndView parsedField
                     , isMatchCandidate = soFar.isMatchCandidate
                     }
             in
@@ -756,9 +759,6 @@ hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form defini
         )
         (\maybeData formState ->
             let
-                ( maybeParsed, errors ) =
-                    fieldParser.decode rawFieldValue
-
                 ( rawFieldValue, fieldStatus ) =
                     case formState.fields |> Dict.get name of
                         Just info ->
@@ -767,6 +767,9 @@ hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form defini
                         Nothing ->
                             ( maybeData |> Maybe.andThen (\data -> fieldParser.initialValue data), Form.FieldStatus.notVisited )
 
+                ( maybeParsed, errors ) =
+                    fieldParser.decode rawFieldValue
+
                 thing : Pages.Internal.Form.ViewField Form.FieldView.Hidden
                 thing =
                     { value = rawFieldValue
@@ -774,9 +777,18 @@ hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form defini
                     , kind = ( Internal.Input.Hidden, fieldParser.properties )
                     }
 
+                eventHandlerDict : Dict String Pages.Internal.Form.EventHandler
+                eventHandlerDict =
+                    case fieldParser.formatOnEvent of
+                        Just handler ->
+                            Dict.singleton name handler
+
+                        Nothing ->
+                            Dict.empty
+
                 parsedField : Form.Validation.Field error parsed Form.FieldView.Hidden
                 parsedField =
-                    Pages.Internal.Form.Validation (Just thing) (Just name) ( maybeParsed, Dict.empty )
+                    Pages.Internal.Form.Validation (Just thing) (Just name) ( maybeParsed, Dict.empty ) eventHandlerDict
 
                 myFn :
                     { result : Dict String (List error)
@@ -789,16 +801,11 @@ hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form defini
                         , isMatchCandidate : Bool
                         }
                 myFn soFar =
-                    let
-                        validationField : Form.Validation.Field error parsed Form.FieldView.Hidden
-                        validationField =
-                            parsedField
-                    in
                     { result =
                         soFar.result
                             |> addErrorsInternal name errors
                     , combineAndView =
-                        soFar.combineAndView validationField
+                        soFar.combineAndView parsedField
                     , isMatchCandidate = soFar.isMatchCandidate
                     }
             in
@@ -944,7 +951,7 @@ mergeResults :
     -> Validation error parsed unnamed constraints2
 mergeResults parsed =
     let
-        ( Pages.Internal.Form.Validation _ name ( parsedThing, combineErrors ), individualFieldErrors ) =
+        ( Pages.Internal.Form.Validation _ name ( parsedThing, combineErrors ) handlers, individualFieldErrors ) =
             parsed.result
     in
     Pages.Internal.Form.Validation Nothing
@@ -952,6 +959,7 @@ mergeResults parsed =
         ( parsedThing
         , mergeErrors combineErrors individualFieldErrors
         )
+        handlers
 
 
 mergeErrors : Dict comparable (List value) -> Dict comparable (List value) -> Dict comparable (List value)
@@ -1041,7 +1049,7 @@ insertIfNonempty key values dict =
 
 
 unwrapValidation : Validation error parsed named constraints -> ( Maybe parsed, Dict String (List error) )
-unwrapValidation (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors )) =
+unwrapValidation (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors ) _) =
     ( maybeParsed, errors )
 
 
@@ -1148,11 +1156,11 @@ renderHelper :
             parsed
             input
     -> Html mappedMsg
-renderHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_) =
+renderHelper formState options_ attrs form_ =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
-        { hiddenInputs, children, parsed, fields, errors } =
+        { hiddenInputs, children, parsed, fields, errors, eventHandlers } =
             helperValues options_ toHiddenInput formState form_
 
         toHiddenInput : List (Html.Attribute mappedMsg) -> Html mappedMsg
@@ -1160,7 +1168,7 @@ renderHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_) =
             Html.input hiddenAttrs []
     in
     Html.form
-        ((Form.listeners options_.id
+        ((Form.listeners options_.id eventHandlers
             |> List.map (Attr.map (Internal.FieldEvent.FormFieldEvent >> formState.toMsg))
          )
             ++ [ Attr.method (methodToString options_.method)
@@ -1225,11 +1233,11 @@ renderStyledHelper :
             parsed
             input
     -> Html.Styled.Html mappedMsg
-renderStyledHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_) =
+renderStyledHelper formState options_ attrs form_ =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
-        { hiddenInputs, children, parsed, fields, errors } =
+        { hiddenInputs, children, parsed, fields, errors, eventHandlers } =
             helperValues options_ toHiddenInput formState form_
 
         toHiddenInput : List (Html.Attribute msg) -> Html.Styled.Html msg
@@ -1237,7 +1245,7 @@ renderStyledHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_
             Html.Styled.input (hiddenAttrs |> List.map StyledAttr.fromUnstyled) []
     in
     Html.Styled.form
-        ((Form.listeners options_.id
+        ((Form.listeners options_.id eventHandlers
             |> List.map (Attr.map (Internal.FieldEvent.FormFieldEvent >> formState.toMsg))
             |> List.map StyledAttr.fromUnstyled
          )
@@ -1304,7 +1312,7 @@ helperValues :
             }
             parsed
             input
-    -> { hiddenInputs : List view, children : List view, isValid : Bool, parsed : Maybe parsed, fields : List ( String, String ), errors : Dict String (List error) }
+    -> { hiddenInputs : List view, children : List view, isValid : Bool, parsed : Maybe parsed, fields : List ( String, String ), errors : Dict String (List error), eventHandlers : Dict String Pages.Internal.Form.EventHandler }
 helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitions parser toInitialValues) =
     let
         initialValues : Dict String FieldState
@@ -1457,7 +1465,7 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
         isValid : Bool
         isValid =
             case withoutServerErrors of
-                Validation _ _ ( Just _, errors ) ->
+                Validation _ _ ( Just _, errors ) _ ->
                     Dict.isEmpty errors
 
                 _ ->
@@ -1465,8 +1473,14 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
 
         ( maybeParsed, errorsDict ) =
             case withoutServerErrors of
-                Validation _ _ ( parsedValue, errors ) ->
+                Validation _ _ ( parsedValue, errors ) _ ->
                     ( parsedValue, errors )
+
+        eventHandlers : Dict String Pages.Internal.Form.EventHandler
+        eventHandlers =
+            case parsed1.combineAndView.combine of
+                Validation _ _ _ handlers ->
+                    handlers
     in
     { hiddenInputs = hiddenInputs
     , children = children
@@ -1474,6 +1488,7 @@ helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitio
     , parsed = maybeParsed
     , fields = rawFields
     , errors = errorsDict
+    , eventHandlers = eventHandlers
     }
 
 
@@ -1708,7 +1723,7 @@ updateForm fieldEvent formState =
                         (case fieldEvent.event of
                             InputEvent newValue ->
                                 { previousValue
-                                    | value = newValue
+                                    | value = fieldEvent.value
                                     , status = previousValue.status |> increaseStatusTo Form.Validation.Changed
                                 }
 
@@ -1720,7 +1735,10 @@ updateForm fieldEvent formState =
                                 }
 
                             BlurEvent ->
-                                { previousValue | status = previousValue.status |> increaseStatusTo Form.Validation.Blurred }
+                                { previousValue
+                                    | status = previousValue.status |> increaseStatusTo Form.Validation.Blurred
+                                    , value = fieldEvent.value
+                                }
                         )
                             |> Just
                     )

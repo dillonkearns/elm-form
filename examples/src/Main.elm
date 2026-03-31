@@ -1,6 +1,7 @@
 module Main exposing (main)
 
 import Browser
+import DynamicFormatOnEvent
 import Form
 import Form.Field as Field
 import Form.FieldView as FieldView
@@ -18,6 +19,7 @@ type Msg
         , action : String
         , parsed : Form.Validated String SignUpForm
         }
+    | DynamicMsg DynamicFormatOnEvent.Msg
 
 
 type alias Flags =
@@ -37,6 +39,7 @@ main =
 type alias Model =
     { formState : Form.Model
     , submitting : Bool
+    , dynamicModel : DynamicFormatOnEvent.Model
     }
 
 
@@ -44,6 +47,7 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { formState = Form.init
       , submitting = False
+      , dynamicModel = DynamicFormatOnEvent.init
       }
     , Cmd.none
     )
@@ -66,6 +70,13 @@ update msg model =
             in
             ( { model | formState = updatedFormModel }, cmd )
 
+        DynamicMsg dynamicMsg ->
+            let
+                ( updatedDynamic, cmd ) =
+                    DynamicFormatOnEvent.update dynamicMsg model.dynamicModel
+            in
+            ( { model | dynamicModel = updatedDynamic }, Cmd.map DynamicMsg cmd )
+
 
 view : Model -> Browser.Document Msg
 view model =
@@ -83,6 +94,9 @@ view model =
                     )
                     []
             ]
+        , Html.hr [] []
+        , DynamicFormatOnEvent.view model.dynamicModel
+            |> Html.map DynamicMsg
         ]
     }
 
