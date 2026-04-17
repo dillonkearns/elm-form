@@ -1167,7 +1167,7 @@ renderHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_) =
                , Attr.novalidate True
                ]
             ++ ([ options_.action |> Maybe.map Attr.action ] |> List.filterMap identity)
-            ++ [ Internal.FieldEvent.formDataOnSubmit
+            ++ [ Internal.FieldEvent.formDataOnSubmit options_.id
                     |> Attr.map
                         (\formDataThing ->
                             let
@@ -1245,7 +1245,7 @@ renderStyledHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_
                , StyledAttr.novalidate True
                ]
             ++ ([ options_.action |> Maybe.map StyledAttr.action ] |> List.filterMap identity)
-            ++ [ Internal.FieldEvent.formDataOnSubmit
+            ++ [ Internal.FieldEvent.formDataOnSubmit options_.id
                     |> Attr.map
                         (\formDataThing ->
                             let

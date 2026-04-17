@@ -39,8 +39,8 @@ type Method
     | Post
 
 
-formDataOnSubmit : Html.Attribute FormData
-formDataOnSubmit =
+formDataOnSubmit : String -> Html.Attribute FormData
+formDataOnSubmit formId =
     Html.Events.preventDefaultOn "submit"
         (Decode.map4
             (\fields method action id ->
@@ -53,7 +53,7 @@ formDataOnSubmit =
             fieldsDecoder
             (currentForm "method" methodDecoder)
             (currentForm "action" Decode.string)
-            (currentForm "id" (Decode.nullable Decode.string))
+            (Decode.succeed (Just formId))
             |> Decode.map alwaysPreventDefault
         )
 

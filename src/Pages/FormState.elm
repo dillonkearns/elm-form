@@ -11,19 +11,19 @@ import Json.Decode as Decode exposing (Decoder)
 {-| -}
 listeners : String -> List (Attribute FieldEvent)
 listeners formId =
-    [ Html.Events.on "focusin" fieldEventDecoder
-    , Html.Events.on "focusout" fieldEventDecoder
-    , Html.Events.on "input" fieldEventDecoder
+    [ Html.Events.on "focusin" (fieldEventDecoder formId)
+    , Html.Events.on "focusout" (fieldEventDecoder formId)
+    , Html.Events.on "input" (fieldEventDecoder formId)
     , Attr.id formId
     ]
 
 
 {-| -}
-fieldEventDecoder : Decoder FieldEvent
-fieldEventDecoder =
+fieldEventDecoder : String -> Decoder FieldEvent
+fieldEventDecoder formId =
     Decode.map4 FieldEvent
         inputValueDecoder
-        (Decode.at [ "currentTarget", "id" ] Decode.string)
+        (Decode.succeed formId)
         (Decode.at [ "target", "name" ] Decode.string
             |> Decode.andThen
                 (\name ->
