@@ -4,24 +4,33 @@ import Dict exposing (Dict)
 import Html exposing (Attribute)
 import Html.Attributes as Attr
 import Html.Events
+import Internal.Field exposing (EventInfo)
 import Internal.FieldEvent exposing (Event(..), FieldEvent)
+import Internal.Selection exposing (Selection(..))
 import Json.Decode as Decode exposing (Decoder)
 
 
 {-| -}
-listeners : String -> List (Attribute FieldEvent)
-listeners formId =
-    [ Html.Events.on "focusin" fieldEventDecoder
-    , Html.Events.on "focusout" fieldEventDecoder
-    , Html.Events.on "input" fieldEventDecoder
+listeners : String -> Dict String (EventInfo -> Maybe String) -> List (Attribute FieldEvent)
+listeners formId eventHandlers =
+    [ Html.Events.on "focusin" (fieldEventDecoder eventHandlers)
+    , Html.Events.on "focusout" (fieldEventDecoder eventHandlers)
+    , Html.Events.on "input" (fieldEventDecoder eventHandlers)
     , Attr.id formId
     ]
 
 
 {-| -}
-fieldEventDecoder : Decoder FieldEvent
-fieldEventDecoder =
-    Decode.map4 FieldEvent
+fieldEventDecoder : Dict String (EventInfo -> Maybe String) -> Decoder FieldEvent
+fieldEventDecoder eventHandlers =
+    Decode.map4
+        (\value formId name selection ->
+            { value = value
+            , formId = formId
+            , name = name
+            , selection = selection
+            }
+        )
         inputValueDecoder
         (Decode.at [ "currentTarget", "id" ] Decode.string)
         (Decode.at [ "target", "name" ] Decode.string
@@ -34,7 +43,58 @@ fieldEventDecoder =
                         Decode.succeed name
                 )
         )
-        fieldDecoder
+        selectionDecoder
+        |> Decode.andThen
+            (\partial ->
+                fieldDecoder
+                    |> Decode.map
+                        (\event ->
+                            let
+                                eventInfo : EventInfo
+                                eventInfo =
+                                    case event of
+                                        InputEvent _ ->
+                                            Internal.Field.Input partial.selection
+
+                                        BlurEvent ->
+                                            Internal.Field.Blur partial.value
+
+                                        FocusEvent ->
+                                            Internal.Field.Focus partial.value
+
+                                newValue : Maybe String
+                                newValue =
+                                    Dict.get partial.name eventHandlers
+                                        |> Maybe.andThen (\handler -> handler eventInfo)
+                            in
+                            { value =
+                                case newValue of
+                                    Just formatted ->
+                                        formatted
+
+                                    Nothing ->
+                                        partial.value
+                            , formId = partial.formId
+                            , name = partial.name
+                            , event = event
+                            }
+                        )
+            )
+
+
+{-| Decode selection data (selectionStart and selectionEnd) from the input event.
+On blur events, selectionStart might be null, so we default to 0.
+-}
+selectionDecoder : Decoder Selection
+selectionDecoder =
+    Decode.map2 Selection
+        (Decode.at [ "target", "value" ] Decode.string)
+        (Decode.map2 Tuple.pair
+            (Decode.maybe (Decode.at [ "target", "selectionStart" ] Decode.int)
+                |> Decode.map (Maybe.withDefault 0)
+            )
+            (Decode.maybe (Decode.at [ "target", "selectionEnd" ] Decode.int))
+        )
 
 
 {-| -}

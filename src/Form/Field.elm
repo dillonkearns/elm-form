@@ -6,6 +6,7 @@ module Form.Field exposing
     , withInitialValue, withOptionalInitialValue
     , exactValue
     , required, validateMap, map
+    , formatOnEvent, EventInfo(..)
     , email, password, search, telephone, url, textarea
     , range, withMin, withMax
     , withMinLength, withMaxLength
@@ -48,6 +49,11 @@ module Form.Field exposing
 @docs required, validateMap, map
 
 
+## Event Formatting
+
+@docs formatOnEvent, EventInfo
+
+
 ## Text Field Display Options
 
 @docs email, password, search, telephone, url, textarea
@@ -70,6 +76,7 @@ module Form.Field exposing
 
 import Date exposing (Date)
 import Dict exposing (Dict)
+import Form.Field.Selection exposing (Selection)
 import Form.FieldView exposing (Input)
 import Internal.Field
 import Internal.Input exposing (Options(..))
@@ -267,6 +274,85 @@ required missingError (Internal.Field.Field field kind) =
         , properties =
             ( "required", Encode.bool True ) :: field.properties
         , compare = field.compare
+        , formatOnEvent = field.formatOnEvent
+        }
+        kind
+
+
+{-| The event that triggered a [`formatOnEvent`](#formatOnEvent) callback.
+
+  - `Input` - the user typed or pasted. Carries a [`Selection`](Form-Field-Selection) with the value and cursor position, so you can decide whether to reformat.
+  - `Blur` - the field lost focus. Carries the current value as a `String`. Good place to do cleanup like trimming whitespace.
+  - `Focus` - the field gained focus. Carries the current value as a `String`.
+
+-}
+type EventInfo
+    = Input Selection
+    | Blur String
+    | Focus String
+
+
+{-| Transform a field's value when an event fires. Return `Just newValue` to update, `Nothing` to leave it alone.
+
+For example, formatting an expiration date as the user types (`1225` becomes `12 / 25`):
+
+    import Form.Field as Field exposing (EventInfo(..))
+    import Form.Field.Selection as Selection
+
+    Field.text
+        |> Field.formatOnEvent
+            (\event ->
+                case event of
+                    Input selection ->
+                        if Selection.cursorAtEnd selection then
+                            Just (formatExpDate (Selection.value selection))
+                        else
+                            -- don't reformat while editing the middle
+                            Nothing
+
+                    _ ->
+                        Nothing
+            )
+
+    formatExpDate : String -> String
+    formatExpDate raw =
+        let
+            digits =
+                String.filter Char.isDigit raw
+                    |> String.left 4
+        in
+        if String.length digits > 2 then
+            String.left 2 digits ++ " / " ++ String.dropLeft 2 digits
+        else
+            digits
+
+The [`Selection`](Form-Field-Selection) check matters because reformatting moves the cursor to the
+end. If the user clicks back to fix a typo, you want to leave the value alone until they're
+typing at the end again.
+
+-}
+formatOnEvent : (EventInfo -> Maybe String) -> Field error parsed input initial kind constraints -> Field error parsed input initial kind constraints
+formatOnEvent formatter (Internal.Field.Field field kind) =
+    Internal.Field.Field
+        { field
+            | formatOnEvent =
+                Just
+                    (\internalEvent ->
+                        -- Convert Internal.Field.EventInfo to Form.Field.EventInfo
+                        let
+                            publicEvent =
+                                case internalEvent of
+                                    Internal.Field.Input selection ->
+                                        Input selection
+
+                                    Internal.Field.Blur value ->
+                                        Blur value
+
+                                    Internal.Field.Focus value ->
+                                        Focus value
+                        in
+                        formatter publicEvent
+                    )
         }
         kind
 
@@ -323,6 +409,7 @@ text =
                 )
         , properties = []
         , compare = Basics.compare
+        , formatOnEvent = Nothing
         }
         (Internal.Input.Input Internal.Input.Text)
 
@@ -375,6 +462,7 @@ date toError =
                         Err error ->
                             ( Nothing, [ error ] )
         , properties = []
+        , formatOnEvent = Nothing
         , compare =
             \raw value ->
                 Result.map2 Date.compare
@@ -440,6 +528,7 @@ time toError =
                         Err error ->
                             ( Nothing, [ error ] )
         , properties = []
+        , formatOnEvent = Nothing
         , compare =
             \raw value ->
                 parseTimeOfDay raw
@@ -617,6 +706,7 @@ select optionsMapping invalidError =
                                   ]
                                 )
         , properties = []
+        , formatOnEvent = Nothing
         , compare =
             \_ _ ->
                 -- min/max properties aren't allowed for this field type
@@ -663,6 +753,7 @@ exactValue initialValue error =
                 else
                     ( rawValue, [ error ] )
         , properties = []
+        , formatOnEvent = Nothing
         , compare =
             \_ _ ->
                 -- min/max properties aren't allowed for this field type
@@ -705,6 +796,7 @@ checkbox =
                 , []
                 )
         , properties = []
+        , formatOnEvent = Nothing
         , compare =
             \_ _ ->
                 -- min/max properties aren't allowed for this field type
@@ -762,6 +854,7 @@ int toError =
                             Nothing ->
                                 ( Nothing, [ toError.invalid string ] )
         , properties = []
+        , formatOnEvent = Nothing
         , compare =
             \raw value ->
                 case String.toInt raw of
@@ -823,6 +916,7 @@ float toError =
                             Nothing ->
                                 ( Nothing, [ toError.invalid string ] )
         , properties = []
+        , formatOnEvent = Nothing
         , compare =
             \raw value ->
                 case String.toFloat raw of
@@ -1122,6 +1216,7 @@ validateMap_ mapFn (Internal.Field.Field field kind) =
                                         |> Tuple.mapSecond ((++) errors)
                        )
         , properties = field.properties
+        , formatOnEvent = field.formatOnEvent
         , compare = field.compare
         }
         kind
@@ -1175,6 +1270,7 @@ withMin min error (Internal.Field.Field field kind) =
                                                 ( Just okValue, errors )
                        )
         , properties = ( "min", Encode.string (field.initialToString min) ) :: field.properties
+        , formatOnEvent = field.formatOnEvent
         , compare = field.compare
         }
         kind
@@ -1204,6 +1300,7 @@ withMinLength minLength error (Internal.Field.Field field kind) =
                                         ( Just okValue, error :: errors )
                        )
         , properties = ( "minlength", Encode.string (String.fromInt minLength) ) :: field.properties
+        , formatOnEvent = field.formatOnEvent
         , compare = field.compare
         }
         kind
@@ -1233,6 +1330,7 @@ withMaxLength maxLength error (Internal.Field.Field field kind) =
                                         ( Just okValue, error :: errors )
                        )
         , properties = ( "maxlength", Encode.string (String.fromInt maxLength) ) :: field.properties
+        , formatOnEvent = field.formatOnEvent
         , compare = field.compare
         }
         kind
@@ -1290,6 +1388,7 @@ withMax max error (Internal.Field.Field field kind) =
                                                 ( Just okValue, errors )
                        )
         , properties = ( "max", Encode.string (field.initialToString max) ) :: field.properties
+        , formatOnEvent = field.formatOnEvent
         , compare = field.compare
         }
         kind

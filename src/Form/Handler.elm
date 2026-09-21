@@ -314,7 +314,7 @@ mergeResults :
     -> Validation error parsed unnamed constraints2
 mergeResults parsed =
     let
-        ( Pages.Internal.Form.Validation _ name ( parsedThing, combineErrors ), individualFieldErrors ) =
+        ( Pages.Internal.Form.Validation _ name ( parsedThing, combineErrors ) handlers, individualFieldErrors ) =
             parsed.result
     in
     Pages.Internal.Form.Validation Nothing
@@ -322,10 +322,11 @@ mergeResults parsed =
         ( parsedThing
         , mergeErrors combineErrors individualFieldErrors
         )
+        handlers
 
 
 unwrapValidation : Validation error parsed named constraints -> ( Maybe parsed, Dict String (List error) )
-unwrapValidation (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors )) =
+unwrapValidation (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors ) _) =
     ( maybeParsed, errors )
 
 

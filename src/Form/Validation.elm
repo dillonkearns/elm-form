@@ -78,7 +78,7 @@ type alias Validation error parsed kind constraints =
 {-| Get the `Field`'s name.
 -}
 fieldName : Field error parsed kind -> String
-fieldName (Pages.Internal.Form.Validation _ name _) =
+fieldName (Pages.Internal.Form.Validation _ name _ _) =
     name
         |> Maybe.withDefault ""
 
@@ -86,7 +86,7 @@ fieldName (Pages.Internal.Form.Validation _ name _) =
 {-| Get the `Field`'s [`FieldStatus`](#FieldStatus).
 -}
 fieldStatus : Field error parsed kind -> FieldStatus
-fieldStatus (Pages.Internal.Form.Validation viewField _ _) =
+fieldStatus (Pages.Internal.Form.Validation viewField _ _ _) =
     viewField
         |> Maybe.map .status
         |> Maybe.withDefault 0
@@ -200,7 +200,7 @@ for an example of a common idiom.
 -}
 succeed : parsed -> Validation error parsed kind constraints
 succeed parsed =
-    Pages.Internal.Form.Validation Nothing Nothing ( Just parsed, Dict.empty )
+    Pages.Internal.Form.Validation Nothing Nothing ( Just parsed, Dict.empty ) Dict.empty
 
 
 {-| A `Field` that represents the form as a whole. This is useful for attaching validation errors to the form as a whole rather than to a specific field.
@@ -212,13 +212,14 @@ global =
         ( Just ()
         , Dict.empty
         )
+        Dict.empty
 
 
 {-| Include a fallback value to parse into. Does not remove any previous validation errors that have been encountered
 so it will not effect whether it parses to `Valid` or `Invalid`.
 -}
 withFallback : parsed -> Validation error parsed named constraints -> Validation error parsed named constraints
-withFallback parsed (Pages.Internal.Form.Validation viewField name ( maybeParsed, errors )) =
+withFallback parsed (Pages.Internal.Form.Validation viewField name ( maybeParsed, errors ) handlers) =
     Pages.Internal.Form.Validation viewField
         name
         ( maybeParsed
@@ -226,12 +227,13 @@ withFallback parsed (Pages.Internal.Form.Validation viewField name ( maybeParsed
             |> Just
         , errors
         )
+        handlers
 
 
 {-| Get the parsed value if it is parseable (could be either invalid or valid).
 -}
 value : Validation error parsed named constraint -> Maybe parsed
-value (Pages.Internal.Form.Validation _ _ ( maybeParsed, _ )) =
+value (Pages.Internal.Form.Validation _ _ ( maybeParsed, _ ) _) =
     maybeParsed
 
 
@@ -244,15 +246,15 @@ See [`withError`](#withError) if you want to add an error without short-circuiti
 
 -}
 fail : error -> Field error parsed1 field -> Validation error parsed kind constraints
-fail parsed (Pages.Internal.Form.Validation _ key _) =
-    Pages.Internal.Form.Validation Nothing Nothing ( Nothing, Dict.singleton (key |> Maybe.withDefault "") [ parsed ] )
+fail parsed (Pages.Internal.Form.Validation _ key _ handlers) =
+    Pages.Internal.Form.Validation Nothing Nothing ( Nothing, Dict.singleton (key |> Maybe.withDefault "") [ parsed ] ) handlers
 
 
 {-| Add an error to the given `Field`.
 -}
 withError : Field error parsed1 field -> error -> Validation error parsed2 named constraints -> Validation error parsed2 named constraints
-withError (Pages.Internal.Form.Validation _ key _) error (Pages.Internal.Form.Validation viewField name ( maybeParsedA, errorsA )) =
-    Pages.Internal.Form.Validation viewField name ( maybeParsedA, errorsA |> insertIfNonempty (key |> Maybe.withDefault "") [ error ] )
+withError (Pages.Internal.Form.Validation _ key _ _) error (Pages.Internal.Form.Validation viewField name ( maybeParsedA, errorsA ) handlers) =
+    Pages.Internal.Form.Validation viewField name ( maybeParsedA, errorsA |> insertIfNonempty (key |> Maybe.withDefault "") [ error ] ) handlers
 
 
 {-| Conditionally add an error to the given `Field`.
@@ -275,7 +277,7 @@ withError (Pages.Internal.Form.Validation _ key _) error (Pages.Internal.Form.Va
 
 -}
 withErrorIf : Bool -> Field error ignored field -> error -> Validation error parsed named constraints -> Validation error parsed named constraints
-withErrorIf includeError (Pages.Internal.Form.Validation _ key _) error (Pages.Internal.Form.Validation viewField name ( maybeParsedA, errorsA )) =
+withErrorIf includeError (Pages.Internal.Form.Validation _ key _ _) error (Pages.Internal.Form.Validation viewField name ( maybeParsedA, errorsA ) handlers) =
     Pages.Internal.Form.Validation viewField
         name
         ( maybeParsedA
@@ -285,6 +287,7 @@ withErrorIf includeError (Pages.Internal.Form.Validation _ key _) error (Pages.I
           else
             errorsA
         )
+        handlers
 
 
 {-| Apply a function to the parsed value.
@@ -307,8 +310,8 @@ withErrorIf includeError (Pages.Internal.Form.Validation _ key _) error (Pages.I
 
 -}
 map : (parsed -> mapped) -> Validation error parsed named constraint -> Validation error mapped erasedKind erasedConstraints
-map mapFn (Pages.Internal.Form.Validation _ name ( maybeParsedA, errorsA )) =
-    Pages.Internal.Form.Validation Nothing name ( Maybe.map mapFn maybeParsedA, errorsA )
+map mapFn (Pages.Internal.Form.Validation _ name ( maybeParsedA, errorsA ) handlers) =
+    Pages.Internal.Form.Validation Nothing name ( Maybe.map mapFn maybeParsedA, errorsA ) handlers
 
 
 {-| Resolve a `Result` within a `Field`. If it is `Err`, the error will be added to the `Field`'s errors.
@@ -396,16 +399,16 @@ andMap =
 
 -}
 andThen : (parsed -> Validation error mapped named1 constraints1) -> Validation error parsed named2 constraints2 -> Validation error mapped Never constraintsAny
-andThen andThenFn (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors )) =
+andThen andThenFn (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors ) handlers) =
     case maybeParsed of
         Just parsed ->
             andThenFn parsed
-                |> (\(Pages.Internal.Form.Validation _ _ ( andThenParsed, andThenErrors )) ->
-                        Pages.Internal.Form.Validation Nothing Nothing ( andThenParsed, mergeErrors errors andThenErrors )
+                |> (\(Pages.Internal.Form.Validation _ _ ( andThenParsed, andThenErrors ) andThenHandlers) ->
+                        Pages.Internal.Form.Validation Nothing Nothing ( andThenParsed, mergeErrors errors andThenErrors ) (Dict.union andThenHandlers handlers)
                    )
 
         Nothing ->
-            Pages.Internal.Form.Validation Nothing Nothing ( Nothing, errors )
+            Pages.Internal.Form.Validation Nothing Nothing ( Nothing, errors ) handlers
 
 
 {-| Combine together two `Validation`'s.
@@ -429,12 +432,13 @@ andThen andThenFn (Pages.Internal.Form.Validation _ _ ( maybeParsed, errors )) =
 
 -}
 map2 : (a -> b -> c) -> Validation error a named1 constraints1 -> Validation error b named2 constraints2 -> Validation error c Never constraintsAny
-map2 f (Pages.Internal.Form.Validation _ _ ( maybeParsedA, errorsA )) (Pages.Internal.Form.Validation _ _ ( maybeParsedB, errorsB )) =
+map2 f (Pages.Internal.Form.Validation _ _ ( maybeParsedA, errorsA ) handlersA) (Pages.Internal.Form.Validation _ _ ( maybeParsedB, errorsB ) handlersB) =
     Pages.Internal.Form.Validation Nothing
         Nothing
         ( Maybe.map2 f maybeParsedA maybeParsedB
         , mergeErrors errorsA errorsB
         )
+        (Dict.union handlersA handlersB)
 
 
 {-| -}
