@@ -357,6 +357,7 @@ form combineAndView =
             }
         )
         (\_ -> [])
+        (\_ _ -> Nothing)
 
 
 {-| Allows you to render a Form that renders a sub-form based on the `decider` value.
@@ -477,7 +478,7 @@ dynamic :
             combineAndView
             parsed
             input
-dynamic forms (Internal.Form.Form _ parseFn _) =
+dynamic forms (Internal.Form.Form _ parseFn _ _) =
     Internal.Form.Form
         []
         (\maybeData formState ->
@@ -491,7 +492,7 @@ dynamic forms (Internal.Form.Form _ parseFn _) =
                         }
                 toParser decider =
                     case forms decider of
-                        Internal.Form.Form _ parseFn2 _ ->
+                        Internal.Form.Form _ parseFn2 _ _ ->
                             -- TODO need to include hidden form fields from `definitions` (should they be automatically rendered? Does that mean the view type needs to be hardcoded?)
                             parseFn2 maybeData formState
 
@@ -557,6 +558,7 @@ dynamic forms (Internal.Form.Form _ parseFn _) =
             myFn
         )
         (\_ -> [])
+        (\_ _ -> Nothing)
 
 
 
@@ -651,17 +653,13 @@ field :
     -> Field error parsed input initial kind constraints
     -> Form error (Form.Validation.Field error parsed kind -> combineAndView) parsedCombined input
     -> Form error combineAndView parsedCombined input
-field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form definitions parseFn toInitialValues) =
+field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form definitions parseFn toInitialValues onEventPrevious) =
     Internal.Form.Form
         (( name, Internal.Form.RegularField )
             :: definitions
         )
         (\maybeData formState ->
             let
-                ( maybeParsed, errors ) =
-                    -- @@@@@@ use code from here
-                    fieldParser.decode rawFieldValue
-
                 ( rawFieldValue, fieldStatus ) =
                     case formState.fields |> Dict.get name of
                         Just info ->
@@ -669,6 +667,10 @@ field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form definitio
 
                         Nothing ->
                             ( maybeData |> Maybe.andThen (\data -> fieldParser.initialValue data), Form.FieldStatus.notVisited )
+
+                ( maybeParsed, errors ) =
+                    -- @@@@@@ use code from here
+                    fieldParser.decode rawFieldValue
 
                 thing : Pages.Internal.Form.ViewField kind
                 thing =
@@ -718,6 +720,18 @@ field name (Internal.Field.Field fieldParser kind) (Internal.Form.Form definitio
                 Nothing ->
                     toInitialValues input
         )
+        (\fieldName eventInfo ->
+            if fieldName == name then
+                case fieldParser.formatOnEvent of
+                    Just formatter ->
+                        formatter eventInfo
+
+                    Nothing ->
+                        Nothing
+
+            else
+                onEventPrevious fieldName eventInfo
+        )
 
 
 {-| Declare a hidden field for the form.
@@ -749,16 +763,13 @@ hiddenField :
     -> Field error parsed input initial kind constraints
     -> Form error (Form.Validation.Field error parsed Form.FieldView.Hidden -> combineAndView) parsedCombined input
     -> Form error combineAndView parsedCombined input
-hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form definitions parseFn toInitialValues) =
+hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form definitions parseFn toInitialValues onEventPrevious) =
     Internal.Form.Form
         (( name, Internal.Form.HiddenField )
             :: definitions
         )
         (\maybeData formState ->
             let
-                ( maybeParsed, errors ) =
-                    fieldParser.decode rawFieldValue
-
                 ( rawFieldValue, fieldStatus ) =
                     case formState.fields |> Dict.get name of
                         Just info ->
@@ -766,6 +777,9 @@ hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form defini
 
                         Nothing ->
                             ( maybeData |> Maybe.andThen (\data -> fieldParser.initialValue data), Form.FieldStatus.notVisited )
+
+                ( maybeParsed, errors ) =
+                    fieldParser.decode rawFieldValue
 
                 thing : Pages.Internal.Form.ViewField Form.FieldView.Hidden
                 thing =
@@ -815,6 +829,18 @@ hiddenField name (Internal.Field.Field fieldParser _) (Internal.Form.Form defini
                 Nothing ->
                     toInitialValues input
         )
+        (\fieldName eventInfo ->
+            if fieldName == name then
+                case fieldParser.formatOnEvent of
+                    Just formatter ->
+                        formatter eventInfo
+
+                    Nothing ->
+                        Nothing
+
+            else
+                onEventPrevious fieldName eventInfo
+        )
 
 
 {-| Like [`hiddenField`](#hiddenField), but uses a hardcoded value. This is useful to ensure that your [`Form.Handler`](Form-Handler)
@@ -841,7 +867,7 @@ hiddenKind :
     -> error
     -> Form error combineAndView parsed input
     -> Form error combineAndView parsed input
-hiddenKind ( name, value ) error_ (Internal.Form.Form definitions parseFn toInitialValues) =
+hiddenKind ( name, value ) error_ (Internal.Form.Form definitions parseFn toInitialValues onEventPrevious) =
     let
         (Internal.Field.Field fieldParser _) =
             Field.exactValue value error_
@@ -889,6 +915,18 @@ hiddenKind ( name, value ) error_ (Internal.Form.Form definitions parseFn toInit
         (\input ->
             ( name, Just value )
                 :: toInitialValues input
+        )
+        (\fieldName eventInfo ->
+            if fieldName == name then
+                case fieldParser.formatOnEvent of
+                    Just formatter ->
+                        formatter eventInfo
+
+                    Nothing ->
+                        Nothing
+
+            else
+                onEventPrevious fieldName eventInfo
         )
 
 
@@ -980,7 +1018,7 @@ parse :
     -> input
     -> Form error { info | combine : Validation error parsed named constraints } parsed input
     -> Validated error parsed
-parse formId state input (Internal.Form.Form _ parser _) =
+parse formId state input (Internal.Form.Form _ parser _ _) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
@@ -1148,7 +1186,7 @@ renderHelper :
             parsed
             input
     -> Html mappedMsg
-renderHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_) =
+renderHelper formState options_ attrs ((Internal.Form.Form _ _ _ onEventFn) as form_) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
@@ -1160,7 +1198,7 @@ renderHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_) =
             Html.input hiddenAttrs []
     in
     Html.form
-        ((Form.listeners options_.id
+        ((Form.listeners options_.id onEventFn
             |> List.map (Attr.map (Internal.FieldEvent.FormFieldEvent >> formState.toMsg))
          )
             ++ [ Attr.method (methodToString options_.method)
@@ -1225,7 +1263,7 @@ renderStyledHelper :
             parsed
             input
     -> Html.Styled.Html mappedMsg
-renderStyledHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_) =
+renderStyledHelper formState options_ attrs ((Internal.Form.Form _ _ _ onEventFn) as form_) =
     -- TODO Get transition context from `app` so you can check if the current form is being submitted
     -- TODO either as a transition or a fetcher? Should be easy enough to check for the `id` on either of those?
     let
@@ -1237,7 +1275,7 @@ renderStyledHelper formState options_ attrs ((Internal.Form.Form _ _ _) as form_
             Html.Styled.input (hiddenAttrs |> List.map StyledAttr.fromUnstyled) []
     in
     Html.Styled.form
-        ((Form.listeners options_.id
+        ((Form.listeners options_.id onEventFn
             |> List.map (Attr.map (Internal.FieldEvent.FormFieldEvent >> formState.toMsg))
             |> List.map StyledAttr.fromUnstyled
          )
@@ -1305,7 +1343,7 @@ helperValues :
             parsed
             input
     -> { hiddenInputs : List view, children : List view, isValid : Bool, parsed : Maybe parsed, fields : List ( String, String ), errors : Dict String (List error) }
-helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitions parser toInitialValues) =
+helperValues options_ toHiddenInput formState (Internal.Form.Form fieldDefinitions parser toInitialValues _) =
     let
         initialValues : Dict String FieldState
         initialValues =
@@ -1708,7 +1746,7 @@ updateForm fieldEvent formState =
                         (case fieldEvent.event of
                             InputEvent newValue ->
                                 { previousValue
-                                    | value = newValue
+                                    | value = fieldEvent.value
                                     , status = previousValue.status |> increaseStatusTo Form.Validation.Changed
                                 }
 
@@ -1720,7 +1758,10 @@ updateForm fieldEvent formState =
                                 }
 
                             BlurEvent ->
-                                { previousValue | status = previousValue.status |> increaseStatusTo Form.Validation.Blurred }
+                                { previousValue
+                                    | status = previousValue.status |> increaseStatusTo Form.Validation.Blurred
+                                    , value = fieldEvent.value
+                                }
                         )
                             |> Just
                     )
